@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Legacy colors for compatibility -->
+    <color name="purple_200">#FFBB86FC</color>
+    <color name="purple_500">#FF6200EE</color>
+    <color name="purple_700">#FF3700B3</color>
+    <color name="teal_200">#FF03DAC5</color>
+    <color name="teal_700">#FF018786</color>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+    
+    <!-- Material Design 3 Light Theme Colors -->
+    <color name="md_theme_light_primary">#FF6750A4</color>
+    <color name="md_theme_light_onPrimary">#FFFFFFFF</color>
+    <color name="md_theme_light_primaryContainer">#FFEADDFF</color>
+    <color name="md_theme_light_onPrimaryContainer">#FF21005D</color>
+    <color name="md_theme_light_secondary">#FF625B71</color>
+    <color name="md_theme_light_onSecondary">#FFFFFFFF</color>
+    <color name="md_theme_light_secondaryContainer">#FFE8DEF8</color>
+    <color name="md_theme_light_onSecondaryContainer">#FF1D192B</color>
+    <color name="md_theme_light_tertiary">#FF7D5260</color>
+    <color name="md_theme_light_onTertiary">#FFFFFFFF</color>
+    <color name="md_theme_light_tertiaryContainer">#FFFFD8E4</color>
+    <color name="md_theme_light_onTertiaryContainer">#FF31111D</color>
+    <color name="md_theme_light_surface">#FFFEF7FF</color>
+    <color name="md_theme_light_onSurface">#FF1D1B20</color>
+    <color name="md_theme_light_surfaceVariant">#FFE7E0EC</color>
+    <color name="md_theme_light_onSurfaceVariant">#FF49454F</color>
+    <color name="md_theme_light_outline">#FF79747E</color>
+    <color name="md_theme_light_outlineVariant">#FFCAC4D0</color>
+    <color name="md_theme_light_error">#FFBA1A1A</color>
+    <color name="md_theme_light_onError">#FFFFFFFF</color>
+    <color name="md_theme_light_errorContainer">#FFFFDAD6</color>
+    <color name="md_theme_light_onErrorContainer">#FF410002</color>
+    
+    <!-- Material Design 3 Dark Theme Colors -->
+    <color name="md_theme_dark_primary">#FFD0BCFF</color>
+    <color name="md_theme_dark_onPrimary">#FF381E72</color>
+    <color name="md_theme_dark_primaryContainer">#FF4F378B</color>
+    <color name="md_theme_dark_onPrimaryContainer">#FFEADDFF</color>
+    <color name="md_theme_dark_secondary">#FFCCC2DC</color>
+    <color name="md_theme_dark_onSecondary">#FF332D41</color>
+    <color name="md_theme_dark_secondaryContainer">#FF494458</color>
+    <color name="md_theme_dark_onSecondaryContainer">#FFE8DEF8</color>
+    <color name="md_theme_dark_tertiary">#FFEFB3C8</color>
+    <color name="md_theme_dark_onTertiary">#FF492532</color>
+    <color name="md_theme_dark_tertiaryContainer">#FF633B48</color>
+    <color name="md_theme_dark_onTertiaryContainer">#FFFFD8E4</color>
+    <color name="md_theme_dark_surface">#FF121212</color>
+    <color name="md_theme_dark_onSurface">#FFE6E1E5</color>
+    <color name="md_theme_dark_surfaceVariant">#FF49454F</color>
+    <color name="md_theme_dark_onSurfaceVariant">#FFCAC4D0</color>
+    <color name="md_theme_dark_outline">#FF938F99</color>
+    <color name="md_theme_dark_outlineVariant">#FF49454F</color>
+    <color name="md_theme_dark_error">#FFFFB4AB</color>
+    <color name="md_theme_dark_onError">#FF690005</color>
+    <color name="md_theme_dark_errorContainer">#FF93000A</color>
+    <color name="md_theme_dark_onErrorContainer">#FFFFDAD6</color>
+    
+    <!-- Custom colors for analytics and status -->
+    <color name="error_red">#FFD32F2F</color>
+    <color name="warning_orange">#FFFF9800</color>
+    <color name="success_green">#FF4CAF50</color>
+    <color name="info_blue">#FF2196F3</color>
+    
+    <!-- SMS status colors -->
+    <color name="sms_sent">#FF4CAF50</color>
+    <color name="sms_pending">#FFFF9800</color>
+    <color name="sms_failed">#FFF44336</color>
+    <color name="sms_delivered">#FF2196F3</color>
+</resources>

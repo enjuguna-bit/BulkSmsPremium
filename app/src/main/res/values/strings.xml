@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Bulk SMS Manager</string>
+    <string name="search_hint">Search messages...</string>
+    <string name="filter_all">All</string>
+    <string name="filter_inbox">Inbox</string>
+    <string name="filter_sent">Sent</string>
+    <string name="filter_unread">Unread</string>
+    <string name="total_messages">Total: %d</string>
+    <string name="unread_messages">Unread: %d</string>
+    <string name="no_messages_found">No messages found</string>
+    <string name="try_adjusting_search">Try adjusting your search or filters</string>
+    <string name="message_options">Message Options</string>
+    <string name="delete_message">Delete Message</string>
+    <string name="delete_confirmation">Are you sure you want to delete this message?</string>
+    <string name="delete">Delete</string>
+    <string name="cancel">Cancel</string>
+    <string name="mark_as_unread">Mark as unread</string>
+    <string name="copy_text">Copy text</string>
+    <string name="forward_message">Forward message</string>
+    <string name="message_copied">Message copied</string>
+    <string name="marked_as_unread">Marked as unread</string>
+    <string name="messages_synced">Messages synced</string>
+    <string name="sync_failed">Sync failed: %s</string>
+    <string name="failed_to_mark_as_read">Failed to mark as read: %s</string>
+    <string name="failed_to_mark_as_unread">Failed to mark as unread: %s</string>
+    <string name="failed_to_delete">Failed to delete: %s</string>
+    <string name="open_chat_with">Open chat with %s</string>
+    <string name="forward_functionality_todo">Forward functionality - TODO</string>
+    <string name="retry">Retry</string>
+</resources>

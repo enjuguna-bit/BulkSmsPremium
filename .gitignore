@@ -1,0 +1,145 @@
+# Built application files
+*.apk
+*.aar
+*.ap_
+*.aab
+
+# Files for the ART/Dalvik VM
+*.dex
+
+# Java class files
+*.class
+
+# Generated files
+bin/
+gen/
+out/
+release/
+app/release/
+app/debug/
+
+# Gradle files
+.gradle/
+build/
+*/build/
+!src/**/build/
+
+# Local configuration file (sdk path, etc)
+local.properties
+*.properties
+!gradle.properties
+
+# Android Studio / IntelliJ IDEA
+*.iml
+.idea/
+.idea_modules/
+*.ipr
+*.iws
+.idea/workspace.xml
+.idea/tasks.xml
+.idea/gradle.xml
+.idea/assetWizardSettings.xml
+.idea/dictionaries
+.idea/libraries
+.idea/jarRepositories.xml
+.idea/caches
+.idea/modules.xml
+.idea/.name
+.idea/compiler.xml
+.idea/misc.xml
+.idea/vcs.xml
+.idea/shelf/
+
+# Keystore files - CRITICAL: Never commit these!
+*.jks
+*.keystore
+*.key
+*.p12
+*.pfx
+
+# Signing files
+signing.properties
+keystore.properties
+
+# External native build folder generated in Android Studio 2.2 and later
+.externalNativeBuild
+.cxx/
+
+# Google Services (e.g. APIs or Firebase)
+google-services.json
+google-services.json.bak
+
+# Freeline
+freeline.py
+freeline/
+freeline_project_description.json
+
+# fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots
+fastlane/test_output
+fastlane/readme.md
+
+# Version control
+vcs.xml
+
+# lint
+lint/intermediates/
+lint/generated/
+lint/outputs/
+lint/tmp/
+*.lint
+
+# Android Profiling
+*.hprof
+
+# Mac
+.DS_Store
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*~
+.*.sw?
+
+# OS-specific
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+
+# Backup files
+*.bak
+*.backup
+
+# Build output logs
+build_output*.txt
+build_error_log.txt
+
+# Temporary JAR files
+temp_jar.jar
+
+# Gradle wrapper (optional - some teams commit this)
+# gradle-wrapper.jar
+# gradle-wrapper.properties
+
+# NDK
+obj/
+.externalNativeBuild/
+
+# Android Studio will place build artifacts here
+/android/app/debug
+/android/app/profile
+/android/app/release

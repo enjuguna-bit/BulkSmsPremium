@@ -1,0 +1,276 @@
+plugins {
+    id 'com.android.application'
+    id 'org.jetbrains.kotlin.android'
+    id 'kotlin-kapt'
+    id 'kotlin-parcelize'
+    id 'androidx.navigation.safeargs.kotlin'
+    id 'dagger.hilt.android.plugin'
+    // id 'com.google.gms.google-services'
+    // id 'com.google.firebase.crashlytics'
+    // id 'com.google.firebase.firebase-perf'
+}
+
+android {
+    namespace 'com.bulksms.smsmanager'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "com.bulksms.smsmanager"
+        minSdk 26
+        targetSdk 34
+        versionCode 1
+        versionName "1.0"
+
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        
+        // Enable vector drawables
+        vectorDrawables.useSupportLibrary = true
+        
+        // Multi-dex support
+        multiDexEnabled true
+        
+
+        multiDexKeepProguard = file('multidex-config.pro')
+        
+        // Enable R8 full mode for better code shrinking
+        proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        
+
+    signingConfigs {
+        release {
+            if (project.hasProperty('MYAPP_UPLOAD_STORE_FILE')) {
+                storeFile file(MYAPP_UPLOAD_STORE_FILE)
+                storePassword MYAPP_UPLOAD_STORE_PASSWORD
+                keyAlias MYAPP_UPLOAD_KEY_ALIAS
+                keyPassword MYAPP_UPLOAD_KEY_PASSWORD
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            shrinkResources false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.release
+            
+            // Optimize for release
+            debuggable false
+            jniDebuggable false
+            renderscriptDebuggable false
+            pseudoLocalesEnabled false
+            zipAlignEnabled true
+            
+            // R8 configuration
+            crunchPngs = true
+            
+            // Disable PNG crunching for debug builds to improve build speed
+            crunchPngs = false
+        }
+        debug {
+            minifyEnabled false
+            debuggable true
+            applicationIdSuffix ".debug"
+            versionNameSuffix "-DEBUG"
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+        coreLibraryDesugaringEnabled true
+    }
+
+    kotlinOptions {
+        jvmTarget = '17'
+        freeCompilerArgs += [
+            "-opt-in=kotlin.RequiresOptIn",
+            "-Xinline-classes"
+        ]
+    }
+
+    buildFeatures {
+        viewBinding true
+        dataBinding true
+        // buildConfig true - deprecated, using Gradle build files instead
+    }
+
+    packagingOptions {
+        resources {
+            excludes += ['META-INF/DEPENDENCIES',
+                       'META-INF/LICENSE',
+                       'META-INF/LICENSE.txt',
+                       'META-INF/license.txt',
+                       'META-INF/NOTICE',
+                       'META-INF/NOTICE.txt',
+                       'META-INF/notice.txt',
+                       'META-INF/ASL2.0',
+                       'META-INF/*.kotlin_module',
+                       'META-INF/AL2.0',
+                       'META-INF/LGPL2.1',
+                       'META-INF/INDEX.LIST']
+        }
+    }
+    }
+
+    // Memory allocation for Java compilation
+    java {
+        toolchain {
+            languageVersion = JavaLanguageVersion.of(17)
+        }
+    }
+    
+    // Increase JVM memory for compilation
+    tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
+        kotlinOptions {
+            jvmTarget = '17'
+            freeCompilerArgs += [
+                "-Xjvm-default=all",
+                "-opt-in=kotlin.RequiresOptIn"
+            ]
+        }
+    }
+
+    // Split APKs
+    splits {
+        abi {
+            enable false
+            reset()
+            include 'armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64'
+            universalApk false
+        }
+    }
+}
+
+dependencies {
+    // Enable core library desugaring
+    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.0.4'
+    
+    def core_ktx_version = "1.12.0"
+    def appcompat_version = "1.6.1"
+    def material_version = "1.11.0"
+    def constraintlayout_version = "2.1.4"
+    def recyclerview_version = "1.3.2"
+    def cardview_version = "1.0.0"
+    def swiperefresh_version = "1.1.0"
+    def lifecycle_version = "2.7.0"
+    def navigation_version = "2.7.5"
+    def room_version = "2.6.1"
+    def hilt_version = "2.51.1"
+    def retrofit_version = "2.9.0"
+    def okhttp_version = "4.12.0"
+    def coroutines_version = "1.7.3"
+    def work_version = "2.9.0"
+    def paging_version = "3.3.2"
+    def security_version = "1.1.0-alpha06"
+    def glide_version = "4.16.0"
+    def pdfbox_version = "2.0.27.0"
+    def poi_version = "5.2.4"
+    def biometric_version = "1.1.0"
+    def billing_version = "6.1.0"
+    def easypermissions_version = "3.0.0"
+    def opencsv_version = "5.8"
+
+    // Firebase BoM
+    implementation platform('com.google.firebase:firebase-bom:33.1.0')
+    
+    // Firebase services
+    implementation 'com.google.firebase:firebase-analytics'
+    implementation 'com.google.firebase:firebase-crashlytics'
+    implementation 'com.google.firebase:firebase-firestore'
+    implementation 'com.google.firebase:firebase-storage'
+    implementation 'com.google.firebase:firebase-auth'
+    implementation 'com.google.firebase:firebase-config'
+    implementation 'com.google.firebase:firebase-messaging'
+    implementation 'com.google.firebase:firebase-perf'
+    implementation 'com.google.firebase:firebase-functions'
+
+    // AndroidX Core
+    implementation "androidx.core:core-ktx:$core_ktx_version"
+    implementation "androidx.appcompat:appcompat:$appcompat_version"
+    implementation "com.google.android.material:material:$material_version"
+    implementation "androidx.constraintlayout:constraintlayout:$constraintlayout_version"
+    implementation "androidx.recyclerview:recyclerview:$recyclerview_version"
+    implementation "androidx.cardview:cardview:$cardview_version"
+    implementation "androidx.swiperefreshlayout:swiperefreshlayout:$swiperefresh_version"
+
+    // Lifecycle components
+    implementation "androidx.lifecycle:lifecycle-viewmodel-ktx:$lifecycle_version"
+    implementation "androidx.lifecycle:lifecycle-livedata-ktx:$lifecycle_version"
+    implementation "androidx.lifecycle:lifecycle-runtime-ktx:$lifecycle_version"
+    implementation "androidx.lifecycle:lifecycle-service:$lifecycle_version"
+    implementation "androidx.lifecycle:lifecycle-process:$lifecycle_version"
+
+    // Navigation
+    implementation "androidx.navigation:navigation-fragment-ktx:$navigation_version"
+    implementation "androidx.navigation:navigation-ui-ktx:$navigation_version"
+
+    // Room Database
+    implementation "androidx.room:room-runtime:$room_version"
+    implementation "androidx.room:room-ktx:$room_version"
+    implementation "androidx.room:room-paging:$room_version"
+    implementation "androidx.room:room-rxjava3:$room_version"
+    kapt "androidx.room:room-compiler:$room_version"
+
+    // Paging 3
+    implementation "androidx.paging:paging-runtime-ktx:$paging_version"
+
+    // Hilt Dependency Injection
+    implementation "com.google.dagger:hilt-android:$hilt_version"
+    kapt "com.google.dagger:hilt-compiler:$hilt_version"
+
+    // Network
+    implementation "com.squareup.retrofit2:retrofit:$retrofit_version"
+    implementation "com.squareup.retrofit2:converter-gson:$retrofit_version"
+    implementation "com.squareup.okhttp3:okhttp:$okhttp_version"
+    implementation "com.squareup.okhttp3:logging-interceptor:$okhttp_version"
+
+    // Coroutines
+    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutines_version"
+    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:$coroutines_version"
+    
+    // RxJava3
+    implementation 'io.reactivex.rxjava3:rxjava:3.1.8'
+    implementation 'io.reactivex.rxjava3:rxandroid:3.0.2'
+
+    // Work Manager
+    implementation "androidx.work:work-runtime-ktx:$work_version"
+
+    // Permissions
+    implementation "pub.devrel:easypermissions:$easypermissions_version"
+
+    // File operations
+    implementation "org.apache.poi:poi:$poi_version"
+    implementation "org.apache.poi:poi-ooxml:$poi_version"
+    implementation "com.opencsv:opencsv:$opencsv_version"
+
+    // PDF processing
+    implementation "com.tom-roush:pdfbox-android:$pdfbox_version"
+
+    // Image loading
+    implementation "com.github.bumptech.glide:glide:$glide_version"
+    kapt "com.github.bumptech.glide:compiler:$glide_version"
+
+    // Biometric
+    implementation "androidx.biometric:biometric:$biometric_version"
+
+    // Security
+    implementation "androidx.security:security-crypto:$security_version"
+
+    // Billing
+    implementation "com.android.billingclient:billing-ktx:$billing_version"
+
+    // Additional utilities
+    implementation 'androidx.multidex:multidex:2.0.1'
+    implementation 'androidx.preference:preference-ktx:1.2.1'
+    implementation 'androidx.browser:browser:1.7.0'
+
+    // Testing
+    testImplementation 'junit:junit:4.13.2'
+    testImplementation "org.mockito:mockito-core:5.7.0"
+    testImplementation "org.jetbrains.kotlinx:kotlinx-coroutines-test:$coroutines_version"
+    androidTestImplementation 'androidx.test.ext:junit:1.1.5'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
+    androidTestImplementation 'androidx.test:runner:1.5.2'
+    androidTestImplementation 'androidx.test:rules:1.5.0'
+}

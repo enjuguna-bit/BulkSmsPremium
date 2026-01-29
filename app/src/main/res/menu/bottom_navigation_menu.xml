@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item
+        android:id="@+id/nav_dashboard"
+        android:icon="@drawable/ic_message_empty"
+        android:title="Dashboard" />
+
+    <item
+        android:id="@+id/nav_inbox"
+        android:icon="@drawable/ic_message_empty"
+        android:title="Inbox" />
+
+    <item
+        android:id="@+id/nav_send"
+        android:icon="@drawable/ic_person"
+        android:title="Send SMS" />
+
+    <item
+        android:id="@+id/nav_bulk"
+        android:icon="@drawable/ic_person"
+        android:title="Bulk SMS" />
+
+    <item
+        android:id="@+id/nav_settings"
+        android:icon="@drawable/ic_person"
+        android:title="Settings" />
+
+</menu>

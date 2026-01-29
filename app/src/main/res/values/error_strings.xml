@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Error messages -->
+    <string name="error_no_service">No cellular service available. Please check your signal strength.</string>
+    <string name="error_airplane_mode">Airplane mode is enabled. Please disable it to send SMS.</string>
+    <string name="error_rate_limit">SMS sending limit reached. Please wait before sending more messages.</string>
+    <string name="error_invalid_number">Invalid phone number. Please check and try again.</string>
+    <string name="error_permission_denied">SMS permission denied. Please grant permission in settings.</string>
+    <string name="error_network">Network error occurred. Please check your connection.</string>
+    <string name="error_memory">Insufficient memory. Please free up space and try again.</string>
+    <string name="error_unknown">An unexpected error occurred. Please try again.</string>
+    
+    <!-- Suggested actions -->
+    <string name="action_check_signal">Check signal strength</string>
+    <string name="action_disable_airplane">Disable airplane mode</string>
+    <string name="action_wait_retry">Wait and retry</string>
+    <string name="action_check_number">Check phone number</string>
+    <string name="action_grant_permissions">Grant permissions</string>
+    <string name="action_check_connection">Check network connection</string>
+    <string name="action_free_memory">Free up memory</string>
+    <string name="action_contact_support">Contact support</string>
+    
+    <!-- Error dialog titles -->
+    <string name="error_dialog_title">Message Not Sent</string>
+    <string name="error_retry_title">Retry Sending?</string>
+    <string name="error_permission_title">Permission Required</string>
+    
+    <!-- Error dialog messages -->
+    <string name="error_retry_message">The message failed to send. Would you like to try again?</string>
+    <string name="error_permission_message">SMS permission is required to send messages. Please enable it in your device settings.</string>
+    
+    <!-- Error dialog buttons -->
+    <string name="button_retry">Retry</string>
+    <string name="button_cancel">Cancel</string>
+    <string name="button_settings">Settings</string>
+    <string name="button_ok">OK</string>
+</resources>
