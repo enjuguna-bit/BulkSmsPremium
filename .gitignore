@@ -143,3 +143,12 @@ obj/
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Large gradle distributions and files
+gradle-*/
+*.zip
+
+# Build logs and temporary files
+*.txt
+!gradle.properties
+!README.md
