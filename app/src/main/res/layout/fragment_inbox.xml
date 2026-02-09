@@ -4,12 +4,64 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/swipeRefresh"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:background="@drawable/bg_dashboard_gradient">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical">
+
+        <!-- Header -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_marginEnd="16dp"
+            android:layout_marginTop="16dp"
+            android:layout_marginBottom="8dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/inbox_title"
+                    android:textSize="22sp"
+                    android:textStyle="bold"
+                    android:textColor="#0F172A" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/inbox_subtitle"
+                    android:textSize="13sp"
+                    android:textColor="#475569"
+                    android:layout_marginTop="4dp" />
+
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/txtInboxBadge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/inbox_badge"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:textColor="#2B1A00"
+                android:background="@drawable/bg_premium_badge"
+                android:paddingStart="10dp"
+                android:paddingEnd="10dp"
+                android:paddingTop="6dp"
+                android:paddingBottom="6dp" />
+
+        </LinearLayout>
 
         <!-- Search Bar -->
         <androidx.appcompat.widget.SearchView
@@ -17,10 +69,10 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_margin="16dp"
-            android:background="@drawable/search_background"
+            android:background="@drawable/bg_search_premium"
             android:elevation="4dp"
             app:iconifiedByDefault="false"
-            app:queryHint="Search messages..." />
+            app:queryHint="@string/search_hint" />
 
         <!-- Filter Chips -->
         <HorizontalScrollView
@@ -37,7 +89,8 @@
                 android:layout_height="wrap_content"
                 app:singleLine="true"
                 app:selectionRequired="true"
-                app:singleSelection="true">
+                app:singleSelection="true"
+                app:chipSpacingHorizontal="8dp">
 
                 <com.google.android.material.chip.Chip
                     android:id="@+id/chipAll"
@@ -45,62 +98,96 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:checked="true"
-                    android:text="All" />
+                    android:text="All"
+                    app:chipBackgroundColor="#F7FAFF"
+                    app:chipCornerRadius="14dp"
+                    app:chipStrokeColor="#D6E4FF"
+                    app:chipStrokeWidth="1dp"
+                    app:checkedIconVisible="false" />
 
                 <com.google.android.material.chip.Chip
                     android:id="@+id/chipInbox"
                     style="@style/Widget.MaterialComponents.Chip.Choice"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Inbox" />
+                    android:text="Inbox"
+                    app:chipBackgroundColor="#F7FAFF"
+                    app:chipCornerRadius="14dp"
+                    app:chipStrokeColor="#D6E4FF"
+                    app:chipStrokeWidth="1dp"
+                    app:checkedIconVisible="false" />
 
                 <com.google.android.material.chip.Chip
                     android:id="@+id/chipSent"
                     style="@style/Widget.MaterialComponents.Chip.Choice"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Sent" />
+                    android:text="Sent"
+                    app:chipBackgroundColor="#F7FAFF"
+                    app:chipCornerRadius="14dp"
+                    app:chipStrokeColor="#D6E4FF"
+                    app:chipStrokeWidth="1dp"
+                    app:checkedIconVisible="false" />
 
                 <com.google.android.material.chip.Chip
                     android:id="@+id/chipUnread"
                     style="@style/Widget.MaterialComponents.Chip.Choice"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Unread" />
+                    android:text="Unread"
+                    app:chipBackgroundColor="#F7FAFF"
+                    app:chipCornerRadius="14dp"
+                    app:chipStrokeColor="#D6E4FF"
+                    app:chipStrokeWidth="1dp"
+                    app:checkedIconVisible="false" />
 
             </com.google.android.material.chip.ChipGroup>
 
         </HorizontalScrollView>
 
         <!-- Statistics -->
-        <LinearLayout
+        <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginStart="16dp"
             android:layout_marginEnd="16dp"
             android:layout_marginBottom="8dp"
-            android:orientation="horizontal">
+            app:cardCornerRadius="16dp"
+            app:cardElevation="4dp"
+            app:cardUseCompatPadding="true"
+            app:strokeColor="#E3ECFF"
+            app:strokeWidth="1dp"
+            app:cardBackgroundColor="#FFFFFF">
 
-            <TextView
-                android:id="@+id/tvTotalCount"
-                android:layout_width="0dp"
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Total: 0"
-                android:textSize="14sp"
-                android:textStyle="bold" />
+                android:orientation="horizontal"
+                android:padding="12dp">
 
-            <TextView
-                android:id="@+id/tvUnreadCount"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Unread: 0"
-                android:textColor="@color/design_default_color_primary"
-                android:textSize="14sp"
-                android:textStyle="bold" />
+                <TextView
+                    android:id="@+id/tvTotalCount"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Total: 0"
+                    android:textColor="#0F172A"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
 
-        </LinearLayout>
+                <TextView
+                    android:id="@+id/tvUnreadCount"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Unread: 0"
+                    android:textColor="#1E3A8A"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+            </LinearLayout>
+
+        </com.google.android.material.card.MaterialCardView>
 
         <!-- Messages List -->
         <FrameLayout
@@ -112,9 +199,33 @@
                 android:id="@+id/recyclerView"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
+                android:background="@drawable/bg_activity_list"
                 android:clipToPadding="false"
                 android:paddingTop="8dp"
                 android:paddingBottom="8dp" />
+
+            <!-- Shimmer Loading Container -->
+            <com.facebook.shimmer.ShimmerFrameLayout
+                android:id="@+id/shimmerContainer"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:visibility="gone">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:orientation="vertical">
+
+                    <!-- Add multiple shimmer items for better effect -->
+                    <include layout="@layout/item_conversation_shimmer" />
+                    <include layout="@layout/item_conversation_shimmer" />
+                    <include layout="@layout/item_conversation_shimmer" />
+                    <include layout="@layout/item_conversation_shimmer" />
+                    <include layout="@layout/item_conversation_shimmer" />
+
+                </LinearLayout>
+
+            </com.facebook.shimmer.ShimmerFrameLayout>
 
             <!-- Progress Bar -->
             <ProgressBar
@@ -135,29 +246,40 @@
                 android:visibility="gone">
 
                 <ImageView
+                    android:id="@+id/ivEmptyIcon"
                     android:layout_width="80dp"
                     android:layout_height="80dp"
                     android:alpha="0.5"
                     android:src="@drawable/ic_message_empty"
-                    app:tint="@android:color/darker_gray" />
+                    app:tint="#94A3B8" />
 
                 <TextView
+                    android:id="@+id/tvEmptyTitle"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="16dp"
                     android:gravity="center"
                     android:text="No messages found"
-                    android:textColor="@android:color/darker_gray"
+                    android:textColor="#64748B"
                     android:textSize="16sp" />
 
                 <TextView
+                    android:id="@+id/tvEmptySubtitle"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
                     android:gravity="center"
                     android:text="Try adjusting your search or filters"
-                    android:textColor="@android:color/darker_gray"
+                    android:textColor="#64748B"
                     android:textSize="14sp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnEmptyAction"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:visibility="gone"
+                    android:text="Action" />
 
             </LinearLayout>
 

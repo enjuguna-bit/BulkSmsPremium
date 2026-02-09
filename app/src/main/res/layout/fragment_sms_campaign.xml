@@ -3,7 +3,8 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:background="@drawable/bg_dashboard_gradient">
 
     <androidx.core.widget.NestedScrollView
         android:id="@+id/nestedScrollView"
@@ -21,33 +22,82 @@
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
-                app:cardCornerRadius="12dp"
-                app:cardElevation="4dp">
+                android:layout_marginBottom="@dimen/spacing_medium"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="6dp"
+                app:cardUseCompatPadding="true"
+                app:strokeColor="#E3ECFF"
+                app:strokeWidth="1dp"
+                app:cardBackgroundColor="#FFFFFF">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:padding="16dp">
+                    android:padding="@dimen/spacing_medium">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:layout_marginBottom="@dimen/spacing_small">
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical">
+
+                            <ImageView
+                                android:layout_width="@dimen/icon_medium"
+                                android:layout_height="@dimen/icon_medium"
+                                android:src="@drawable/ic_campaign"
+                                app:tint="#1E3A8A"
+                                android:layout_marginEnd="@dimen/spacing_small"
+                                android:contentDescription="@null" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/bulk_sms_title"
+                                android:textSize="@dimen/text_xlarge"
+                                android:textStyle="bold"
+                                android:textColor="#0F172A" />
+                        </LinearLayout>
+
+                        <TextView
+                            android:id="@+id/txtBulkBadge"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/bulk_sms_badge"
+                            android:textSize="11sp"
+                            android:textStyle="bold"
+                            android:textColor="#2B1A00"
+                            android:background="@drawable/bg_premium_badge"
+                            android:paddingStart="10dp"
+                            android:paddingEnd="10dp"
+                            android:paddingTop="6dp"
+                            android:paddingBottom="6dp" />
+                    </LinearLayout>
 
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="📱 Bulk SMS Campaign"
-                        android:textSize="20sp"
-                        android:textStyle="bold"
-                        android:gravity="center"
-                        android:layout_marginBottom="8dp" />
+                        android:text="@string/bulk_sms_subtitle"
+                        android:textSize="13sp"
+                        android:textColor="#475569"
+                        android:layout_marginBottom="@dimen/spacing_small" />
 
                     <TextView
                         android:id="@+id/txtRecipientCount"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="📋 Recipients: 0"
-                        android:textSize="14sp"
+                        android:text="@string/bulk_sms_recipients_format"
+                        android:textSize="@dimen/text_medium"
                         android:gravity="center"
-                        android:textColor="@android:color/darker_gray" />
+                        android:textColor="#64748B" />
 
                 </LinearLayout>
 
@@ -57,34 +107,54 @@
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
-                app:cardCornerRadius="12dp"
-                app:cardElevation="4dp">
+                android:layout_marginBottom="@dimen/spacing_medium"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="6dp"
+                app:cardUseCompatPadding="true"
+                app:strokeColor="#E3ECFF"
+                app:strokeWidth="1dp"
+                app:cardBackgroundColor="#FFFFFF">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:padding="16dp">
+                    android:padding="@dimen/spacing_medium">
 
-                    <TextView
+                    <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="📁 Import Recipients"
-                        android:textSize="16sp"
-                        android:textStyle="bold"
-                        android:layout_marginBottom="12dp" />
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:layout_marginBottom="@dimen/spacing_medium">
+
+                        <ImageView
+                            android:layout_width="@dimen/icon_small"
+                            android:layout_height="@dimen/icon_small"
+                            android:src="@drawable/ic_file_upload"
+                            app:tint="#1E3A8A"
+                            android:layout_marginEnd="@dimen/spacing_small"
+                            android:contentDescription="@null" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="@string/bulk_sms_import_title"
+                            android:textSize="@dimen/text_large"
+                            android:textStyle="bold"
+                            android:textColor="#0F172A" />
+                    </LinearLayout>
 
                     <TextView
                         android:id="@+id/txtFileName"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="No file selected"
-                        android:textSize="14sp"
-                        android:textColor="@android:color/darker_gray"
-                        android:layout_marginBottom="8dp"
-                        android:background="@drawable/search_background"
-                        android:padding="12dp" />
+                        android:text="@string/bulk_sms_file_loaded_format"
+                        android:textSize="@dimen/text_medium"
+                        android:textColor="#64748B"
+                        android:layout_marginBottom="@dimen/spacing_small"
+                        android:background="@drawable/bg_activity_list"
+                        android:padding="@dimen/spacing_medium" />
 
                     <LinearLayout
                         android:layout_width="match_parent"
@@ -96,8 +166,8 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="Select CSV File"
-                            android:layout_marginEnd="8dp"
+                            android:text="@string/bulk_sms_select_file"
+                            android:layout_marginEnd="@dimen/spacing_small"
                             style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
 
                         <com.google.android.material.button.MaterialButton
@@ -105,8 +175,8 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="Add Manual"
-                            android:layout_marginStart="8dp"
+                            android:text="@string/bulk_sms_add_manual"
+                            android:layout_marginStart="@dimen/spacing_small"
                             style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
 
                     </LinearLayout>
@@ -127,39 +197,63 @@
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
-                app:cardCornerRadius="12dp"
-                app:cardElevation="4dp">
+                android:layout_marginBottom="@dimen/spacing_medium"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="6dp"
+                app:cardUseCompatPadding="true"
+                app:strokeColor="#E3ECFF"
+                app:strokeWidth="1dp"
+                app:cardBackgroundColor="#FFFFFF">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:padding="16dp">
+                    android:padding="@dimen/spacing_medium">
 
-                    <TextView
+                    <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="✉️ Message Template"
-                        android:textSize="16sp"
-                        android:textStyle="bold"
-                        android:layout_marginBottom="12dp" />
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:layout_marginBottom="@dimen/spacing_medium">
+                    
+                        <ImageView
+                            android:layout_width="@dimen/icon_small"
+                            android:layout_height="@dimen/icon_small"
+                            android:src="@drawable/ic_template"
+                            app:tint="#1E3A8A"
+                            android:layout_marginEnd="@dimen/spacing_small"
+                            android:contentDescription="@null" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="@string/bulk_sms_template_title"
+                            android:textSize="@dimen/text_large"
+                            android:textStyle="bold"
+                            android:textColor="#0F172A" />
+                    </LinearLayout>
 
                     <com.google.android.material.textfield.TextInputLayout
                         android:id="@+id/inputTemplateLayout"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="8dp"
-                        app:boxStrokeColor="@color/design_default_color_primary"
-                        app:hintTextColor="@color/design_default_color_primary">
+                        app:endIconMode="custom"
+                        app:endIconDrawable="@drawable/ic_copy"
+                        app:endIconContentDescription="@string/bulk_sms_copy_template"
+                        app:endIconTint="#1E3A8A"
+                        app:boxStrokeColor="#1E3A8A"
+                        app:hintTextColor="#1E3A8A">
 
                         <com.google.android.material.textfield.TextInputEditText
                             android:id="@+id/inputTemplate"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:hint="Enter your message template..."
+                            android:hint="@string/bulk_sms_template_hint"
                             android:gravity="top"
-                            android:minHeight="120dp"
+                            android:minLines="5"
                             android:inputType="textMultiLine|textCapSentences" />
 
                     </com.google.android.material.textfield.TextInputLayout>
@@ -167,10 +261,10 @@
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Available placeholders: {name}, {phone}, {amount}"
-                        android:textSize="12sp"
-                        android:textColor="@android:color/darker_gray"
-                        android:layout_marginBottom="8dp" />
+                        android:text="@string/bulk_sms_placeholders"
+                        android:textSize="@dimen/text_small"
+                        android:textColor="#64748B"
+                        android:layout_marginBottom="@dimen/spacing_small" />
 
                     <LinearLayout
                         android:layout_width="match_parent"
@@ -182,8 +276,8 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="Save Template"
-                            android:layout_marginEnd="8dp"
+                            android:text="@string/bulk_sms_save_template"
+                            android:layout_marginEnd="@dimen/spacing_small"
                             style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
 
                         <com.google.android.material.button.MaterialButton
@@ -191,8 +285,8 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="Templates"
-                            android:layout_marginStart="8dp"
+                            android:text="@string/bulk_sms_templates"
+                            android:layout_marginStart="@dimen/spacing_small"
                             style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
 
                     </LinearLayout>
@@ -201,13 +295,19 @@
 
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- SIM Selection Section -->
+            <!-- Template Variables Section -->
             <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardTemplateVariables"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
-                app:cardCornerRadius="12dp"
-                app:cardElevation="4dp">
+                android:visibility="gone"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="6dp"
+                app:cardUseCompatPadding="true"
+                app:strokeColor="#E3ECFF"
+                app:strokeWidth="1dp"
+                app:cardBackgroundColor="#FFFFFF">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -218,10 +318,130 @@
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="📶 SIM Selection"
-                        android:textSize="16sp"
+                        android:text="@string/bulk_sms_variables_title"
+                        android:textSize="@dimen/text_large"
                         android:textStyle="bold"
-                        android:layout_marginBottom="12dp" />
+                        android:textColor="#0F172A"
+                        android:layout_marginBottom="@dimen/spacing_small" />
+
+                    <TextView
+                        android:id="@+id/txtVariableCount"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/bulk_sms_variables_count_format"
+                        android:textSize="@dimen/text_small"
+                        android:textColor="#64748B"
+                        android:layout_marginBottom="@dimen/spacing_small" />
+
+                    <TextView
+                        android:id="@+id/txtDetectedColumns"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/bulk_sms_detected_columns_prefix"
+                        android:textSize="@dimen/text_small"
+                        android:textColor="#64748B"
+                        android:layout_marginBottom="@dimen/spacing_small"
+                        android:visibility="gone" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/bulk_sms_variables_hint"
+                        android:textSize="@dimen/text_small"
+                        android:textColor="#64748B"
+                        android:layout_marginBottom="@dimen/spacing_medium" />
+
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/recyclerViewTemplateVariables"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:nestedScrollingEnabled="false" />
+
+                </LinearLayout>
+
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Message Preview Section -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardMessagePreview"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                android:visibility="gone"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="6dp"
+                app:cardUseCompatPadding="true"
+                app:strokeColor="#E3ECFF"
+                app:strokeWidth="1dp"
+                app:cardBackgroundColor="#FFFFFF">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/bulk_sms_preview_title"
+                        android:textSize="@dimen/text_large"
+                        android:textStyle="bold"
+                        android:textColor="#0F172A"
+                        android:layout_marginBottom="@dimen/spacing_medium" />
+
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/recyclerViewMessagePreview"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:nestedScrollingEnabled="false" />
+
+                </LinearLayout>
+
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- SIM Selection Section -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="6dp"
+                app:cardUseCompatPadding="true"
+                app:strokeColor="#E3ECFF"
+                app:strokeWidth="1dp"
+                app:cardBackgroundColor="#FFFFFF">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="@dimen/spacing_medium">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:layout_marginBottom="@dimen/spacing_medium">
+                    
+                        <ImageView
+                            android:layout_width="@dimen/icon_small"
+                            android:layout_height="@dimen/icon_small"
+                            android:src="@drawable/ic_sim_card"
+                            app:tint="#1E3A8A"
+                            android:layout_marginEnd="@dimen/spacing_small"
+                            android:contentDescription="@null" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="@string/bulk_sms_sim_title"
+                            android:textSize="@dimen/text_large"
+                            android:textStyle="bold"
+                            android:textColor="#0F172A" />
+                            
+                    </LinearLayout>
 
                     <RadioGroup
                         android:id="@+id/radioGroupSim"
@@ -234,7 +454,7 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="SIM 1 (Primary)"
+                            android:text="SIM 1"
                             android:checked="true" />
 
                         <RadioButton
@@ -242,7 +462,7 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="SIM 2 (Secondary)" />
+                            android:text="SIM 2" />
 
                     </RadioGroup>
 
@@ -262,8 +482,8 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="Clear All"
-                    android:layout_marginEnd="8dp"
+                    android:text="@string/bulk_sms_clear_all"
+                    android:layout_marginEnd="@dimen/spacing_small"
                     style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
 
                 <com.google.android.material.button.MaterialButton
@@ -271,9 +491,11 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="🚀 Send Bulk SMS"
-                    android:layout_marginStart="8dp"
-                    style="@style/Widget.MaterialComponents.Button" />
+                    android:text="@string/bulk_sms_send_button"
+                    android:layout_marginStart="@dimen/spacing_small"
+                    style="@style/Widget.MaterialComponents.Button"
+                    app:icon="@drawable/ic_rocket_launch"
+                    app:iconGravity="textStart" />
 
             </LinearLayout>
 
@@ -282,22 +504,42 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
-                app:cardCornerRadius="12dp"
-                app:cardElevation="4dp">
+                app:cardCornerRadius="16dp"
+                app:cardElevation="6dp"
+                app:cardUseCompatPadding="true"
+                app:strokeColor="#E3ECFF"
+                app:strokeWidth="1dp"
+                app:cardBackgroundColor="#FFFFFF">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:padding="16dp">
+                    android:padding="@dimen/spacing_medium">
 
-                    <TextView
+                    <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="📊 Send Progress"
-                        android:textSize="16sp"
-                        android:textStyle="bold"
-                        android:layout_marginBottom="12dp" />
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:layout_marginBottom="@dimen/spacing_medium">
+                    
+                        <ImageView
+                            android:layout_width="@dimen/icon_small"
+                            android:layout_height="@dimen/icon_small"
+                            android:src="@drawable/ic_chart_bar"
+                            app:tint="#1E3A8A"
+                            android:layout_marginEnd="@dimen/spacing_small"
+                            android:contentDescription="@null" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="@string/bulk_sms_progress_title"
+                            android:textSize="@dimen/text_large"
+                            android:textStyle="bold"
+                            android:textColor="#0F172A" />
+                    </LinearLayout>
 
                     <ProgressBar
                         android:id="@+id/progressBar"
@@ -312,8 +554,8 @@
                         android:id="@+id/txtProgress"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Progress: 0%"
-                        android:textSize="14sp"
+                        android:text="@string/bulk_sms_progress_format"
+                        android:textSize="@dimen/text_medium"
                         android:gravity="center" />
 
                     <!-- Status and Statistics -->
@@ -321,23 +563,24 @@
                         android:id="@+id/txtStatus"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Ready"
-                        android:textSize="12sp"
-                        android:layout_marginTop="8dp"
-                        android:gravity="center" />
+                        android:text="@string/bulk_sms_ready"
+                        android:textSize="@dimen/text_small"
+                        android:layout_marginTop="@dimen/spacing_small"
+                        android:gravity="center"
+                        android:textColor="#64748B" />
 
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="horizontal"
-                        android:layout_marginTop="8dp">
+                        android:layout_marginTop="@dimen/spacing_small">
 
                         <TextView
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="Sent: "
-                            android:textSize="12sp"
+                            android:text="@string/bulk_sms_sent_label"
+                            android:textSize="@dimen/text_small"
                             android:gravity="center" />
 
                         <TextView
@@ -345,15 +588,15 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="0"
-                            android:textSize="12sp"
+                            android:textSize="@dimen/text_small"
                             android:textStyle="bold" />
 
                         <TextView
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="Failed: "
-                            android:textSize="12sp"
+                            android:text="@string/bulk_sms_failed_label"
+                            android:textSize="@dimen/text_small"
                             android:gravity="center" />
 
                         <TextView
@@ -361,15 +604,15 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="0"
-                            android:textSize="12sp"
+                            android:textSize="@dimen/text_small"
                             android:textStyle="bold" />
 
                         <TextView
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="Queued: "
-                            android:textSize="12sp"
+                            android:text="@string/bulk_sms_queued_label"
+                            android:textSize="@dimen/text_small"
                             android:gravity="center" />
 
                         <TextView
@@ -377,7 +620,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="0"
-                            android:textSize="12sp"
+                            android:textSize="@dimen/text_small"
                             android:textStyle="bold" />
 
                     </LinearLayout>
@@ -387,20 +630,22 @@
                         android:id="@+id/txtDeliveryStatus"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Delivery: 0 sent, 0 delivered (0.0%)"
-                        android:textSize="12sp"
-                        android:layout_marginTop="4dp"
-                        android:gravity="center" />
+                        android:text="@string/bulk_sms_delivery_format"
+                        android:textSize="@dimen/text_small"
+                        android:layout_marginTop="@dimen/spacing_tiny"
+                        android:gravity="center"
+                        android:textColor="#475569" />
 
                     <!-- Queue Status -->
                     <TextView
                         android:id="@+id/txtQueueStatus"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Queue: 0 pending, 0 failed, 0 exhausted"
-                        android:textSize="12sp"
-                        android:layout_marginTop="4dp"
-                        android:gravity="center" />
+                        android:text="@string/bulk_sms_queue_format"
+                        android:textSize="@dimen/text_small"
+                        android:layout_marginTop="@dimen/spacing_tiny"
+                        android:gravity="center"
+                        android:textColor="#475569" />
 
                     <!-- Circuit Breaker Status -->
                     <TextView
@@ -442,8 +687,12 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
-                app:cardCornerRadius="12dp"
-                app:cardElevation="4dp">
+                app:cardCornerRadius="16dp"
+                app:cardElevation="6dp"
+                app:cardUseCompatPadding="true"
+                app:strokeColor="#E3ECFF"
+                app:strokeWidth="1dp"
+                app:cardBackgroundColor="#FFFFFF">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -454,32 +703,33 @@
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="⚙️ Advanced Controls"
-                        android:textSize="16sp"
+                        android:text="@string/bulk_sms_advanced"
+                        android:textSize="@dimen/text_large"
                         android:textStyle="bold"
-                        android:layout_marginBottom="12dp" />
+                        android:textColor="#0F172A"
+                        android:layout_marginBottom="@dimen/spacing_medium" />
 
                     <!-- Send Speed Controls -->
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Send Speed (delay between messages)"
-                        android:textSize="14sp"
-                        android:layout_marginBottom="8dp" />
+                        android:text="@string/bulk_sms_speed_label"
+                        android:textSize="@dimen/text_medium"
+                        android:layout_marginBottom="@dimen/spacing_small" />
 
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="horizontal"
-                        android:layout_marginBottom="12dp">
+                        android:layout_marginBottom="@dimen/spacing_medium">
 
                         <Button
                             android:id="@+id/btnSpeed300"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="Fast (300ms)"
-                            android:layout_marginEnd="4dp"
+                            android:text="@string/bulk_sms_speed_fast"
+                            android:layout_marginEnd="@dimen/spacing_tiny"
                             style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
 
                         <Button
@@ -487,9 +737,9 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="Normal (600ms)"
-                            android:layout_marginStart="4dp"
-                            android:layout_marginEnd="4dp"
+                            android:text="@string/bulk_sms_speed_normal"
+                            android:layout_marginStart="@dimen/spacing_tiny"
+                            android:layout_marginEnd="@dimen/spacing_tiny"
                             style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
 
                         <Button
@@ -497,19 +747,29 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="Slow (1000ms)"
-                            android:layout_marginStart="4dp"
+                            android:text="@string/bulk_sms_speed_slow"
+                            android:layout_marginStart="@dimen/spacing_tiny"
                             style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
 
                     </LinearLayout>
+
+                    <TextView
+                        android:id="@+id/txtSendSpeed"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="0 SMS/min"
+                        android:textSize="14sp"
+                        android:textColor="#64748B"
+                        android:gravity="center"
+                        android:layout_marginTop="8dp" />
 
                     <!-- Queue Management -->
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Queue Management"
-                        android:textSize="14sp"
-                        android:layout_marginBottom="8dp" />
+                        android:text="@string/bulk_sms_queue_mgmt"
+                        android:textSize="@dimen/text_medium"
+                        android:layout_marginBottom="@dimen/spacing_small" />
 
                     <LinearLayout
                         android:layout_width="match_parent"
@@ -521,8 +781,8 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="Run Queue"
-                            android:layout_marginEnd="4dp"
+                            android:text="@string/bulk_sms_run_queue"
+                            android:layout_marginEnd="@dimen/spacing_tiny"
                             style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
 
                         <Button
@@ -530,8 +790,8 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="Clear Exhausted"
-                            android:layout_marginStart="4dp"
+                            android:text="@string/bulk_sms_clear_exhausted"
+                            android:layout_marginStart="@dimen/spacing_tiny"
                             style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
 
                     </LinearLayout>
@@ -541,15 +801,15 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="horizontal"
-                        android:layout_marginTop="8dp">
+                        android:layout_marginTop="@dimen/spacing_small">
 
                         <Button
                             android:id="@+id/btnPauseResume"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="Pause"
-                            android:layout_marginEnd="4dp"
+                            android:text="@string/bulk_sms_pause"
+                            android:layout_marginEnd="@dimen/spacing_tiny"
                             style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
 
                         <Button
@@ -557,8 +817,8 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="Stop"
-                            android:layout_marginStart="4dp"
+                            android:text="@string/bulk_sms_stop"
+                            android:layout_marginStart="@dimen/spacing_tiny"
                             style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
 
                     </LinearLayout>
@@ -571,28 +831,48 @@
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                app:cardCornerRadius="12dp"
-                app:cardElevation="4dp">
+                app:cardCornerRadius="16dp"
+                app:cardElevation="6dp"
+                app:cardUseCompatPadding="true"
+                app:strokeColor="#E3ECFF"
+                app:strokeWidth="1dp"
+                app:cardBackgroundColor="#FFFFFF">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:padding="16dp">
+                    android:padding="@dimen/spacing_medium">
 
-                    <TextView
+                    <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="👥 Recipients List"
-                        android:textSize="16sp"
-                        android:textStyle="bold"
-                        android:layout_marginBottom="12dp" />
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:layout_marginBottom="@dimen/spacing_medium">
+                    
+                        <ImageView
+                            android:layout_width="@dimen/icon_small"
+                            android:layout_height="@dimen/icon_small"
+                            android:src="@drawable/ic_group"
+                            app:tint="#1E3A8A"
+                            android:layout_marginEnd="@dimen/spacing_small"
+                            android:contentDescription="@null" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="@string/bulk_sms_recipients_list"
+                            android:textSize="@dimen/text_large"
+                            android:textStyle="bold"
+                            android:textColor="#0F172A" />
+                    </LinearLayout>
 
                     <androidx.recyclerview.widget.RecyclerView
                         android:id="@+id/recyclerViewRecipients"
                         android:layout_width="match_parent"
                         android:layout_height="200dp"
-                        android:background="@drawable/search_background"
+                        android:background="@drawable/bg_activity_list"
                         android:padding="8dp" />
 
                 </LinearLayout>

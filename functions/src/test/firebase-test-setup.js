@@ -2,33 +2,21 @@
 const admin = require('firebase-admin');
 const test = require('firebase-functions-test');
 
-// Initialize test environment
-const testEnv = test();
+// Initialize test environment with offline mode
+const testEnv = test({
+  databaseURL: 'https://test.firebaseio.com',
+  projectId: 'test-project'
+});
 
-// Mock Firebase admin initialization before requiring any modules
-const mockApp = {
-  firestore: () => ({
-    collection: () => ({
-      doc: () => ({
-        get: () => Promise.resolve({}),
-        set: () => Promise.resolve(),
-        update: () => Promise.resolve(),
-        delete: () => Promise.resolve()
-      }),
-      add: () => Promise.resolve({ id: 'test-id' }),
-      where: () => ({
-        get: () => Promise.resolve({ docs: [] })
-      })
-    })
-  }),
-  messaging: () => ({
-    send: () => Promise.resolve('test-message-id')
-  })
-};
+// Initialize Firebase Admin SDK with test credentials
+try {
+  admin.initializeApp({
+    projectId: 'test-project',
+    databaseURL: 'https://test.firebaseio.com'
+  });
+} catch {
+  // App may already be initialized in tests
+}
 
-// Mock initializeApp to return our mock app
-admin.initializeApp = () => mockApp;
-admin.firestore = () => mockApp.firestore();
-admin.messaging = () => mockApp.messaging();
-
+// Export for use in tests
 module.exports = { admin, testEnv };

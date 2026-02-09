@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <item
+        android:id="@+id/action_call"
+        android:icon="@android:drawable/ic_menu_call"
+        android:title="Call"
+        app:showAsAction="ifRoom" />
+
+    <item
+        android:id="@+id/action_copy_number"
+        android:icon="@drawable/ic_copy"
+        android:title="Copy number"
+        app:showAsAction="never" />
+
+</menu>

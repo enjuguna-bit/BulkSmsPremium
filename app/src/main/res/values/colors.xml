@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Legacy colors for compatibility -->
     <color name="purple_200">#FFBB86FC</color>
@@ -10,48 +10,48 @@
     <color name="white">#FFFFFFFF</color>
     
     <!-- Material Design 3 Light Theme Colors -->
-    <color name="md_theme_light_primary">#FF6750A4</color>
+    <color name="md_theme_light_primary">#FF04605B</color>
     <color name="md_theme_light_onPrimary">#FFFFFFFF</color>
-    <color name="md_theme_light_primaryContainer">#FFEADDFF</color>
-    <color name="md_theme_light_onPrimaryContainer">#FF21005D</color>
-    <color name="md_theme_light_secondary">#FF625B71</color>
+    <color name="md_theme_light_primaryContainer">#FFD9F0EE</color>
+    <color name="md_theme_light_onPrimaryContainer">#FF00201E</color>
+    <color name="md_theme_light_secondary">#FFC9A66B</color>
     <color name="md_theme_light_onSecondary">#FFFFFFFF</color>
-    <color name="md_theme_light_secondaryContainer">#FFE8DEF8</color>
-    <color name="md_theme_light_onSecondaryContainer">#FF1D192B</color>
-    <color name="md_theme_light_tertiary">#FF7D5260</color>
+    <color name="md_theme_light_secondaryContainer">#FFFFF5E7</color>
+    <color name="md_theme_light_onSecondaryContainer">#FF241A0B</color>
+    <color name="md_theme_light_tertiary">#FF2E6B5A</color>
     <color name="md_theme_light_onTertiary">#FFFFFFFF</color>
-    <color name="md_theme_light_tertiaryContainer">#FFFFD8E4</color>
-    <color name="md_theme_light_onTertiaryContainer">#FF31111D</color>
-    <color name="md_theme_light_surface">#FFFEF7FF</color>
-    <color name="md_theme_light_onSurface">#FF1D1B20</color>
-    <color name="md_theme_light_surfaceVariant">#FFE7E0EC</color>
-    <color name="md_theme_light_onSurfaceVariant">#FF49454F</color>
-    <color name="md_theme_light_outline">#FF79747E</color>
-    <color name="md_theme_light_outlineVariant">#FFCAC4D0</color>
+    <color name="md_theme_light_tertiaryContainer">#FFDFF7F0</color>
+    <color name="md_theme_light_onTertiaryContainer">#FF00210A</color>
+    <color name="md_theme_light_surface">#FFFFFFFF</color>
+    <color name="md_theme_light_onSurface">#FF1C1B1D</color>
+    <color name="md_theme_light_surfaceVariant">#FFEEF3F1</color>
+    <color name="md_theme_light_onSurfaceVariant">#FF44504A</color>
+    <color name="md_theme_light_outline">#FF7D8B86</color>
+    <color name="md_theme_light_outlineVariant">#FFD0D7D5</color>
     <color name="md_theme_light_error">#FFBA1A1A</color>
     <color name="md_theme_light_onError">#FFFFFFFF</color>
     <color name="md_theme_light_errorContainer">#FFFFDAD6</color>
     <color name="md_theme_light_onErrorContainer">#FF410002</color>
     
     <!-- Material Design 3 Dark Theme Colors -->
-    <color name="md_theme_dark_primary">#FFD0BCFF</color>
-    <color name="md_theme_dark_onPrimary">#FF381E72</color>
-    <color name="md_theme_dark_primaryContainer">#FF4F378B</color>
-    <color name="md_theme_dark_onPrimaryContainer">#FFEADDFF</color>
-    <color name="md_theme_dark_secondary">#FFCCC2DC</color>
-    <color name="md_theme_dark_onSecondary">#FF332D41</color>
-    <color name="md_theme_dark_secondaryContainer">#FF494458</color>
-    <color name="md_theme_dark_onSecondaryContainer">#FFE8DEF8</color>
-    <color name="md_theme_dark_tertiary">#FFEFB3C8</color>
-    <color name="md_theme_dark_onTertiary">#FF492532</color>
-    <color name="md_theme_dark_tertiaryContainer">#FF633B48</color>
-    <color name="md_theme_dark_onTertiaryContainer">#FFFFD8E4</color>
+    <color name="md_theme_dark_primary">#FF6ED0C9</color>
+    <color name="md_theme_dark_onPrimary">#FF003733</color>
+    <color name="md_theme_dark_primaryContainer">#FF1F4B47</color>
+    <color name="md_theme_dark_onPrimaryContainer">#FFD9F0EE</color>
+    <color name="md_theme_dark_secondary">#FFE6C89B</color>
+    <color name="md_theme_dark_onSecondary">#FF3A2B16</color>
+    <color name="md_theme_dark_secondaryContainer">#FF5A432A</color>
+    <color name="md_theme_dark_onSecondaryContainer">#FFFFF5E7</color>
+    <color name="md_theme_dark_tertiary">#FFB7E6D8</color>
+    <color name="md_theme_dark_onTertiary">#FF063029</color>
+    <color name="md_theme_dark_tertiaryContainer">#FF114E41</color>
+    <color name="md_theme_dark_onTertiaryContainer">#FFDFF7F0</color>
     <color name="md_theme_dark_surface">#FF121212</color>
-    <color name="md_theme_dark_onSurface">#FFE6E1E5</color>
-    <color name="md_theme_dark_surfaceVariant">#FF49454F</color>
-    <color name="md_theme_dark_onSurfaceVariant">#FFCAC4D0</color>
-    <color name="md_theme_dark_outline">#FF938F99</color>
-    <color name="md_theme_dark_outlineVariant">#FF49454F</color>
+    <color name="md_theme_dark_onSurface">#FFE6F1EE</color>
+    <color name="md_theme_dark_surfaceVariant">#FF374E47</color>
+    <color name="md_theme_dark_onSurfaceVariant">#FFD0E0DB</color>
+    <color name="md_theme_dark_outline">#FF94A19C</color>
+    <color name="md_theme_dark_outlineVariant">#FF374E47</color>
     <color name="md_theme_dark_error">#FFFFB4AB</color>
     <color name="md_theme_dark_onError">#FF690005</color>
     <color name="md_theme_dark_errorContainer">#FF93000A</color>
@@ -68,4 +68,19 @@
     <color name="sms_pending">#FFFF9800</color>
     <color name="sms_failed">#FFF44336</color>
     <color name="sms_delivered">#FF2196F3</color>
+
+    <!-- Avatar palette for inbox list -->
+    <color name="avatar_blue">#FF1976D2</color>
+    <color name="avatar_green">#FF2E7D32</color>
+    <color name="avatar_orange">#FFF57C00</color>
+    <color name="avatar_pink">#FFC2185B</color>
+    <color name="avatar_purple">#FF6A1B9A</color>
+    <color name="avatar_teal">#FF00897B</color>
+
+    <!-- Conversation list background states -->
+    <color name="conversation_unread_bg">#FFF3F7FF</color>
+    
+    <!-- Shimmer loading colors -->
+    <color name="shimmer_placeholder">#FFE0E0E0</color>
+    <color name="switch_track_color">#4CAF50</color>
 </resources>

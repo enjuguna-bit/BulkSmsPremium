@@ -57,9 +57,7 @@
 -keepnames class kotlinx.coroutines.android.AndroidExceptionPreHandler {}
 -keepnames class kotlinx.coroutines.android.AndroidDispatcherFactory {}
 
-# Keep billing classes
--keep class com.android.billingclient.** { *; }
--dontwarn com.android.billingclient.**
+
 
 # Keep biometric classes
 -keep class androidx.biometric.** { *; }

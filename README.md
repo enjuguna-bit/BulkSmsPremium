@@ -1,125 +1,63 @@
-# Bulk SMS Manager
+﻿# BulkSmsPremium
 
-A premium Android SMS management application with advanced features and modern Material Design UI.
+Bulk SMS manager for Android with CSV/Excel import, templates, scheduling, and subscription gating.
 
 ## Features
+- Bulk SMS sending with personalization templates
+- CSV and Excel import with preview
+- Scheduled sending and delivery tracking (WorkManager)
+- Contact access and conversation UI
+- Optional subscription status checks via an external billing endpoint
+- Firebase SDK integrations available (Analytics/Auth/Firestore/Storage/FCM) when configured
 
-### Premium UI Design
-- Material Design cards and chips
-- Clean, modern layout with proper spacing
-- Search bar with rounded corners
-- Horizontal scrollable filter chips
+## Tech Stack
+- Kotlin + Java, ViewBinding
+- Hilt, Room, WorkManager, Navigation
+- Retrofit/OkHttp
+- Firebase SDKs
 
-### Advanced Functionality
-- **Paging 3 Integration**: Infinite scrolling for large message lists
-- **Pull-to-Refresh**: Manual synchronization with device SMS database
-- **Real-time Search**: Search messages with debouncing
-- **Multiple Filters**: All, Inbox, Sent, Unread messages
-- **Statistics Display**: Real-time total and unread message counts
-
-### User Experience Enhancements
-- **Loading States**: Proper progress indicators for all operations
-- **Empty State**: User-friendly empty state with illustrations
-- **Error Handling**: Comprehensive error handling with user-friendly messages
-- **Context Menu**: Long press actions for message operations
-- **Visual Feedback**: Bold text for unread messages, opacity changes for read messages
-
-### Performance Optimizations
-- **RecyclerView Optimizations**: Fixed size, no animations for better performance
-- **Cached Data Flows**: Efficient data caching with Paging 3
-- **DiffUtil**: Efficient list updates with proper diffing
-- **Lifecycle Management**: Proper lifecycle-aware components
-
-## Architecture
-
-### MVVM with Hilt
-- **View Layer**: Fragments with ViewBinding
-- **ViewModel**: Business logic with Kotlin Coroutines
-- **Repository**: Data layer with Room database
-- **Dependency Injection**: Hilt for proper DI
-
-### Key Components
-
-#### InboxFragment
-- Main UI component for message list
-- Handles user interactions and UI state
-- Integrates with ViewModel for data operations
-
-#### InboxViewModel
-- Manages message data with Paging 3
-- Handles search, filtering, and synchronization
-- Provides reactive data streams with StateFlow
-
-#### InboxPagingAdapter
-- Efficient RecyclerView adapter with Paging 3
-- Smart date formatting (Today, Yesterday, etc.)
-- Message type indicators and read/unread styling
-
-#### SmsEntity
-- Room entity for SMS messages
-- Supports all SMS properties (address, body, date, type, read status)
-
-## Dependencies
-
-### Core Android
-- AndroidX libraries (Fragment, Lifecycle, RecyclerView)
-- Material Design Components
-- ConstraintLayout
-
-### Modern Android
-- **Paging 3**: For efficient data loading
-- **Room**: Local database with paging support
-- **Kotlin Coroutines**: Asynchronous operations
-- **Hilt**: Dependency injection
-- **ViewBinding**: Type-safe view references
-
-## Project Structure
-
-```
-app/src/main/java/com/bulksms/smsmanager/
-├── ui/inbox/
-│   ├── InboxFragment.java
-│   ├── InboxViewModel.java
-│   ├── InboxPagingAdapter.java
-│   ├── MessageLoadStateAdapter.java
-│   ├── InboxUiState.java
-│   └── MessageStatistics.java
-├── data/
-│   ├── entity/
-│   │   └── SmsEntity.java
-│   └── repository/
-│       └── SmsRepository.java
-└── databinding/
-    ├── FragmentInboxBinding.java
-    ├── ItemSmsMessageBinding.java
-    └── ItemLoadStateFooterBinding.java
-```
+## Requirements
+- JDK 17
+- Android SDK (compileSdk 34)
+- Android Studio (recommended)
 
 ## Setup
+1. Ensure `local.properties` points to your Android SDK.
+2. Open the project in Android Studio and sync Gradle.
 
-1. Clone the repository
-2. Open in Android Studio
-3. Sync Gradle dependencies
-4. Build and run the application
+### Firebase (optional)
+Firebase dependencies are included, but the Google Services plugin is commented out in `app/build.gradle`.
+To enable Firebase:
+1. Add `google-services.json` to `app/`.
+2. Uncomment `id 'com.google.gms.google-services'` in `app/build.gradle`.
+
+## Build
+```bash
+./gradlew assembleDebug
+./gradlew assembleRelease
+```
+
+### Release signing
+Release signing reads these Gradle properties:
+`MYAPP_UPLOAD_STORE_FILE`, `MYAPP_UPLOAD_STORE_PASSWORD`, `MYAPP_UPLOAD_KEY_ALIAS`, `MYAPP_UPLOAD_KEY_PASSWORD`.
+
+Set them in `~/.gradle/gradle.properties` or as environment variables before running a release build.
+
+## Tests
+```bash
+./gradlew test
+```
+
+## Backend components
+- `functions/`: Firebase Cloud Functions scaffold (currently exports no functions).
+- `firebase-webhook/`: Intasend webhook handler (Node 18). Move secrets to environment config before deploying.
+- `functions/src/billing.js`: Cloudflare Worker script for payment webhooks and subscription status. Update the endpoint in `app/src/main/java/com/bulksms/smsmanager/billing/SubscriptionHelper.kt` if you host your own.
+
+## Repo layout
+- `app/` Android application
+- `READY_TO_INTEGRATE/` drop-in subscription UI/layout
+- `scripts/` helper scripts
+- `firebase-webhook/` webhook handler
 
 ## Permissions
-
-The app requires the following permissions:
-- `READ_SMS`: Read SMS messages
-- `RECEIVE_SMS`: Receive incoming SMS
-- `SEND_SMS`: Send SMS messages
-- `READ_CONTACTS`: Access contact information
-
-## Future Enhancements
-
-- Contact integration with avatars
-- Message threading
-- SMS scheduling
-- Backup and restore functionality
-- Dark mode support
-- Message encryption
-- Multi-language support
-
-## License
-
-This project is licensed under the MIT License.
+The app requests SMS, contacts, notifications, and foreground service permissions required for bulk sending and delivery tracking. See `app/src/main/AndroidManifest.xml`.

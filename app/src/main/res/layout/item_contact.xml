@@ -58,10 +58,12 @@
 
         <!-- Selection Indicator -->
         <ImageView
+            android:id="@+id/imageViewSelected"
             android:layout_width="24dp"
             android:layout_height="24dp"
-            android:src="@android:drawable/ic_menu_more"
-            android:alpha="0.5"
+            android:src="@drawable/ic_check_circle"
+            android:alpha="0.3"
+            android:visibility="gone"
             android:layout_marginStart="8dp" />
 
     </LinearLayout>

@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.cardview.widget.CardView 
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_margin="8dp"
+    app:cardCornerRadius="8dp"
+    app:cardElevation="2dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="16dp"
+        android:gravity="center_vertical">
+
+        <!-- Avatar placeholder -->
+        <View
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="@drawable/circle_background"
+            android:alpha="0.3" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="12dp"
+            android:orientation="vertical">
+
+            <!-- Name placeholder -->
+            <View
+                android:layout_width="120dp"
+                android:layout_height="16dp"
+                android:background="@drawable/search_background"
+                android:alpha="0.3" />
+
+            <!-- Message placeholder -->
+            <View
+                android:layout_width="200dp"
+                android:layout_height="14dp"
+                android:layout_marginTop="4dp"
+                android:background="@drawable/search_background"
+                android:alpha="0.3" />
+
+            <!-- Phone number placeholder -->
+            <View
+                android:layout_width="150dp"
+                android:layout_height="12dp"
+                android:layout_marginTop="2dp"
+                android:background="@drawable/search_background"
+                android:alpha="0.2" />
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="end">
+
+            <!-- Time placeholder -->
+            <View
+                android:layout_width="40dp"
+                android:layout_height="12dp"
+                android:background="@drawable/search_background"
+                android:alpha="0.3" />
+
+            <!-- Unread badge placeholder -->
+            <View
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:layout_marginTop="4dp"
+                android:background="@drawable/unread_badge_background"
+                android:alpha="0.3" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</androidx.cardview.widget.CardView>

@@ -1,16 +1,213 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.core.widget.NestedScrollView 
+<androidx.core.widget.NestedScrollView
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:fillViewport="true">
+    android:fillViewport="true"
+    android:background="#F5F7FB">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
         android:padding="16dp">
+
+        <!-- Premium Subscription Card -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/premiumCard"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="24dp"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="8dp"
+            app:cardUseCompatPadding="true"
+            app:strokeColor="#90CAF9"
+            app:strokeWidth="1dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:foreground="?android:attr/selectableItemBackground">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="#1E88E5"
+                android:padding="20dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginBottom="12dp">
+
+                    <TextView
+                        android:id="@+id/txtSubscriptionBadge"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="FREE"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        android:textColor="#FFFFFF"
+                        android:layout_marginEnd="12dp"/>
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:id="@+id/txtPremiumTitle"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Free plan"
+                            android:textSize="20sp"
+                            android:textStyle="bold"
+                            android:textColor="#FFFFFF"/>
+
+                        <TextView
+                            android:id="@+id/txtSubscriptionStatus"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Free plan - limited features"
+                            android:textSize="13sp"
+                            android:textColor="#E0E0E0"
+                            android:layout_marginTop="4dp"/>
+
+                        <TextView
+                            android:id="@+id/txtSubscriptionPaidUntil"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Paid until: --"
+                            android:textSize="12sp"
+                            android:textColor="#BBDEFB"
+                            android:layout_marginTop="4dp"
+                            android:visibility="gone"/>
+
+                        <TextView
+                            android:id="@+id/txtSubscriptionLastChecked"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Last checked: --"
+                            android:textSize="11sp"
+                            android:textColor="#BBDEFB"
+                            android:layout_marginTop="4dp"/>
+                    </LinearLayout>
+
+                </LinearLayout>
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Unlimited SMS | Priority support | No ads"
+                    android:textSize="13sp"
+                    android:textColor="#FFFFFF"
+                    android:layout_marginBottom="16dp"/>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="horizontal"
+                        android:gravity="bottom">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="KSH "
+                            android:textSize="16sp"
+                            android:textColor="#FFFFFF"/>
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="200"
+                            android:textSize="32sp"
+                            android:textStyle="bold"
+                            android:textColor="#FFFFFF"/>
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="/day"
+                            android:textSize="16sp"
+                            android:textColor="#E0E0E0"
+                            android:layout_marginStart="4dp"
+                            android:layout_marginBottom="4dp"/>
+                    </LinearLayout>
+
+                    <Button
+                        android:id="@+id/btnUpgradePremium"
+                        android:layout_width="wrap_content"
+                        android:layout_height="48dp"
+                        android:text="Upgrade Now"
+                        android:textStyle="bold"
+                        android:textColor="#1E88E5"
+                        android:backgroundTint="#FFFFFF"
+                        android:paddingStart="24dp"
+                        android:paddingEnd="24dp"
+                        app:cornerRadius="24dp"/>
+                </LinearLayout>
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/tilSubscriptionPhone"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    app:boxBackgroundMode="filled"
+                    app:boxBackgroundColor="#FFFFFF"
+                    app:boxCornerRadiusBottomEnd="12dp"
+                    app:boxCornerRadiusBottomStart="12dp"
+                    app:boxCornerRadiusTopEnd="12dp"
+                    app:boxCornerRadiusTopStart="12dp"
+                    app:boxStrokeColor="#BBDEFB"
+                    app:helperText="@string/settings_premium_phone_helper"
+                    app:helperTextTextColor="#BBDEFB"
+                    app:hintTextColor="#1E88E5"
+                    app:startIconDrawable="@android:drawable/ic_menu_call"
+                    app:startIconTint="#1E88E5">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/etSubscriptionPhone"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:hint="M-Pesa phone number for status check"
+                        android:inputType="phone"
+                        android:textColor="#000000"
+                        android:textColorHint="#9E9E9E" />
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <Button
+                    android:id="@+id/btnRefreshStatus"
+                    android:layout_width="match_parent"
+                    android:layout_height="40dp"
+                    android:layout_marginTop="12dp"
+                    android:text="Refresh Status"
+                    android:textAllCaps="false"
+                    android:textStyle="bold"
+                    android:textColor="#1E88E5"
+                    android:backgroundTint="#E3F2FD"
+                    app:cornerRadius="20dp"/>
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="@string/settings_premium_refresh_tip"
+                    android:textSize="11sp"
+                    android:textColor="#BBDEFB"/>
+
+            </LinearLayout>
+
+        </com.google.android.material.card.MaterialCardView>
 
         <!-- Theme Settings -->
         <com.google.android.material.card.MaterialCardView
@@ -28,15 +225,31 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
-                android:padding="16dp">
+                android:padding="16dp"
+                android:gravity="center_vertical">
 
-                <TextView
+                <LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="🎨 Theme"
-                    android:textSize="16sp"
-                    android:textStyle="bold" />
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/settings_theme"
+                        android:textSize="16sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/settings_theme_helper"
+                        android:textSize="12sp"
+                        android:textColor="#607D8B"
+                        android:layout_marginTop="4dp" />
+
+                </LinearLayout>
 
                 <TextView
                     android:id="@+id/txtCurrentTheme"
@@ -63,15 +276,31 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
-                android:padding="16dp">
+                android:padding="16dp"
+                android:gravity="center_vertical">
 
-                <TextView
+                <LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="🔔 Notifications"
-                    android:textSize="16sp"
-                    android:textStyle="bold" />
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/settings_notifications"
+                        android:textSize="16sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/settings_notifications_helper"
+                        android:textSize="12sp"
+                        android:textColor="#607D8B"
+                        android:layout_marginTop="4dp" />
+
+                </LinearLayout>
 
                 <Switch
                     android:id="@+id/switchNotifications"
@@ -99,15 +328,31 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
-                android:padding="16dp">
+                android:padding="16dp"
+                android:gravity="center_vertical">
 
-                <TextView
+                <LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="📱 Default SMS App"
-                    android:textSize="16sp"
-                    android:textStyle="bold" />
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/settings_default_sms_app"
+                        android:textSize="16sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/settings_default_sms_helper"
+                        android:textSize="12sp"
+                        android:textColor="#607D8B"
+                        android:layout_marginTop="4dp" />
+
+                </LinearLayout>
 
                 <TextView
                     android:id="@+id/txtDefaultSmsStatus"
@@ -137,15 +382,31 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
-                android:padding="16dp">
+                android:padding="16dp"
+                android:gravity="center_vertical">
 
-                <TextView
+                <LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="👆 Biometric Auth"
-                    android:textSize="16sp"
-                    android:textStyle="bold" />
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/settings_biometric_auth"
+                        android:textSize="16sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/settings_biometric_helper"
+                        android:textSize="12sp"
+                        android:textColor="#607D8B"
+                        android:layout_marginTop="4dp" />
+
+                </LinearLayout>
 
                 <TextView
                     android:id="@+id/txtBiometricStatus"
@@ -159,9 +420,9 @@
 
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- Billing -->
+        <!-- Support -->
         <com.google.android.material.card.MaterialCardView
-            android:id="@+id/billingCard"
+            android:id="@+id/supportCard"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="12dp"
@@ -175,30 +436,91 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
-                android:padding="16dp">
+                android:padding="16dp"
+                android:gravity="center_vertical">
 
-                <TextView
-                    android:id="@+id/txtBillingIcon"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="🆓"
-                    android:textSize="16sp"
-                    android:layout_marginEnd="8dp" />
-
-                <TextView
+                <LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="Subscription"
-                    android:textSize="16sp"
-                    android:textStyle="bold" />
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/settings_support"
+                        android:textSize="16sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/settings_support_helper"
+                        android:textSize="12sp"
+                        android:textColor="#607D8B"
+                        android:layout_marginTop="4dp" />
+
+                </LinearLayout>
 
                 <TextView
-                    android:id="@+id/txtSubscriptionStatus"
+                    android:id="@+id/txtSupportEmail"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="🆓 Free Plan"
-                    android:textSize="14sp"
+                    android:text="@string/settings_support_email"
+                    android:textSize="13sp"
+                    android:textColor="#1E88E5" />
+
+            </LinearLayout>
+
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Privacy Policy -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/privacyCard"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="4dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:foreground="?android:attr/selectableItemBackground">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:padding="16dp"
+                android:gravity="center_vertical">
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/settings_privacy_policy"
+                        android:textSize="16sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/settings_privacy_helper"
+                        android:textSize="12sp"
+                        android:textColor="#607D8B"
+                        android:layout_marginTop="4dp" />
+
+                </LinearLayout>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/settings_arrow"
+                    android:textSize="16sp"
                     android:textColor="@android:color/darker_gray" />
 
             </LinearLayout>
@@ -221,20 +543,36 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
-                android:padding="16dp">
+                android:padding="16dp"
+                android:gravity="center_vertical">
 
-                <TextView
+                <LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="🗑️ Clear Cache"
-                    android:textSize="16sp"
-                    android:textStyle="bold" />
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/settings_clear_cache"
+                        android:textSize="16sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/settings_clear_cache_helper"
+                        android:textSize="12sp"
+                        android:textColor="#607D8B"
+                        android:layout_marginTop="4dp" />
+
+                </LinearLayout>
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="→"
+                    android:text="@string/settings_arrow"
                     android:textSize="16sp"
                     android:textColor="@android:color/darker_gray" />
 
@@ -258,20 +596,36 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
-                android:padding="16dp">
+                android:padding="16dp"
+                android:gravity="center_vertical">
 
-                <TextView
+                <LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="ℹ️ About"
-                    android:textSize="16sp"
-                    android:textStyle="bold" />
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/settings_about"
+                        android:textSize="16sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/settings_about_helper"
+                        android:textSize="12sp"
+                        android:textColor="#607D8B"
+                        android:layout_marginTop="4dp" />
+
+                </LinearLayout>
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="→"
+                    android:text="@string/settings_arrow"
                     android:textSize="16sp"
                     android:textColor="@android:color/darker_gray" />
 

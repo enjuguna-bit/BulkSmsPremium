@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView 
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginStart="8dp"
+    android:layout_marginEnd="8dp"
+    android:layout_marginBottom="8dp"
+    app:cardCornerRadius="8dp"
+    app:cardElevation="2dp"
+    app:strokeColor="@android:color/darker_gray"
+    app:strokeWidth="1dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="12dp">
+
+        <!-- Phone Number -->
+        <TextView
+            android:id="@+id/text_phone"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="+1234567890"
+            android:textColor="@color/design_default_color_primary"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="4dp" />
+
+        <!-- Message Preview -->
+        <TextView
+            android:id="@+id/text_message"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Hello John, your order #12345 is ready for pickup!"
+            android:textColor="@android:color/black"
+            android:textSize="14sp"
+            android:layout_marginBottom="4dp"
+            android:background="@drawable/message_preview_background"
+            android:padding="8dp" />
+
+        <!-- Additional Info -->
+        <TextView
+            android:id="@+id/text_info"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Name: John Doe\nEmail: john@example.com"
+            android:textColor="@android:color/darker_gray"
+            android:textSize="12sp"
+            android:visibility="gone" />
+
+    </LinearLayout>
+
+</com.google.android.material.card.MaterialCardView>

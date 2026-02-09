@@ -4,7 +4,8 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/swipeRefresh"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:background="@drawable/bg_dashboard_gradient">
 
     <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
@@ -17,50 +18,103 @@
             android:orientation="vertical"
             android:padding="16dp">
 
+            <!-- Header -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="@dimen/spacing_medium">
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/dashboard_title"
+                        android:textSize="24sp"
+                        android:textStyle="bold"
+                        android:textColor="#0F172A" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/dashboard_subtitle"
+                        android:textSize="13sp"
+                        android:textColor="#475569"
+                        android:layout_marginTop="4dp" />
+
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/txtDashboardBadge"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/dashboard_premium_badge"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:textColor="#2B1A00"
+                    android:background="@drawable/bg_premium_badge"
+                    android:paddingStart="10dp"
+                    android:paddingEnd="10dp"
+                    android:paddingTop="6dp"
+                    android:paddingBottom="6dp" />
+
+            </LinearLayout>
+
             <!-- Stats Cards -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
-                android:layout_marginBottom="16dp">
+                android:layout_marginBottom="@dimen/spacing_medium">
 
                 <com.google.android.material.card.MaterialCardView
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:layout_marginEnd="8dp"
-                    app:cardCornerRadius="12dp"
-                    app:cardElevation="4dp">
+                    android:layout_marginEnd="@dimen/spacing_small"
+                    app:cardCornerRadius="16dp"
+                    app:cardElevation="6dp"
+                    app:cardUseCompatPadding="true"
+                    app:strokeColor="#E3ECFF"
+                    app:strokeWidth="1dp"
+                    app:cardBackgroundColor="#FFFFFF">
 
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="vertical"
-                        android:padding="16dp"
+                        android:padding="@dimen/spacing_medium"
                         android:gravity="center">
 
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="📤"
-                            android:textSize="24sp"
-                            android:layout_marginBottom="8dp" />
+                        <ImageView
+                            android:layout_width="@dimen/icon_medium"
+                            android:layout_height="@dimen/icon_medium"
+                            android:src="@drawable/ic_dashboard_sent"
+                            app:tint="#1E3A8A"
+                            android:layout_marginBottom="@dimen/spacing_small"
+                            android:contentDescription="@string/dashboard_sms_sent" />
 
                         <TextView
                             android:id="@+id/txtSmsSent"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="125"
-                            android:textSize="20sp"
+                            android:textSize="@dimen/text_xlarge"
                             android:textStyle="bold"
-                            android:layout_marginBottom="4dp" />
+                            android:layout_marginBottom="@dimen/spacing_tiny" />
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="SMS Sent"
-                            android:textSize="12sp"
-                            android:textColor="@android:color/darker_gray" />
+                            android:text="@string/dashboard_sms_sent"
+                            android:textSize="@dimen/text_small"
+                            android:textColor="#64748B" />
 
                     </LinearLayout>
 
@@ -70,39 +124,44 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:layout_marginStart="8dp"
-                    app:cardCornerRadius="12dp"
-                    app:cardElevation="4dp">
+                    android:layout_marginStart="@dimen/spacing_small"
+                    app:cardCornerRadius="16dp"
+                    app:cardElevation="6dp"
+                    app:cardUseCompatPadding="true"
+                    app:strokeColor="#E3ECFF"
+                    app:strokeWidth="1dp"
+                    app:cardBackgroundColor="#FFFFFF">
 
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="vertical"
-                        android:padding="16dp"
+                        android:padding="@dimen/spacing_medium"
                         android:gravity="center">
 
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="✅"
-                            android:textSize="24sp"
-                            android:layout_marginBottom="8dp" />
+                        <ImageView
+                            android:layout_width="@dimen/icon_medium"
+                            android:layout_height="@dimen/icon_medium"
+                            android:src="@drawable/ic_dashboard_delivery"
+                            app:tint="#1E3A8A"
+                            android:layout_marginBottom="@dimen/spacing_small"
+                            android:contentDescription="@string/dashboard_delivery_rate" />
 
                         <TextView
                             android:id="@+id/txtDeliveryRate"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="98%"
-                            android:textSize="20sp"
+                            android:textSize="@dimen/text_xlarge"
                             android:textStyle="bold"
-                            android:layout_marginBottom="4dp" />
+                            android:layout_marginBottom="@dimen/spacing_tiny" />
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Delivery Rate"
-                            android:textSize="12sp"
-                            android:textColor="@android:color/darker_gray" />
+                            android:text="@string/dashboard_delivery_rate"
+                            android:textSize="@dimen/text_small"
+                            android:textColor="#64748B" />
 
                     </LinearLayout>
 
@@ -114,32 +173,37 @@
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
-                app:cardCornerRadius="12dp"
-                app:cardElevation="4dp">
+                android:layout_marginBottom="@dimen/spacing_medium"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="6dp"
+                app:cardUseCompatPadding="true"
+                app:strokeColor="#E3ECFF"
+                app:strokeWidth="1dp"
+                app:cardBackgroundColor="#FFFFFF">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:padding="16dp">
+                    android:padding="@dimen/spacing_medium">
 
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="📊 Delivery Status"
-                        android:textSize="16sp"
+                        android:text="@string/dashboard_delivery_status"
+                        android:textSize="@dimen/text_large"
                         android:textStyle="bold"
-                        android:layout_marginBottom="12dp" />
+                        android:textColor="#0F172A"
+                        android:layout_marginBottom="@dimen/card_corner_radius" />
 
                     <TextView
                         android:id="@+id/txtDeliveryStatus"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:text="Excellent"
-                        android:textSize="14sp"
-                        android:textColor="@android:color/holo_green_dark"
-                        android:layout_marginBottom="8dp" />
+                        android:textSize="@dimen/text_medium"
+                        android:textColor="#166534"
+                        android:layout_marginBottom="@dimen/spacing_small" />
 
                     <LinearLayout
                         android:layout_width="match_parent"
@@ -150,26 +214,35 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="Failed: " />
+                            android:text="@string/dashboard_status_label_failed"
+                            android:textSize="@dimen/text_medium"
+                            android:textColor="#475569" />
 
                         <TextView
                             android:id="@+id/txtFailed"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="2"
-                            android:textColor="@android:color/holo_red_dark" />
+                            android:textSize="@dimen/text_medium"
+                            android:textColor="#B91C1C" />
 
                         <TextView
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="Queued: " />
+                            android:gravity="end"
+                            android:layout_marginEnd="@dimen/spacing_small"
+                            android:text="@string/dashboard_status_label_queued"
+                            android:textSize="@dimen/text_medium"
+                            android:textColor="#475569" />
 
                         <TextView
                             android:id="@+id/txtQueued"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="0" />
+                            android:text="0"
+                            android:textSize="@dimen/text_medium"
+                            android:textColor="#0F172A" />
 
                     </LinearLayout>
 
@@ -181,31 +254,51 @@
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
-                app:cardCornerRadius="12dp"
-                app:cardElevation="4dp">
+                android:layout_marginBottom="@dimen/spacing_medium"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="6dp"
+                app:cardUseCompatPadding="true"
+                app:strokeColor="#E3ECFF"
+                app:strokeWidth="1dp"
+                app:cardBackgroundColor="#FFFFFF">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:padding="16dp">
+                    android:padding="@dimen/spacing_medium">
 
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="📈 SMS Trend"
-                        android:textSize="16sp"
+                        android:text="@string/dashboard_sms_trend"
+                        android:textSize="@dimen/text_large"
                         android:textStyle="bold"
-                        android:layout_marginBottom="8dp" />
+                        android:textColor="#0F172A"
+                        android:layout_marginBottom="@dimen/spacing_small" />
 
-                    <TextView
-                        android:id="@+id/txtSmsTrend"
+                    <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="SMS Trend: +5%"
-                        android:textSize="14sp"
-                        android:textColor="@android:color/holo_green_dark" />
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical">
+
+                        <ImageView
+                            android:layout_width="@dimen/icon_small"
+                            android:layout_height="@dimen/icon_small"
+                            android:src="@drawable/ic_arrow_upward"
+                            app:tint="#166534"
+                            android:layout_marginEnd="@dimen/spacing_tiny"
+                            android:contentDescription="@null" />
+
+                        <TextView
+                            android:id="@+id/txtSmsTrend"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="SMS Trend: +5%"
+                            android:textSize="@dimen/text_medium"
+                            android:textColor="#166534" />
+                    </LinearLayout>
 
                 </LinearLayout>
 
@@ -215,37 +308,45 @@
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
-                app:cardCornerRadius="12dp"
-                app:cardElevation="4dp">
+                android:layout_marginBottom="@dimen/spacing_medium"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="6dp"
+                app:cardUseCompatPadding="true"
+                app:strokeColor="#E3ECFF"
+                app:strokeWidth="1dp"
+                app:cardBackgroundColor="#FFFFFF">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:padding="16dp">
+                    android:padding="@dimen/spacing_medium">
 
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="⚡ Quick Actions"
-                        android:textSize="16sp"
+                        android:text="@string/dashboard_quick_actions"
+                        android:textSize="@dimen/text_large"
                         android:textStyle="bold"
-                        android:layout_marginBottom="12dp" />
+                        android:textColor="#0F172A"
+                        android:layout_marginBottom="@dimen/card_corner_radius" />
 
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="horizontal">
 
-                        <androidx.cardview.widget.CardView
+                        <com.google.android.material.card.MaterialCardView
                             android:id="@+id/actionBulkSms"
                             android:layout_width="0dp"
-                            android:layout_height="80dp"
+                            android:layout_height="@dimen/card_action_height"
                             android:layout_weight="1"
-                            android:layout_marginEnd="8dp"
-                            app:cardCornerRadius="8dp"
+                            android:layout_marginEnd="@dimen/spacing_small"
+                            app:cardCornerRadius="12dp"
                             app:cardElevation="2dp"
+                            app:strokeColor="#D6E4FF"
+                            app:strokeWidth="1dp"
+                            app:cardBackgroundColor="#F7FAFF"
                             android:clickable="true"
                             android:focusable="true"
                             android:foreground="?android:attr/selectableItemBackground">
@@ -255,35 +356,40 @@
                                 android:layout_height="match_parent"
                                 android:orientation="vertical"
                                 android:gravity="center"
-                                android:padding="8dp">
+                                android:padding="@dimen/spacing_small">
+
+                                <ImageView
+                                    android:layout_width="@dimen/icon_small"
+                                    android:layout_height="@dimen/icon_small"
+                                    android:src="@drawable/ic_action_bulk"
+                                    app:tint="#1E3A8A"
+                                    android:layout_marginBottom="@dimen/spacing_tiny"
+                                    android:contentDescription="@string/dashboard_action_bulk" />
 
                                 <TextView
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
-                                    android:text="📱"
-                                    android:textSize="20sp"
-                                    android:layout_marginBottom="4dp" />
-
-                                <TextView
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="Bulk SMS"
-                                    android:textSize="12sp"
+                                    android:text="@string/dashboard_action_bulk"
+                                    android:textSize="@dimen/text_small"
+                                    android:textColor="#1F2937"
                                     android:textAlignment="center" />
 
                             </LinearLayout>
 
-                        </androidx.cardview.widget.CardView>
+                        </com.google.android.material.card.MaterialCardView>
 
-                        <androidx.cardview.widget.CardView
+                        <com.google.android.material.card.MaterialCardView
                             android:id="@+id/actionSingleSms"
                             android:layout_width="0dp"
-                            android:layout_height="80dp"
+                            android:layout_height="@dimen/card_action_height"
                             android:layout_weight="1"
-                            android:layout_marginStart="8dp"
-                            android:layout_marginEnd="8dp"
-                            app:cardCornerRadius="8dp"
+                            android:layout_marginStart="@dimen/spacing_small"
+                            android:layout_marginEnd="@dimen/spacing_small"
+                            app:cardCornerRadius="12dp"
                             app:cardElevation="2dp"
+                            app:strokeColor="#D6E4FF"
+                            app:strokeWidth="1dp"
+                            app:cardBackgroundColor="#F7FAFF"
                             android:clickable="true"
                             android:focusable="true"
                             android:foreground="?android:attr/selectableItemBackground">
@@ -293,35 +399,40 @@
                                 android:layout_height="match_parent"
                                 android:orientation="vertical"
                                 android:gravity="center"
-                                android:padding="8dp">
+                                android:padding="@dimen/spacing_small">
+
+                                <ImageView
+                                    android:layout_width="@dimen/icon_small"
+                                    android:layout_height="@dimen/icon_small"
+                                    android:src="@drawable/ic_action_single"
+                                    app:tint="#1E3A8A"
+                                    android:layout_marginBottom="@dimen/spacing_tiny"
+                                    android:contentDescription="@string/dashboard_action_single" />
 
                                 <TextView
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
-                                    android:text="💬"
-                                    android:textSize="20sp"
-                                    android:layout_marginBottom="4dp" />
-
-                                <TextView
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="Single SMS"
-                                    android:textSize="12sp"
+                                    android:text="@string/dashboard_action_single"
+                                    android:textSize="@dimen/text_small"
+                                    android:textColor="#1F2937"
                                     android:textAlignment="center" />
 
                             </LinearLayout>
 
-                        </androidx.cardview.widget.CardView>
+                        </com.google.android.material.card.MaterialCardView>
 
-                        <androidx.cardview.widget.CardView
+                        <com.google.android.material.card.MaterialCardView
                             android:id="@+id/actionInbox"
                             android:layout_width="0dp"
-                            android:layout_height="80dp"
+                            android:layout_height="@dimen/card_action_height"
                             android:layout_weight="1"
-                            android:layout_marginStart="8dp"
-                            android:layout_marginEnd="8dp"
-                            app:cardCornerRadius="8dp"
+                            android:layout_marginStart="@dimen/spacing_small"
+                            android:layout_marginEnd="@dimen/spacing_small"
+                            app:cardCornerRadius="12dp"
                             app:cardElevation="2dp"
+                            app:strokeColor="#D6E4FF"
+                            app:strokeWidth="1dp"
+                            app:cardBackgroundColor="#F7FAFF"
                             android:clickable="true"
                             android:focusable="true"
                             android:foreground="?android:attr/selectableItemBackground">
@@ -331,34 +442,39 @@
                                 android:layout_height="match_parent"
                                 android:orientation="vertical"
                                 android:gravity="center"
-                                android:padding="8dp">
+                                android:padding="@dimen/spacing_small">
+
+                                <ImageView
+                                    android:layout_width="@dimen/icon_small"
+                                    android:layout_height="@dimen/icon_small"
+                                    android:src="@drawable/ic_action_inbox"
+                                    app:tint="#1E3A8A"
+                                    android:layout_marginBottom="@dimen/spacing_tiny"
+                                    android:contentDescription="@string/dashboard_action_inbox" />
 
                                 <TextView
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
-                                    android:text="📥"
-                                    android:textSize="20sp"
-                                    android:layout_marginBottom="4dp" />
-
-                                <TextView
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="Inbox"
-                                    android:textSize="12sp"
+                                    android:text="@string/dashboard_action_inbox"
+                                    android:textSize="@dimen/text_small"
+                                    android:textColor="#1F2937"
                                     android:textAlignment="center" />
 
                             </LinearLayout>
 
-                        </androidx.cardview.widget.CardView>
+                        </com.google.android.material.card.MaterialCardView>
 
-                        <androidx.cardview.widget.CardView
+                        <com.google.android.material.card.MaterialCardView
                             android:id="@+id/actionSettings"
                             android:layout_width="0dp"
-                            android:layout_height="80dp"
+                            android:layout_height="@dimen/card_action_height"
                             android:layout_weight="1"
-                            android:layout_marginStart="8dp"
-                            app:cardCornerRadius="8dp"
+                            android:layout_marginStart="@dimen/spacing_small"
+                            app:cardCornerRadius="12dp"
                             app:cardElevation="2dp"
+                            app:strokeColor="#D6E4FF"
+                            app:strokeWidth="1dp"
+                            app:cardBackgroundColor="#F7FAFF"
                             android:clickable="true"
                             android:focusable="true"
                             android:foreground="?android:attr/selectableItemBackground">
@@ -368,25 +484,27 @@
                                 android:layout_height="match_parent"
                                 android:orientation="vertical"
                                 android:gravity="center"
-                                android:padding="8dp">
+                                android:padding="@dimen/spacing_small">
+
+                                <ImageView
+                                    android:layout_width="@dimen/icon_small"
+                                    android:layout_height="@dimen/icon_small"
+                                    android:src="@drawable/ic_action_settings"
+                                    app:tint="#1E3A8A"
+                                    android:layout_marginBottom="@dimen/spacing_tiny"
+                                    android:contentDescription="@string/dashboard_action_settings" />
 
                                 <TextView
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
-                                    android:text="⚙️"
-                                    android:textSize="20sp"
-                                    android:layout_marginBottom="4dp" />
-
-                                <TextView
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="Settings"
-                                    android:textSize="12sp"
+                                    android:text="@string/dashboard_action_settings"
+                                    android:textSize="@dimen/text_small"
+                                    android:textColor="#1F2937"
                                     android:textAlignment="center" />
 
                             </LinearLayout>
 
-                        </androidx.cardview.widget.CardView>
+                        </com.google.android.material.card.MaterialCardView>
 
                     </LinearLayout>
 
@@ -398,40 +516,45 @@
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                app:cardCornerRadius="12dp"
-                app:cardElevation="4dp">
+                app:cardCornerRadius="16dp"
+                app:cardElevation="6dp"
+                app:cardUseCompatPadding="true"
+                app:strokeColor="#E3ECFF"
+                app:strokeWidth="1dp"
+                app:cardBackgroundColor="#FFFFFF">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:padding="16dp">
+                    android:padding="@dimen/spacing_medium">
 
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="📋 Recent Activity"
-                        android:textSize="16sp"
+                        android:text="@string/dashboard_recent_activity"
+                        android:textSize="@dimen/text_large"
                         android:textStyle="bold"
-                        android:layout_marginBottom="12dp" />
+                        android:textColor="#0F172A"
+                        android:layout_marginBottom="@dimen/card_corner_radius" />
 
                     <TextView
                         android:id="@+id/txtNoActivity"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="No recent activity"
-                        android:textSize="14sp"
-                        android:textColor="@android:color/darker_gray"
+                        android:text="@string/dashboard_no_activity"
+                        android:textSize="@dimen/text_medium"
+                        android:textColor="#64748B"
                         android:gravity="center"
-                        android:padding="32dp"
+                        android:padding="@dimen/spacing_xlarge"
                         android:visibility="gone" />
 
                     <androidx.recyclerview.widget.RecyclerView
                         android:id="@+id/recyclerActivity"
                         android:layout_width="match_parent"
                         android:layout_height="200dp"
-                        android:background="@drawable/search_background"
-                        android:padding="8dp" />
+                        android:background="@drawable/bg_activity_list"
+                        android:padding="@dimen/spacing_small" />
 
                 </LinearLayout>
 

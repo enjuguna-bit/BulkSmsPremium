@@ -28,4 +28,110 @@
     <string name="open_chat_with">Open chat with %s</string>
     <string name="forward_functionality_todo">Forward functionality - TODO</string>
     <string name="retry">Retry</string>
+    
+    <!-- Dashboard -->
+    <string name="dashboard_sms_sent">SMS Sent</string>
+    <string name="dashboard_delivery_rate">Delivery Rate</string>
+    <string name="dashboard_delivery_status">Delivery Status</string>
+    <string name="dashboard_sms_trend">SMS Trend</string>
+    <string name="dashboard_quick_actions">Quick Actions</string>
+    <string name="dashboard_recent_activity">Recent Activity</string>
+    <string name="dashboard_title">Dashboard</string>
+    <string name="dashboard_subtitle">Premium overview and quick actions</string>
+    <string name="dashboard_premium_badge">PREMIUM</string>
+    <string name="dashboard_action_bulk">Bulk SMS</string>
+    <string name="dashboard_action_single">Single SMS</string>
+    <string name="dashboard_action_inbox">Inbox</string>
+    <string name="dashboard_action_settings">Settings</string>
+    <string name="dashboard_no_activity">No recent activity</string>
+    <string name="dashboard_status_label_failed">Failed:</string>
+    <string name="dashboard_status_label_queued">Queued:</string>
+    <string name="inbox_permission_required">Inbox needs SMS permission to show messages. Please allow it.</string>
+    <string name="inbox_permission_denied">SMS permission denied. Enable it in Settings to view your inbox.</string>
+    <string name="inbox_title">Inbox</string>
+    <string name="inbox_subtitle">Search, filter, and track replies</string>
+    <string name="inbox_badge">SMART INBOX</string>
+
+    <!-- Send SMS -->
+    <string name="send_sms_title">Send Single SMS</string>
+    <string name="send_sms_subtitle">Personalized messages in seconds</string>
+    <string name="send_sms_badge">PREMIUM</string>
+    <string name="send_sms_phone_hint">Phone number(s)</string>
+    <string name="send_sms_phone_helper">Separate multiple numbers with commas</string>
+    <string name="send_sms_select_contact">Select from Contacts</string>
+    <string name="send_sms_select_multiple_contacts">Select Multiple Contacts</string>
+    <string name="send_sms_message_hint">Type your message...</string>
+    <string name="send_sms_char_count_format">%d / 160 characters</string>
+    <string name="send_sms_sim_1">SIM 1</string>
+    <string name="send_sms_sim_2">SIM 2</string>
+    <string name="send_sms_button">Send SMS</string>
+    <string name="contact_add_selected">Add Selected</string>
+    <string name="contact_selected_count">Selected: %d</string>
+
+    <!-- Bulk SMS -->
+    <string name="bulk_sms_title">Bulk SMS Campaign</string>
+    <string name="bulk_sms_subtitle">Upload, personalize, and send at scale</string>
+    <string name="bulk_sms_badge">PREMIUM</string>
+    <string name="bulk_sms_recipients_format">Recipients: %d</string>
+    <string name="bulk_sms_import_title">Import Recipients</string>
+    <string name="bulk_sms_file_loaded_format">File Loaded: %d recipients</string>
+    <string name="bulk_sms_select_file">SELECT FILE</string>
+    <string name="bulk_sms_add_manual">Add Manual</string>
+    <string name="bulk_sms_template_title">Message Template</string>
+    <string name="bulk_sms_template_hint">Enter your message template...</string>
+    <string name="bulk_sms_copy_template">Copy template</string>
+    <string name="bulk_sms_placeholders">Available placeholders: {name}, {phone}, {amount}</string>
+    <string name="bulk_sms_save_template">Save Template</string>
+    <string name="bulk_sms_templates">Templates</string>
+    <string name="bulk_sms_variables_title">Available Template Variables</string>
+    <string name="bulk_sms_variables_count_format">Available Variables: %d</string>
+    <string name="bulk_sms_detected_columns_prefix">Detected Columns:</string>
+    <string name="bulk_sms_variables_hint">Tap any variable to insert into template</string>
+    <string name="bulk_sms_preview_title">Message Preview (First 5 Customers)</string>
+    <string name="bulk_sms_sim_title">SIM Selection</string>
+    <string name="bulk_sms_clear_all">Clear All</string>
+    <string name="bulk_sms_send_button">Send Bulk SMS</string>
+    <string name="bulk_sms_progress_title">Send Progress</string>
+    <string name="bulk_sms_progress_format">Progress: %d%%</string>
+    <string name="bulk_sms_ready">Ready</string>
+    <string name="bulk_sms_sent_label">Sent: </string>
+    <string name="bulk_sms_failed_label">Failed: </string>
+    <string name="bulk_sms_queued_label">Queued: </string>
+    <string name="bulk_sms_delivery_format">Delivery: %1$d sent, %2$d delivered (%3$.1f%%)</string>
+    <string name="bulk_sms_queue_format">Queue: %1$d pending, %2$d failed, %3$d exhausted</string>
+    <string name="bulk_sms_advanced">Advanced Controls</string>
+    <string name="bulk_sms_speed_label">Send Speed (delay between messages)</string>
+    <string name="bulk_sms_speed_fast">Fast (300ms)</string>
+    <string name="bulk_sms_speed_normal">Normal (600ms)</string>
+    <string name="bulk_sms_speed_slow">Slow (1s)</string>
+    <string name="bulk_sms_queue_mgmt">Queue Management</string>
+    <string name="bulk_sms_run_queue">Run Queue</string>
+    <string name="bulk_sms_clear_exhausted">Clear Exhausted</string>
+    <string name="bulk_sms_pause">Pause</string>
+    <string name="bulk_sms_stop">Stop</string>
+    <string name="bulk_sms_recipients_list">Recipients List</string>
+    
+    <!-- Settings -->
+    <string name="settings_theme">Theme</string>
+    <string name="settings_theme_helper">Light, Dark, or System</string>
+    <string name="settings_notifications">Notifications</string>
+    <string name="settings_notifications_helper">Delivery and campaign alerts</string>
+    <string name="settings_default_sms_app">Default SMS App</string>
+    <string name="settings_default_sms_helper">Required to send SMS and delivery reports</string>
+    <string name="settings_biometric_auth">Biometric Auth</string>
+    <string name="settings_biometric_helper">Protect access to your messages</string>
+    <string name="settings_support">Contact Support</string>
+    <string name="settings_support_helper">Payment issues, setup help, or bugs</string>
+    <string name="settings_support_email">enjuguna794@gmail.com</string>
+    <string name="settings_privacy_policy">Privacy Policy</string>
+    <string name="settings_privacy_helper">How we handle your data</string>
+    <string name="settings_privacy_url">https://enjuguna-bit.github.io/BulkSmsPremium/privacy-policy/</string>
+    <string name="settings_clear_cache">Clear Cache</string>
+    <string name="settings_clear_cache_helper">Resets app settings; SMS remain on device</string>
+    <string name="settings_about">About</string>
+    <string name="settings_about_helper">Version, legal, and app info</string>
+    <string name="settings_arrow">-&gt;</string>
+    <string name="settings_premium_phone_helper">Use the same M-Pesa number used to pay</string>
+    <string name="settings_premium_refresh_tip">If status does not update, wait a few minutes and refresh.</string>
+    
 </resources>

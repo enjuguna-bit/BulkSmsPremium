@@ -42,4 +42,10 @@
     <style name="Theme.BulkSMS.Dark" parent="Theme.Material3.DayNight">
         <!-- Override for dark mode will be handled by night mode resources -->
     </style>
+    
+    <!-- NoActionBar theme variant for activities without action bar -->
+    <style name="Theme.BulkSMS.NoActionBar" parent="Theme.BulkSMS">
+        <item name="windowActionBar">false</item>
+        <item name="windowNoTitle">true</item>
+    </style>
 </resources>
