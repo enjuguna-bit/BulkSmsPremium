@@ -26,4 +26,9 @@ public class DashboardStats {
     public void setRecentActivity(List<SmsModel> recentActivity) {
         this.recentActivity = recentActivity;
     }
+
+    public boolean isEmpty() {
+        int total = smsStats != null ? smsStats.getTotalSent() : 0;
+        return total == 0 && (recentActivity == null || recentActivity.isEmpty());
+    }
 }

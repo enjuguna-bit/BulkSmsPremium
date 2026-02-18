@@ -1,8 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <shape xmlns:android="http://schemas.android.com/apk/res/android">
-    <solid android:color="#F8FAFF" />
-    <corners android:radius="12dp" />
+    <gradient
+        android:angle="315"
+        android:startColor="@color/fx_glass_surface"
+        android:endColor="@color/fx_glass_surface_alt" />
+    <corners android:radius="14dp" />
     <stroke
         android:width="1dp"
-        android:color="#E3ECFF" />
+        android:color="@color/fx_glass_stroke" />
 </shape>

@@ -12,8 +12,8 @@
         android:layout_height="wrap_content"
         android:layout_marginBottom="6dp"
         android:gravity="center"
-        android:text="Today"
-        android:textColor="@android:color/darker_gray"
+        android:text="@string/placeholder_day_today"
+        android:textColor="@color/color_on_surface_variant"
         android:textSize="12sp"
         android:visibility="gone" />
 
@@ -38,7 +38,9 @@
                 android:layout_height="wrap_content"
                 app:cardCornerRadius="16dp"
                 app:cardElevation="2dp"
-                app:cardBackgroundColor="@android:color/white">
+                app:cardBackgroundColor="@color/color_surface"
+                app:strokeColor="@color/color_outline_variant"
+                app:strokeWidth="1dp">
 
                 <LinearLayout
                     android:layout_width="wrap_content"
@@ -50,8 +52,8 @@
                         android:id="@+id/tvReceivedMessage"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Received message"
-                        android:textColor="@android:color/black"
+                        android:text="@string/placeholder_received_message"
+                        android:textColor="@color/color_on_surface"
                         android:textSize="16sp" />
 
                     <ImageView
@@ -71,8 +73,8 @@
                 android:layout_height="wrap_content"
                 android:layout_marginStart="4dp"
                 android:layout_marginTop="2dp"
-                android:text="10:30 AM"
-                android:textColor="@android:color/darker_gray"
+                android:text="@string/placeholder_time_1030_am"
+                android:textColor="@color/color_on_surface_variant"
                 android:textSize="12sp" />
 
         </LinearLayout>
@@ -105,8 +107,8 @@
                         android:id="@+id/tvSentMessage"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Sent message"
-                        android:textColor="@android:color/white"
+                        android:text="@string/placeholder_sent_message"
+                        android:textColor="@color/color_on_primary"
                         android:textSize="16sp" />
 
                     <ImageView
@@ -126,8 +128,8 @@
                 android:layout_height="wrap_content"
                 android:layout_marginEnd="4dp"
                 android:layout_marginTop="2dp"
-                android:text="10:30 AM"
-                android:textColor="@android:color/darker_gray"
+                android:text="@string/placeholder_time_1030_am"
+                android:textColor="@color/color_on_surface_variant"
                 android:textSize="12sp" />
 
             <TextView
@@ -136,8 +138,8 @@
                 android:layout_height="wrap_content"
                 android:layout_marginEnd="4dp"
                 android:layout_marginTop="2dp"
-                android:text="Delivered"
-                android:textColor="@android:color/darker_gray"
+                android:text="@string/placeholder_delivery_status"
+                android:textColor="@color/color_on_surface_variant"
                 android:textSize="11sp" />
 
         </LinearLayout>

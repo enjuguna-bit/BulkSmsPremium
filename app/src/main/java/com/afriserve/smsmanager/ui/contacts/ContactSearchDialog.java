@@ -27,6 +27,8 @@ import com.afriserve.smsmanager.billing.SubscriptionHelper;
 import com.afriserve.smsmanager.databinding.DialogContactSearchBinding;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.textfield.TextInputEditText;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import dagger.hilt.android.AndroidEntryPoint;
 
@@ -43,6 +45,10 @@ public class ContactSearchDialog extends DialogFragment {
     private OnContactSelectedListener listener;
     private TextWatcher searchWatcher;
     private boolean allowMultipleSelection;
+    private ExecutorService subscriptionExecutor;
+    private volatile boolean premiumAccess;
+    private volatile boolean premiumStatusInitialized;
+    private volatile boolean premiumCheckInProgress;
     
     public interface OnContactSelectedListener {
         void onContactSelected(ContactInfo contact);
@@ -77,6 +83,12 @@ public class ContactSearchDialog extends DialogFragment {
     }
 
     @Override
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        subscriptionExecutor = Executors.newSingleThreadExecutor();
+    }
+
+    @Override
     public void onStart() {
         super.onStart();
         if (getDialog() != null && getDialog().getWindow() != null) {
@@ -104,6 +116,10 @@ public class ContactSearchDialog extends DialogFragment {
         if (allowMultipleSelection) {
             updateSelectionCount();
         }
+
+        if (allowMultipleSelection) {
+            refreshPremiumStatus(false, null);
+        }
         
         // Check permissions and load contacts
         if (hasContactsPermission()) {
@@ -112,13 +128,24 @@ public class ContactSearchDialog extends DialogFragment {
             requestContactsPermission();
         }
     }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        if (allowMultipleSelection) {
+            refreshPremiumStatus(true, null);
+        }
+    }
     
     private void setupRecyclerView() {
         contactAdapter = new ContactAdapter(new java.util.ArrayList<>(), contact -> {
             if (allowMultipleSelection) {
                 if (!hasPremiumAccess() && !contactAdapter.isSelected(contact)
                         && contactAdapter.getSelectedCount() >= FREE_MULTI_LIMIT) {
-                    showFreeLimitDialog(FREE_MULTI_LIMIT);
+                    verifyPremiumBeforeLimitAction(FREE_MULTI_LIMIT, () -> {
+                        contactAdapter.toggleSelection(contact);
+                        updateSelectionCount();
+                    });
                     return;
                 }
                 contactAdapter.toggleSelection(contact);
@@ -176,7 +203,13 @@ public class ContactSearchDialog extends DialogFragment {
                     return;
                 }
                 if (!hasPremiumAccess() && selected.size() > FREE_MULTI_LIMIT) {
-                    showFreeLimitDialog(FREE_MULTI_LIMIT);
+                    verifyPremiumBeforeLimitAction(FREE_MULTI_LIMIT, () -> {
+                        java.util.List<ContactInfo> updatedSelected = contactAdapter.getSelectedContacts();
+                        if (listener != null) {
+                            listener.onMultipleContactsSelected(updatedSelected);
+                        }
+                        dismiss();
+                    });
                     return;
                 }
                 if (listener != null) {
@@ -224,7 +257,86 @@ public class ContactSearchDialog extends DialogFragment {
     }
 
     private boolean hasPremiumAccess() {
-        return SubscriptionHelper.INSTANCE.hasActiveSubscription(requireContext());
+        if (premiumStatusInitialized) {
+            return premiumAccess;
+        }
+        boolean cached = SubscriptionHelper.INSTANCE.hasActiveSubscription(requireContext());
+        premiumAccess = cached;
+        premiumStatusInitialized = true;
+        return cached;
+    }
+
+    private void verifyPremiumBeforeLimitAction(int limit, @NonNull Runnable onPremiumGranted) {
+        if (hasPremiumAccess()) {
+            onPremiumGranted.run();
+            return;
+        }
+
+        if (premiumCheckInProgress) {
+            Toast.makeText(requireContext(), "Checking subscription status...", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        refreshPremiumStatus(true, hasPremium -> {
+            if (hasPremium) {
+                onPremiumGranted.run();
+            } else {
+                showFreeLimitDialog(limit);
+            }
+        });
+    }
+
+    private void refreshPremiumStatus(boolean forceRefresh, @Nullable PremiumStatusCallback callback) {
+        if (!isAdded()) {
+            return;
+        }
+
+        premiumCheckInProgress = true;
+        getSubscriptionExecutor().execute(() -> {
+            boolean hasPremium;
+            try {
+                SubscriptionHelper.SubscriptionStatus status =
+                        SubscriptionHelper.INSTANCE.refreshSubscriptionStatusBlocking(requireContext(), forceRefresh);
+                hasPremium = isSubscriptionActive(status);
+            } catch (Exception e) {
+                hasPremium = SubscriptionHelper.INSTANCE.hasActiveSubscription(requireContext());
+            }
+
+            premiumAccess = hasPremium;
+            premiumStatusInitialized = true;
+            final boolean hasPremiumFinal = hasPremium;
+
+            if (!isAdded()) {
+                premiumCheckInProgress = false;
+                return;
+            }
+
+            requireActivity().runOnUiThread(() -> {
+                premiumCheckInProgress = false;
+                if (!isAdded()) {
+                    return;
+                }
+                if (callback != null) {
+                    callback.onChecked(hasPremiumFinal);
+                }
+            });
+        });
+    }
+
+    private boolean isSubscriptionActive(@Nullable SubscriptionHelper.SubscriptionStatus status) {
+        if (status == null) {
+            return false;
+        }
+        long now = System.currentTimeMillis();
+        return status.getPremium() && (status.getPaidUntilMillis() == null || status.getPaidUntilMillis() > now);
+    }
+
+    @NonNull
+    private ExecutorService getSubscriptionExecutor() {
+        if (subscriptionExecutor == null || subscriptionExecutor.isShutdown()) {
+            subscriptionExecutor = Executors.newSingleThreadExecutor();
+        }
+        return subscriptionExecutor;
     }
 
     private void showFreeLimitDialog(int limit) {
@@ -274,10 +386,23 @@ public class ContactSearchDialog extends DialogFragment {
     @Override
     public void onDestroyView() {
         super.onDestroyView();
-        if (binding.editTextSearch != null && searchWatcher != null) {
+        if (binding != null && binding.editTextSearch != null && searchWatcher != null) {
             binding.editTextSearch.removeTextChangedListener(searchWatcher);
         }
         binding = null;
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        if (subscriptionExecutor != null) {
+            subscriptionExecutor.shutdown();
+            subscriptionExecutor = null;
+        }
+    }
+
+    private interface PremiumStatusCallback {
+        void onChecked(boolean hasPremium);
     }
     
     /**

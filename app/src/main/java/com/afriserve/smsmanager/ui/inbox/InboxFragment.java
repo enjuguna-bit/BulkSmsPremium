@@ -13,7 +13,9 @@ import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.RectF;
 import android.graphics.drawable.Drawable;
-import androidx.appcompat.widget.SearchView;
+import android.text.Editable;
+import android.text.TextWatcher;
+import android.view.inputmethod.EditorInfo;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
@@ -62,6 +64,7 @@ public class InboxFragment extends Fragment {
     private InboxAnalytics analytics;
     private Map<String, Long> lastAccessTimes = new HashMap<>();
     private BlockListManager blockListManager;
+    private boolean inboxInitialized = false;
     
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -72,19 +75,28 @@ public class InboxFragment extends Fragment {
     @Override
     public void onViewCreated(View view, Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        
-        // Check SMS permissions first
-        if (!checkSmsPermissions()) {
-            return;
-        }
-        
-        viewModel = new ViewModelProvider(this).get(SimpleInboxViewModel.class);
         analytics = new InboxAnalytics(requireContext());
         blockListManager = new BlockListManager(requireContext());
         
         // Initialize shimmer container
         shimmerContainer = binding.shimmerContainer;
-        
+
+        initializeInboxIfReady();
+    }
+
+    private void initializeInboxIfReady() {
+        if (binding == null || inboxInitialized) {
+            return;
+        }
+        if (!checkSmsPermissions()) {
+            updateEmptyState(true);
+            return;
+        }
+
+        if (viewModel == null) {
+            viewModel = new ViewModelProvider(this).get(SimpleInboxViewModel.class);
+        }
+
         setupRecyclerView();
         setupSearch();
         setupFilters();
@@ -92,13 +104,11 @@ public class InboxFragment extends Fragment {
         observeData();
         observeState();
         updateEmptyState(false);
-        
+
         // Show shimmer loading immediately for better UX
         showShimmerLoading(true);
-        
-        // Messages will load automatically from cache via ViewModel
-        // No need to trigger manual sync here - it's handled in ViewModel background
-        
+        inboxInitialized = true;
+
         // Track fragment view (analytics placeholder)
         Log.d(TAG, "Fragment viewed: inbox");
     }
@@ -189,50 +199,58 @@ public class InboxFragment extends Fragment {
     
     private void setupSearch() {
         try {
-            if (binding != null && binding.searchView != null) {
-                binding.searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+            if (binding != null && binding.searchInput != null) {
+                binding.searchInput.addTextChangedListener(new TextWatcher() {
                     @Override
-                    public boolean onQueryTextSubmit(String query) {
-                        try {
-                            if (viewModel != null) {
-                                viewModel.search(query);
-                            }
-                            if (adapter != null) {
-                                adapter.setSearchQuery(query);
-                            }
-                        } catch (Exception e) {
-                            Log.e("InboxFragment", "Error in search submit", e);
-                        }
-                        return true;
+                    public void beforeTextChanged(CharSequence s, int start, int count, int after) {
                     }
-                    
+
                     @Override
-                    public boolean onQueryTextChange(String newText) {
-                        try {
-                            if (viewModel != null) {
-                                if (newText == null || newText.isEmpty()) {
-                                    viewModel.clearSearch();
-                                    if (adapter != null) {
-                                        adapter.setSearchQuery("");
-                                    }
-                                } else if (newText.length() >= 2) {
-                                    viewModel.search(newText);
-                                    if (adapter != null) {
-                                        adapter.setSearchQuery(newText);
-                                    }
-                                }
-                            }
-                        } catch (Exception e) {
-                            Log.e("InboxFragment", "Error in search text change", e);
-                        }
-                        return true;
+                    public void onTextChanged(CharSequence s, int start, int before, int count) {
+                        applySearchQuery(s != null ? s.toString() : "");
+                    }
+
+                    @Override
+                    public void afterTextChanged(Editable s) {
                     }
                 });
+
+                binding.searchInput.setOnEditorActionListener((v, actionId, event) -> {
+                    if (actionId == EditorInfo.IME_ACTION_SEARCH || actionId == EditorInfo.IME_ACTION_DONE) {
+                        applySearchQuery(v.getText() != null ? v.getText().toString() : "");
+                        return true;
+                    }
+                    return false;
+                });
             } else {
-                Log.w("InboxFragment", "SearchView or binding is null");
+                Log.w("InboxFragment", "Search input or binding is null");
             }
         } catch (Exception e) {
             Log.e("InboxFragment", "Error setting up search", e);
+        }
+    }
+
+    private void applySearchQuery(String query) {
+        try {
+            if (viewModel == null) {
+                return;
+            }
+            String normalized = query != null ? query.trim() : "";
+            if (normalized.isEmpty()) {
+                viewModel.clearSearch();
+                if (adapter != null) {
+                    adapter.setSearchQuery("");
+                }
+                return;
+            }
+            if (normalized.length() >= 2) {
+                viewModel.search(normalized);
+                if (adapter != null) {
+                    adapter.setSearchQuery(normalized);
+                }
+            }
+        } catch (Exception e) {
+            Log.e("InboxFragment", "Error applying search query", e);
         }
     }
     
@@ -375,8 +393,9 @@ public class InboxFragment extends Fragment {
                         Log.d("InboxFragment", "Unread count updated: " + count);
                         
                         if (binding != null && binding.tvUnreadCount != null && isAdded()) {
-                            binding.tvUnreadCount.setText("Unread: " + (count != null ? count : 0));
-                            updateUnreadBadge(count != null ? count : 0);
+                            int safeCount = count != null ? count : 0;
+                            binding.tvUnreadCount.setText(getString(R.string.inbox_unread_format, safeCount));
+                            updateUnreadBadge(safeCount);
                         }
                     } catch (Exception e) {
                         Log.e("InboxFragment", "Error in unread count observer", e);
@@ -391,7 +410,8 @@ public class InboxFragment extends Fragment {
                         Log.d("InboxFragment", "Total count updated: " + count);
                         
                         if (binding != null && binding.tvTotalCount != null && isAdded()) {
-                            binding.tvTotalCount.setText("Total: " + (count != null ? count : 0));
+                            int safeCount = count != null ? count : 0;
+                            binding.tvTotalCount.setText(getString(R.string.inbox_total_format, safeCount));
                         }
                     } catch (Exception e) {
                         Log.e("InboxFragment", "Error in total count observer", e);
@@ -664,7 +684,11 @@ public class InboxFragment extends Fragment {
     private void updateUnreadBadge(int count) {
         try {
             if (binding != null && binding.chipUnread != null) {
-                binding.chipUnread.setText("Unread (" + count + ")");
+                if (count > 0) {
+                    binding.chipUnread.setText(getString(R.string.filter_unread_count, count));
+                } else {
+                    binding.chipUnread.setText(R.string.filter_unread);
+                }
             }
         } catch (Exception e) {
             Log.e("InboxFragment", "Error updating unread badge", e);
@@ -676,10 +700,10 @@ public class InboxFragment extends Fragment {
             if (binding != null) {
                 if (stats != null) {
                     if (binding.tvTotalCount != null) {
-                        binding.tvTotalCount.setText("Total: " + stats.total);
+                        binding.tvTotalCount.setText(getString(R.string.inbox_total_format, stats.total));
                     }
                     if (binding.tvUnreadCount != null) {
-                        binding.tvUnreadCount.setText("Unread: " + stats.unread);
+                        binding.tvUnreadCount.setText(getString(R.string.inbox_unread_format, stats.unread));
                     }
                 } else {
                     Log.w("InboxFragment", "Statistics object is null");
@@ -811,16 +835,7 @@ public class InboxFragment extends Fragment {
                 }
             }
             if (grantResults.length > 0 && allGranted) {
-                // Permission granted, retry setup
-                if (viewModel == null) {
-                    viewModel = new ViewModelProvider(this).get(SimpleInboxViewModel.class);
-                    setupRecyclerView();
-                    setupSearch();
-                    setupFilters();
-                    setupSwipeRefresh();
-                    observeData();
-                    observeState();
-                }
+                initializeInboxIfReady();
             } else {
                 showSmsPermissionNotice(true);
             }
@@ -839,6 +854,9 @@ public class InboxFragment extends Fragment {
     public void onResume() {
         super.onResume();
         updateEmptyState(false);
+        if (!inboxInitialized) {
+            initializeInboxIfReady();
+        }
     }
 
     private void updateEmptyState(boolean forceShow) {
@@ -854,9 +872,9 @@ public class InboxFragment extends Fragment {
             if (!isDefaultSms) {
                 setEmptyState(
                     R.drawable.ic_message,
-                    "Set as default SMS app",
-                    "To receive messages in real time, set this app as your default SMS handler.",
-                    "Make default",
+                    getString(R.string.inbox_default_required_title),
+                    getString(R.string.inbox_default_required_subtitle),
+                    getString(R.string.inbox_default_required_action),
                     v -> requestDefaultSmsRole()
                 );
                 if (forceShow && binding.emptyView != null) binding.emptyView.setVisibility(View.VISIBLE);
@@ -866,9 +884,9 @@ public class InboxFragment extends Fragment {
             if (!hasReadSms || !hasReceiveSms) {
                 setEmptyState(
                     R.drawable.ic_message_empty,
-                    "Permission required",
-                    "Grant SMS access to view and sync messages.",
-                    "Grant permission",
+                    getString(R.string.inbox_permission_required_title),
+                    getString(R.string.inbox_permission_required_subtitle),
+                    getString(R.string.inbox_permission_required_action),
                     v -> requestPermissions(new String[]{
                         Manifest.permission.READ_SMS,
                         Manifest.permission.RECEIVE_SMS
@@ -881,9 +899,9 @@ public class InboxFragment extends Fragment {
             // Default empty state (no messages)
             setEmptyState(
                 R.drawable.ic_message_empty,
-                "No messages yet",
-                "When you receive messages, they’ll appear here.",
-                "Refresh",
+                getString(R.string.inbox_empty_title),
+                getString(R.string.inbox_empty_subtitle),
+                getString(R.string.inbox_empty_action),
                 v -> {
                     if (viewModel != null) {
                         viewModel.syncMessages();
@@ -1112,12 +1130,12 @@ public class InboxFragment extends Fragment {
                 }
             }
             
-            // Clear SearchView listeners
-            if (binding != null && binding.searchView != null) {
+            // Clear search listeners
+            if (binding != null && binding.searchInput != null) {
                 try {
-                    binding.searchView.setOnQueryTextListener(null);
+                    binding.searchInput.setOnEditorActionListener(null);
                 } catch (Exception e) {
-                    Log.w("InboxFragment", "Error clearing SearchView listener", e);
+                    Log.w("InboxFragment", "Error clearing search input listener", e);
                 }
             }
             
@@ -1142,6 +1160,7 @@ public class InboxFragment extends Fragment {
             footerLoadStateAdapter = null;
             shimmerContainer = null;
             analytics = null;
+            inboxInitialized = false;
             
             // Clear binding last
             if (binding != null) {

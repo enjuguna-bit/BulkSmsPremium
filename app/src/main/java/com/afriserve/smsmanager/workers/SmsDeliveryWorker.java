@@ -57,7 +57,7 @@ public class SmsDeliveryWorker extends Worker {
             // Update SMS status in database
             updateSmsStatus(smsId, status, errorCode);
 
-            if ("SENT".equals(status) || "DELIVERED".equals(status)) {
+            if ("SENT".equals(status) || "DELIVERED".equals(status) || "FAILED".equals(status)) {
                 try {
                     bidirectionalSmsSync.syncSentMessageToContentProvider(smsId).blockingAwait();
                 } catch (Exception e) {
@@ -66,7 +66,7 @@ public class SmsDeliveryWorker extends Worker {
             }
             
             // Handle retry logic for failed SMS
-            if ("FAILED".equals(status) && shouldRetry(smsId)) {
+            if ("FAILED".equals(status) && shouldRetry(status, errorCode, smsId)) {
                 scheduleRetry(smsId);
             }
             
@@ -87,6 +87,9 @@ public class SmsDeliveryWorker extends Worker {
                 
                 if (errorCode != null) {
                     sms.errorCode = errorCode;
+                    if ("DELIVERY_FAILED".equals(errorCode)) {
+                        sms.errorMessage = "Delivery report indicated failure";
+                    }
                 }
                 
                 // Update timestamp
@@ -106,8 +109,15 @@ public class SmsDeliveryWorker extends Worker {
         }
     }
     
-    private boolean shouldRetry(long smsId) {
+    private boolean shouldRetry(String status, String errorCode, long smsId) {
         try {
+            if (!"FAILED".equals(status)) {
+                return false;
+            }
+            // Delivery failures occur after carrier accepted the SMS; retrying may duplicate sends.
+            if ("DELIVERY_FAILED".equals(errorCode)) {
+                return false;
+            }
             Single<SmsEntity> smsSingle = smsDao.getSmsById(smsId);
             SmsEntity sms = smsSingle.blockingGet();
             if (sms != null && sms.retryCount < 3) {

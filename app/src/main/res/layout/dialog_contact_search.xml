@@ -1,51 +1,54 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+<com.google.android.material.card.MaterialCardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:layout_margin="16dp"
-    app:cardCornerRadius="16dp"
-    app:cardElevation="8dp">
+    android:layout_margin="@dimen/spacing_medium"
+    app:cardCornerRadius="18dp"
+    app:cardElevation="8dp"
+    app:cardBackgroundColor="@color/color_surface"
+    app:strokeColor="@color/color_outline_variant"
+    app:strokeWidth="1dp">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical"
-        android:padding="16dp">
+        android:padding="@dimen/spacing_medium">
 
-        <!-- Header -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center_vertical"
-            android:layout_marginBottom="16dp">
+            android:layout_marginBottom="@dimen/spacing_medium">
 
             <TextView
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="Select Contact"
+                android:text="@string/contact_picker_title"
                 android:textSize="18sp"
                 android:textStyle="bold"
-                android:textColor="?attr/colorOnSurface" />
+                android:textColor="@color/color_on_surface" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/buttonClose"
                 style="@style/Widget.Material3.Button.IconButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:contentDescription="@string/subscription_close"
                 app:icon="@drawable/ic_menu_contact_clear_cancel" />
 
         </LinearLayout>
 
-        <!-- Search Input -->
         <com.google.android.material.textfield.TextInputLayout
+            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
-            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
-            android:hint="Search contacts..."
+            android:layout_marginBottom="@dimen/spacing_medium"
+            android:hint="@string/contact_search_hint"
             app:endIconMode="custom"
             app:endIconDrawable="@android:drawable/ic_menu_search">
 
@@ -58,34 +61,32 @@
 
         </com.google.android.material.textfield.TextInputLayout>
 
-        <!-- Action Buttons -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:layout_marginBottom="16dp">
+            android:layout_marginBottom="@dimen/spacing_medium">
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/buttonOpenContacts"
+                style="@style/Widget.Material3.Button.OutlinedButton"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="Open Contacts"
-                style="@style/Widget.Material3.Button.OutlinedButton"
-                android:layout_marginEnd="8dp"
+                android:text="@string/contact_open_contacts"
+                android:layout_marginEnd="@dimen/spacing_small"
                 app:icon="@drawable/ic_menu_contacts"
                 app:iconGravity="textStart" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/buttonClear"
+                style="@style/Widget.Material3.Button.TextButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Clear"
-                style="@style/Widget.Material3.Button.TextButton" />
+                android:text="@string/contact_clear" />
 
         </LinearLayout>
 
-        <!-- Progress Indicator -->
         <com.google.android.material.progressindicator.CircularProgressIndicator
             android:id="@+id/progressBar"
             android:layout_width="wrap_content"
@@ -93,9 +94,8 @@
             android:layout_gravity="center"
             android:indeterminate="true"
             android:visibility="gone"
-            android:layout_marginBottom="16dp" />
+            android:layout_marginBottom="@dimen/spacing_medium" />
 
-        <!-- Contact List -->
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/recyclerViewContacts"
             android:layout_width="match_parent"
@@ -103,14 +103,13 @@
             android:layout_weight="1"
             android:scrollbars="vertical" />
 
-        <!-- Empty State -->
         <LinearLayout
             android:id="@+id/textViewEmpty"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:gravity="center"
-            android:padding="32dp"
+            android:padding="@dimen/spacing_xlarge"
             android:visibility="gone">
 
             <ImageView
@@ -118,34 +117,33 @@
                 android:layout_height="64dp"
                 android:src="@drawable/ic_menu_contacts"
                 android:alpha="0.5"
-                android:layout_marginBottom="16dp" />
+                android:layout_marginBottom="@dimen/spacing_medium" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="No contacts found"
-                android:textSize="16sp"
-                android:textColor="?attr/colorOnSurfaceVariant"
-                android:layout_marginBottom="8dp" />
+                android:text="@string/contact_empty_title"
+                android:textSize="@dimen/text_large"
+                android:textColor="@color/color_on_surface_variant"
+                android:layout_marginBottom="@dimen/spacing_small" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Try searching with a different name"
-                android:textSize="14sp"
-                android:textColor="?attr/colorOnSurfaceVariant"
+                android:text="@string/contact_empty_subtitle"
+                android:textSize="@dimen/text_medium"
+                android:textColor="@color/color_on_surface_variant"
                 android:alpha="0.7" />
 
         </LinearLayout>
 
-        <!-- Multi-select Actions -->
         <LinearLayout
             android:id="@+id/layoutMultiSelectActions"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center_vertical"
-            android:layout_marginTop="12dp"
+            android:layout_marginTop="@dimen/spacing_small"
             android:visibility="gone">
 
             <TextView
@@ -154,17 +152,17 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:text="@string/contact_selected_count"
-                android:textColor="?attr/colorOnSurfaceVariant" />
+                android:textColor="@color/color_on_surface_variant" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/buttonAddSelected"
+                style="@style/Widget.Material3.Button"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/contact_add_selected"
-                style="@style/Widget.Material3.Button" />
+                android:text="@string/contact_add_selected" />
 
         </LinearLayout>
 
     </LinearLayout>
 
-</androidx.cardview.widget.CardView>
+</com.google.android.material.card.MaterialCardView>

@@ -143,6 +143,23 @@ public class SmsEntity {
     @ColumnInfo(name = "errorMessage")
     public String errorMessage;
     
+    /**
+     * Delivery tracking state for multipart messages
+     * JSON format: {"received":2,"failed":0,"total":2}
+     * Used to track delivery status across multiple message parts
+     */
+    @ColumnInfo(name = "deliveryTracking")
+    public String deliveryTracking;
+    
+    // Getter and setter for deliveryTracking
+    public String getDeliveryTracking() {
+        return deliveryTracking;
+    }
+    
+    public void setDeliveryTracking(String deliveryTracking) {
+        this.deliveryTracking = deliveryTracking;
+    }
+    
     public SmsEntity() {
     }
     

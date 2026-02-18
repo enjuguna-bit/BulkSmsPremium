@@ -312,9 +312,10 @@ public class DashboardRepository {
             
             if (stats != null) {
                 // Update with latest data from other sources
-                stats.totalSent = smsDao.getTotalCount().getValue() != null ? smsDao.getTotalCount().getValue() : 0;
-                stats.totalDelivered = smsDao.getDeliveredCount().getValue() != null ? smsDao.getDeliveredCount().getValue() : 0;
-                stats.totalFailed = smsDao.getFailedCount().getValue() != null ? smsDao.getFailedCount().getValue() : 0;
+                stats.totalSent = smsDao.getTotalCountSingle().blockingGet();
+                stats.totalDelivered = smsDao.getDeliveredCountSingle().blockingGet();
+                stats.totalFailed = smsDao.getFailedCountSingle().blockingGet();
+                stats.totalPending = smsDao.getPendingCountSingle().blockingGet();
                 stats.activeCampaigns = campaignDao.getActiveCampaignsCount().blockingFirst();
                 stats.scheduledCampaigns = dashboardDao.getPendingScheduledCampaignsCount(System.currentTimeMillis()).blockingGet();
                 stats.optOutCount = optOutDao.getOptOutCount().blockingGet();

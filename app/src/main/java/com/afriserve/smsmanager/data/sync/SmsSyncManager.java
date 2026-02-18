@@ -32,6 +32,7 @@ public class SmsSyncManager implements SmsContentObserver.OnSmsChangeListener {
     private final ConversationRepository conversationRepository;
     private final SmsSearchRepository searchRepository;
     private final SmsContentObserver contentObserver;
+    private final BidirectionalSmsSync bidirectionalSmsSync;
     private final Context context;
 
     private final CompositeDisposable disposables = new CompositeDisposable();
@@ -53,11 +54,13 @@ public class SmsSyncManager implements SmsContentObserver.OnSmsChangeListener {
             ConversationRepository conversationRepository,
             SmsSearchRepository searchRepository,
             SmsContentObserver contentObserver,
+            BidirectionalSmsSync bidirectionalSmsSync,
             @ApplicationContext Context context) {
         this.smsRepository = smsRepository;
         this.conversationRepository = conversationRepository;
         this.searchRepository = searchRepository;
         this.contentObserver = contentObserver;
+        this.bidirectionalSmsSync = bidirectionalSmsSync;
         this.context = context;
 
         // Set up content observer
@@ -197,6 +200,7 @@ public class SmsSyncManager implements SmsContentObserver.OnSmsChangeListener {
         return io.reactivex.rxjava3.core.Single.zip(
                 // Sync SMS messages
                 smsRepository.syncNewMessages()
+                        .andThen(bidirectionalSmsSync.syncMissingMessagesToContentProvider().onErrorComplete())
                         .andThen(io.reactivex.rxjava3.core.Single.just(new SyncStats.SmsSyncResult(0, 0)))
                         .onErrorReturn(error -> new SyncStats.SmsSyncResult(0, 1)),
 

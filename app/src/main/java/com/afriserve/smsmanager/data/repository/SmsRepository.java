@@ -22,13 +22,17 @@ import io.reactivex.rxjava3.core.Single;
 import io.reactivex.rxjava3.schedulers.Schedulers;
 import com.afriserve.smsmanager.data.dao.SmsDao;
 import com.afriserve.smsmanager.data.entity.SmsEntity;
+import com.afriserve.smsmanager.data.sync.BidirectionalSmsSync;
 import com.afriserve.smsmanager.data.utils.PhoneNumberUtils;
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import dagger.hilt.android.qualifiers.ApplicationContext;
@@ -74,8 +78,10 @@ import dagger.hilt.android.qualifiers.ApplicationContext;
 public class SmsRepository {
 
     private static final String TAG = "SmsRepository";
+    private static final long DUPLICATE_MATCH_WINDOW_MS = 60_000L;
     private final SmsDao smsDao;
     private final Context context;
+    private final BidirectionalSmsSync bidirectionalSmsSync;
     private final ExecutorService executor = Executors.newFixedThreadPool(2);
 
     // Error states
@@ -87,9 +93,13 @@ public class SmsRepository {
     public final LiveData<SyncResult> syncResult = _syncResult;
 
     @Inject
-    public SmsRepository(SmsDao smsDao, @ApplicationContext Context context) {
+    public SmsRepository(
+            SmsDao smsDao,
+            @ApplicationContext Context context,
+            BidirectionalSmsSync bidirectionalSmsSync) {
         this.smsDao = smsDao;
         this.context = context.getApplicationContext();
+        this.bidirectionalSmsSync = bidirectionalSmsSync;
     }
 
     /**
@@ -243,6 +253,7 @@ public class SmsRepository {
 
                 // Trigger actual SMS send
                 sendSmsInternal(messageId, smsEntity.phoneNumber, smsEntity.message, simSlot);
+                syncSentToContentProviderSafe(messageId);
 
             } catch (Exception e) {
                 Log.e(TAG, "Failed to send SMS", e);
@@ -253,6 +264,7 @@ public class SmsRepository {
                         smsEntity.errorCode = "SEND_FAILED";
                         smsEntity.errorMessage = e.getMessage();
                         smsDao.updateSms(smsEntity).blockingAwait();
+                        syncSentToContentProviderSafe(smsEntity.id);
                     }
                 } catch (Exception updateError) {
                     Log.e(TAG, "Failed to update SMS failure status", updateError);
@@ -260,6 +272,17 @@ public class SmsRepository {
                 throw new RuntimeException(e);
             }
         }).subscribeOn(Schedulers.io());
+    }
+
+    private void syncSentToContentProviderSafe(long smsId) {
+        if (smsId <= 0) {
+            return;
+        }
+        try {
+            bidirectionalSmsSync.syncSentMessageToContentProvider(smsId).blockingAwait();
+        } catch (Exception e) {
+            Log.w(TAG, "Failed to sync outgoing SMS to Telephony provider: smsId=" + smsId, e);
+        }
     }
 
     public LiveData<Integer> getUnreadCount() {
@@ -270,12 +293,75 @@ public class SmsRepository {
         return smsDao.getTotalCount();
     }
 
+    public boolean hasReadSmsPermission() {
+        return ContextCompat.checkSelfPermission(context, android.Manifest.permission.READ_SMS)
+                == PackageManager.PERMISSION_GRANTED;
+    }
+
+    /**
+     * Returns an atomic dashboard snapshot from Room-backed SMS data.
+     */
+    public Single<DashboardSnapshot> getDashboardSnapshot(int activityLimit) {
+        return Single.fromCallable(() -> {
+            if (!hasReadSmsPermission()) {
+                throw new SecurityException("READ_SMS permission not granted");
+            }
+
+            long now = System.currentTimeMillis();
+            long startToday = getStartOfDay(now);
+            long startYesterday = startToday - TimeUnit.DAYS.toMillis(1);
+
+            int todaySent = smsDao.getOutgoingCountInRange(startToday, now).blockingGet();
+            int todayDelivered = smsDao.getDeliveredCountInRange(startToday, now).blockingGet();
+            int todayFailed = smsDao.getFailedCountInRange(startToday, now).blockingGet();
+            int todayQueued = smsDao.getPendingCountInRange(startToday, now).blockingGet();
+            int yesterdaySent = smsDao.getOutgoingCountInRange(startYesterday, startToday).blockingGet();
+
+            List<SmsEntity> recentActivity = smsDao.getRecentSmsInRange(startToday, now, activityLimit).blockingGet();
+            if (recentActivity == null) {
+                recentActivity = new ArrayList<>();
+            }
+
+            float trendPercent = calculateTrendPercent(yesterdaySent, todaySent);
+
+            return new DashboardSnapshot(
+                    todaySent,
+                    todayDelivered,
+                    todayFailed,
+                    todayQueued,
+                    yesterdaySent,
+                    trendPercent,
+                    recentActivity
+            );
+        }).subscribeOn(Schedulers.io());
+    }
+
     private String normalizePhoneNumber(String phoneNumber) {
         String normalized = PhoneNumberUtils.normalizePhoneNumber(phoneNumber);
         if (normalized != null && !normalized.isEmpty()) {
             return normalized;
         }
         return phoneNumber != null ? phoneNumber.trim() : "";
+    }
+
+    private long getStartOfDay(long timestamp) {
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTimeInMillis(timestamp);
+        calendar.set(Calendar.HOUR_OF_DAY, 0);
+        calendar.set(Calendar.MINUTE, 0);
+        calendar.set(Calendar.SECOND, 0);
+        calendar.set(Calendar.MILLISECOND, 0);
+        return calendar.getTimeInMillis();
+    }
+
+    private float calculateTrendPercent(int baseline, int current) {
+        if (baseline <= 0) {
+            if (current <= 0) {
+                return 0.0f;
+            }
+            return 100.0f;
+        }
+        return ((float) (current - baseline) / baseline) * 100.0f;
     }
 
     private void sendSmsInternal(long smsId, String phoneNumber, String message, int simSlot) {
@@ -286,32 +372,62 @@ public class SmsRepository {
             flags |= PendingIntent.FLAG_IMMUTABLE;
         }
 
-        Intent sentIntent = new Intent("com.afriserve.smsmanager.SMS_SENT");
-        sentIntent.setPackage(context.getPackageName());
-        sentIntent.putExtra("sms_id", smsId);
-
-        Intent deliveredIntent = new Intent("com.afriserve.smsmanager.SMS_DELIVERED");
-        deliveredIntent.setPackage(context.getPackageName());
-        deliveredIntent.putExtra("sms_id", smsId);
-
         int requestCode = (int) (smsId % Integer.MAX_VALUE);
-        PendingIntent sentPendingIntent = PendingIntent.getBroadcast(
-                context, requestCode, sentIntent, flags);
-        PendingIntent deliveredPendingIntent = PendingIntent.getBroadcast(
-                context, requestCode + 10000, deliveredIntent, flags);
-
         ArrayList<String> parts = smsManager.divideMessage(message);
-        if (parts.size() > 1) {
-            ArrayList<PendingIntent> sentIntents = new ArrayList<>();
-            ArrayList<PendingIntent> deliveredIntents = new ArrayList<>();
-            for (int i = 0; i < parts.size(); i++) {
-                sentIntents.add(sentPendingIntent);
-                deliveredIntents.add(deliveredPendingIntent);
+        int totalParts = Math.max(parts.size(), 1);
+
+        if (totalParts > 1) {
+            ArrayList<PendingIntent> sentIntents = new ArrayList<>(totalParts);
+            ArrayList<PendingIntent> deliveredIntents = new ArrayList<>(totalParts);
+            for (int i = 0; i < totalParts; i++) {
+                sentIntents.add(createSmsStatusIntent(
+                        "com.afriserve.smsmanager.SMS_SENT",
+                        smsId,
+                        i,
+                        totalParts,
+                        requestCode + i,
+                        flags));
+                deliveredIntents.add(createSmsStatusIntent(
+                        "com.afriserve.smsmanager.SMS_DELIVERED",
+                        smsId,
+                        i,
+                        totalParts,
+                        requestCode + 10000 + i,
+                        flags));
             }
             smsManager.sendMultipartTextMessage(phoneNumber, null, parts, sentIntents, deliveredIntents);
         } else {
+            PendingIntent sentPendingIntent = createSmsStatusIntent(
+                    "com.afriserve.smsmanager.SMS_SENT",
+                    smsId,
+                    0,
+                    1,
+                    requestCode,
+                    flags);
+            PendingIntent deliveredPendingIntent = createSmsStatusIntent(
+                    "com.afriserve.smsmanager.SMS_DELIVERED",
+                    smsId,
+                    0,
+                    1,
+                    requestCode + 10000,
+                    flags);
             smsManager.sendTextMessage(phoneNumber, null, message, sentPendingIntent, deliveredPendingIntent);
         }
+    }
+
+    private PendingIntent createSmsStatusIntent(
+            String action,
+            long smsId,
+            int partIndex,
+            int totalParts,
+            int requestCode,
+            int flags) {
+        Intent intent = new Intent(action);
+        intent.setPackage(context.getPackageName());
+        intent.putExtra("sms_id", smsId);
+        intent.putExtra("part_index", partIndex);
+        intent.putExtra("total_parts", totalParts);
+        return PendingIntent.getBroadcast(context, requestCode, intent, flags);
     }
 
     private SmsManager resolveSmsManager(int simSlot) {
@@ -424,13 +540,7 @@ public class SmsRepository {
                                 long threadId = cursor.getLong(cursor.getColumnIndexOrThrow(Telephony.Sms.THREAD_ID));
                                 String normalizedAddress = normalizePhoneNumber(address);
 
-                                // Check if message already exists by deviceSmsId
-                                SmsEntity existing = null;
-                                try {
-                                    existing = smsDao.getSmsByDeviceSmsId(deviceSmsId).blockingGet();
-                                } catch (Exception e) {
-                                    // No existing message found - this is expected for new messages
-                                }
+                                SmsEntity existing = findExistingMessage(deviceSmsId, normalizedAddress, body, type, date);
 
                                 if (existing == null) {
                                     // New message - create entity
@@ -453,6 +563,10 @@ public class SmsRepository {
                                     // Update existing message if needed
                                     boolean needsUpdate = false;
 
+                                    if (existing.deviceSmsId == null || existing.deviceSmsId.longValue() != deviceSmsId) {
+                                        existing.deviceSmsId = deviceSmsId;
+                                        needsUpdate = true;
+                                    }
                                     if (!java.util.Objects.equals(existing.boxType, type)) {
                                         existing.boxType = type;
                                         needsUpdate = true;
@@ -534,6 +648,28 @@ public class SmsRepository {
             return "FAILED";
         } else {
             return "PENDING";
+        }
+    }
+
+    private SmsEntity findExistingMessage(long deviceSmsId, String normalizedAddress, String body, int boxType, long timestamp) {
+        try {
+            return smsDao.getSmsByDeviceSmsId(deviceSmsId).blockingGet();
+        } catch (Exception ignored) {
+            // Fall through to unsynced duplicate lookup.
+        }
+
+        String safePhone = normalizedAddress != null ? normalizedAddress : "";
+        String safeBody = body != null ? body : "";
+        try {
+            return smsDao.findUnsyncedDuplicate(
+                    safePhone,
+                    safeBody,
+                    boxType,
+                    timestamp,
+                    DUPLICATE_MATCH_WINDOW_MS
+            ).blockingGet();
+        } catch (Exception ignored) {
+            return null;
         }
     }
 
@@ -751,13 +887,7 @@ public class SmsRepository {
                                 long threadId = cursor.getLong(cursor.getColumnIndexOrThrow(Telephony.Sms.THREAD_ID));
                                 String normalizedAddress = normalizePhoneNumber(address);
 
-                                // Check if message already exists by deviceSmsId
-                                SmsEntity existing = null;
-                                try {
-                                    existing = smsDao.getSmsByDeviceSmsId(deviceSmsId).blockingGet();
-                                } catch (Exception e) {
-                                    // No existing message found - this is expected for new messages
-                                }
+                                SmsEntity existing = findExistingMessage(deviceSmsId, normalizedAddress, body, type, date);
 
                                 if (existing == null) {
                                     // New message - create entity
@@ -775,6 +905,37 @@ public class SmsRepository {
 
                                     smsDao.insertSms(smsEntity).blockingGet();
                                     syncedCount++;
+                                } else {
+                                    boolean needsUpdate = false;
+
+                                    if (existing.deviceSmsId == null || existing.deviceSmsId.longValue() != deviceSmsId) {
+                                        existing.deviceSmsId = deviceSmsId;
+                                        needsUpdate = true;
+                                    }
+                                    if (!java.util.Objects.equals(existing.boxType, type)) {
+                                        existing.boxType = type;
+                                        needsUpdate = true;
+                                    }
+                                    if (!java.util.Objects.equals(existing.threadId, threadId)) {
+                                        existing.threadId = threadId;
+                                        needsUpdate = true;
+                                    }
+                                    if (existing.isRead == null || existing.isRead != (read == 1)) {
+                                        existing.isRead = read == 1;
+                                        needsUpdate = true;
+                                    }
+                                    if (!java.util.Objects.equals(existing.phoneNumber, normalizedAddress)) {
+                                        existing.phoneNumber = normalizedAddress;
+                                        needsUpdate = true;
+                                    }
+                                    if (!java.util.Objects.equals(existing.message, body)) {
+                                        existing.message = body != null ? body : "";
+                                        needsUpdate = true;
+                                    }
+
+                                    if (needsUpdate) {
+                                        smsDao.updateSms(existing).blockingAwait();
+                                    }
                                 }
 
                             } catch (Exception e) {
@@ -966,5 +1127,33 @@ public class SmsRepository {
         String text;
         String mediaUri;
         int attachmentCount = 0;
+    }
+
+    public static class DashboardSnapshot {
+        public final int totalSent;
+        public final int totalDelivered;
+        public final int totalFailed;
+        public final int totalQueued;
+        public final int previousPeriodSent;
+        public final float trendPercent;
+        public final List<SmsEntity> recentActivity;
+
+        public DashboardSnapshot(
+                int totalSent,
+                int totalDelivered,
+                int totalFailed,
+                int totalQueued,
+                int previousPeriodSent,
+                float trendPercent,
+                List<SmsEntity> recentActivity
+        ) {
+            this.totalSent = totalSent;
+            this.totalDelivered = totalDelivered;
+            this.totalFailed = totalFailed;
+            this.totalQueued = totalQueued;
+            this.previousPeriodSent = previousPeriodSent;
+            this.trendPercent = trendPercent;
+            this.recentActivity = recentActivity;
+        }
     }
 }

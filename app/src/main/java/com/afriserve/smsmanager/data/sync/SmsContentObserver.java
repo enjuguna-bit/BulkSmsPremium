@@ -48,7 +48,7 @@ public class SmsContentObserver extends ContentObserver {
         super(new Handler(Looper.getMainLooper()));
         this.context = context;
         this.contentResolver = context.getContentResolver();
-        this.changeEvents = PublishSubject.create();
+        this.changeEvents = PublishSubject.<SmsChangeEvent>create().toSerialized();
     }
     
     /**
@@ -105,14 +105,6 @@ public class SmsContentObserver extends ContentObserver {
                 
                 // Unregister from content resolver
                 contentResolver.unregisterContentObserver(this);
-                
-                // Clear RxJava stream
-                if (changeEvents != null && !changeEvents.hasComplete()) {
-                    changeEvents.onComplete();
-                }
-                
-                // Clear listener reference
-                syncListener = null;
                 
                 isRegistered = false;
                 Log.d(TAG, "SMS ContentObserver unregistered successfully");
@@ -279,11 +271,6 @@ public class SmsContentObserver extends ContentObserver {
             // Clear any pending handlers
             if (debounceHandler != null) {
                 debounceHandler.removeCallbacksAndMessages(null);
-            }
-            
-            // Complete RxJava stream if not already
-            if (changeEvents != null && !changeEvents.hasComplete()) {
-                changeEvents.onComplete();
             }
             
         } catch (Exception e) {

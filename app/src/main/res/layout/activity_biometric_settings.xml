@@ -1,127 +1,129 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout 
+<androidx.core.widget.NestedScrollView
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:padding="16dp">
+    android:background="@color/color_surface_variant"
+    android:fillViewport="true">
 
-    <com.google.android.material.card.MaterialCardView
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="16dp"
-        app:cardCornerRadius="12dp"
-        app:cardElevation="4dp">
+        android:orientation="vertical"
+        android:padding="@dimen/spacing_medium">
 
-        <LinearLayout
+        <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:padding="16dp">
-
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="👆 Biometric Authentication"
-                android:textSize="20sp"
-                android:textStyle="bold"
-                android:layout_marginBottom="12dp" />
-
-            <TextView
-                android:id="@+id/textStatus"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Biometric status will appear here"
-                android:textSize="14sp"
-                android:textColor="@android:color/darker_gray"
-                android:layout_marginBottom="16dp" />
+            android:layout_marginBottom="@dimen/spacing_medium"
+            app:cardBackgroundColor="@color/color_surface"
+            app:cardCornerRadius="14dp"
+            app:cardElevation="2dp"
+            app:strokeColor="@color/color_outline_variant"
+            app:strokeWidth="1dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:layout_marginBottom="16dp">
+                android:orientation="vertical"
+                android:padding="@dimen/spacing_medium">
 
                 <TextView
-                    android:layout_width="0dp"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="Enable Biometric"
-                    android:textSize="16sp"
+                    android:layout_marginBottom="@dimen/spacing_small"
+                    android:text="@string/biometric_title"
+                    android:textColor="@color/color_on_surface"
+                    android:textSize="20sp"
                     android:textStyle="bold" />
 
-                <Switch
-                    android:id="@+id/switchBiometric"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content" />
+                <TextView
+                    android:id="@+id/textStatus"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="@dimen/spacing_medium"
+                    android:text="@string/biometric_status_placeholder"
+                    android:textColor="@color/color_on_surface_variant"
+                    android:textSize="@dimen/text_medium" />
 
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="@dimen/spacing_medium"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/biometric_enable"
+                        android:textColor="@color/color_on_surface"
+                        android:textSize="@dimen/text_large"
+                        android:textStyle="bold" />
+
+                    <com.google.android.material.materialswitch.MaterialSwitch
+                        android:id="@+id/switchBiometric"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" />
+                </LinearLayout>
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/biometric_description"
+                    android:textColor="@color/color_on_surface_variant"
+                    android:textSize="@dimen/text_medium" />
             </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
 
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Use your fingerprint or face to quickly authenticate and secure your SMS data."
-                android:textSize="14sp"
-                android:textColor="@android:color/darker_gray"
-                android:layout_marginBottom="16dp" />
-
-        </LinearLayout>
-
-    </com.google.android.material.card.MaterialCardView>
-
-    <com.google.android.material.card.MaterialCardView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="16dp"
-        app:cardCornerRadius="12dp"
-        app:cardElevation="4dp">
-
-        <LinearLayout
+        <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:padding="16dp">
+            android:layout_marginBottom="@dimen/spacing_medium"
+            app:cardBackgroundColor="@color/color_surface"
+            app:cardCornerRadius="14dp"
+            app:cardElevation="2dp"
+            app:strokeColor="@color/color_outline_variant"
+            app:strokeWidth="1dp">
 
-            <TextView
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="🧪 Test Authentication"
-                android:textSize="16sp"
-                android:textStyle="bold"
-                android:layout_marginBottom="12dp" />
+                android:orientation="vertical"
+                android:padding="@dimen/spacing_medium">
 
-            <Button
-                android:id="@+id/btnTestAuth"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Test Biometric"
-                android:layout_marginBottom="8dp"
-                style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="@dimen/spacing_small"
+                    android:text="@string/biometric_test_title"
+                    android:textColor="@color/color_on_surface"
+                    android:textSize="@dimen/text_large"
+                    android:textStyle="bold" />
 
-            <Button
-                android:id="@+id/btnSetupFingerprint"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Setup Fingerprint"
-                style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnTestAuth"
+                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="@dimen/spacing_small"
+                    android:text="@string/biometric_test_button" />
 
-        </LinearLayout>
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnSetupFingerprint"
+                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/biometric_setup_fingerprint" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
 
-    </com.google.android.material.card.MaterialCardView>
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:gravity="bottom">
-
-        <Button
+        <com.google.android.material.button.MaterialButton
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Done"
-            android:onClick="finish" />
-
+            android:onClick="finish"
+            android:text="@string/biometric_done" />
     </LinearLayout>
-
-</LinearLayout>
+</androidx.core.widget.NestedScrollView>

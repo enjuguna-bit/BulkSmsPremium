@@ -51,6 +51,20 @@ public interface SmsDao {
     @Query("SELECT * FROM sms_entities WHERE deviceSmsId = :deviceSmsId LIMIT 1")
     Single<SmsEntity> getSmsByDeviceSmsId(long deviceSmsId);
 
+    /**
+     * Find likely duplicate rows created before deviceSmsId was known.
+     * Used by sync flow to merge unsynced receiver inserts with provider-backed rows.
+     */
+    @Query("SELECT * FROM sms_entities " +
+           "WHERE deviceSmsId IS NULL " +
+           "AND phoneNumber = :phoneNumber " +
+           "AND message = :message " +
+           "AND boxType = :boxType " +
+           "AND ABS(createdAt - :timestamp) <= :windowMs " +
+           "ORDER BY ABS(createdAt - :timestamp) ASC " +
+           "LIMIT 1")
+    Single<SmsEntity> findUnsyncedDuplicate(String phoneNumber, String message, int boxType, long timestamp, long windowMs);
+
     @Query("SELECT COUNT(*) FROM sms_entities WHERE campaignId = :campaignId")
     Single<Integer> getCountByCampaign(long campaignId);
 
@@ -60,17 +74,44 @@ public interface SmsDao {
     @Query("SELECT COUNT(*) FROM sms_entities WHERE status = 'DELIVERED'")
     LiveData<Integer> getDeliveredCount();
 
+    @Query("SELECT COUNT(*) FROM sms_entities WHERE status = 'DELIVERED'")
+    Single<Integer> getDeliveredCountSingle();
+
     @Query("SELECT COUNT(*) FROM sms_entities WHERE status = 'FAILED'")
     LiveData<Integer> getFailedCount();
 
+    @Query("SELECT COUNT(*) FROM sms_entities WHERE status = 'FAILED'")
+    Single<Integer> getFailedCountSingle();
+
     @Query("SELECT COUNT(*) FROM sms_entities WHERE status = 'PENDING'")
     LiveData<Integer> getPendingCount();
+
+    @Query("SELECT COUNT(*) FROM sms_entities WHERE status = 'PENDING'")
+    Single<Integer> getPendingCountSingle();
+
+    @Query("SELECT COUNT(*) FROM sms_entities WHERE createdAt >= :startTime AND createdAt < :endTime AND status IN ('PENDING', 'SENT', 'DELIVERED', 'FAILED')")
+    Single<Integer> getOutgoingCountInRange(long startTime, long endTime);
+
+    @Query("SELECT COUNT(*) FROM sms_entities WHERE createdAt >= :startTime AND createdAt < :endTime AND status = 'DELIVERED'")
+    Single<Integer> getDeliveredCountInRange(long startTime, long endTime);
+
+    @Query("SELECT COUNT(*) FROM sms_entities WHERE createdAt >= :startTime AND createdAt < :endTime AND status = 'FAILED'")
+    Single<Integer> getFailedCountInRange(long startTime, long endTime);
+
+    @Query("SELECT COUNT(*) FROM sms_entities WHERE createdAt >= :startTime AND createdAt < :endTime AND status = 'PENDING'")
+    Single<Integer> getPendingCountInRange(long startTime, long endTime);
+
+    @Query("SELECT * FROM sms_entities WHERE createdAt >= :startTime AND createdAt < :endTime ORDER BY createdAt DESC LIMIT :limit")
+    Single<List<SmsEntity>> getRecentSmsInRange(long startTime, long endTime, int limit);
 
     @Query("SELECT * FROM sms_entities WHERE status = :status ORDER BY createdAt DESC LIMIT :limit")
     Single<List<SmsEntity>> getRecentSmsByStatus(String status, int limit);
 
     @Query("SELECT * FROM sms_entities ORDER BY createdAt DESC LIMIT :limit")
     Single<List<SmsEntity>> getAllRecentSms(int limit);
+
+    @Query("SELECT * FROM sms_entities ORDER BY createdAt DESC")
+    Single<List<SmsEntity>> getAllSms();
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     Single<Long> insertSms(SmsEntity sms);
@@ -175,6 +216,12 @@ public interface SmsDao {
     /**
      * Get sent messages that don't have deviceSmsId (need sync to ContentProvider)
      */
-    @Query("SELECT * FROM sms_entities WHERE boxType = 2 AND deviceSmsId IS NULL ORDER BY createdAt ASC")
+    @Query("SELECT * FROM sms_entities WHERE deviceSmsId IS NULL AND (boxType = 2 OR status IN ('SENT', 'DELIVERED', 'FAILED')) ORDER BY createdAt ASC")
     io.reactivex.rxjava3.core.Single<List<SmsEntity>> getSentMessagesWithoutDeviceId();
+
+    /**
+     * Get inbox messages that don't have deviceSmsId (need sync to ContentProvider)
+     */
+    @Query("SELECT * FROM sms_entities WHERE deviceSmsId IS NULL AND (boxType = 1 OR status = 'RECEIVED') ORDER BY createdAt ASC")
+    io.reactivex.rxjava3.core.Single<List<SmsEntity>> getInboxMessagesWithoutDeviceId();
 }

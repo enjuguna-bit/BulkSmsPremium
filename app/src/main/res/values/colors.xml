@@ -10,48 +10,48 @@
     <color name="white">#FFFFFFFF</color>
     
     <!-- Material Design 3 Light Theme Colors -->
-    <color name="md_theme_light_primary">#FF04605B</color>
+    <color name="md_theme_light_primary">#FF135DFF</color>
     <color name="md_theme_light_onPrimary">#FFFFFFFF</color>
-    <color name="md_theme_light_primaryContainer">#FFD9F0EE</color>
-    <color name="md_theme_light_onPrimaryContainer">#FF00201E</color>
-    <color name="md_theme_light_secondary">#FFC9A66B</color>
+    <color name="md_theme_light_primaryContainer">#FFDCE6FF</color>
+    <color name="md_theme_light_onPrimaryContainer">#FF001A4A</color>
+    <color name="md_theme_light_secondary">#FF008F9A</color>
     <color name="md_theme_light_onSecondary">#FFFFFFFF</color>
-    <color name="md_theme_light_secondaryContainer">#FFFFF5E7</color>
-    <color name="md_theme_light_onSecondaryContainer">#FF241A0B</color>
-    <color name="md_theme_light_tertiary">#FF2E6B5A</color>
+    <color name="md_theme_light_secondaryContainer">#FFCCF4F7</color>
+    <color name="md_theme_light_onSecondaryContainer">#FF001F24</color>
+    <color name="md_theme_light_tertiary">#FF006A86</color>
     <color name="md_theme_light_onTertiary">#FFFFFFFF</color>
-    <color name="md_theme_light_tertiaryContainer">#FFDFF7F0</color>
-    <color name="md_theme_light_onTertiaryContainer">#FF00210A</color>
-    <color name="md_theme_light_surface">#FFFFFFFF</color>
-    <color name="md_theme_light_onSurface">#FF1C1B1D</color>
-    <color name="md_theme_light_surfaceVariant">#FFEEF3F1</color>
-    <color name="md_theme_light_onSurfaceVariant">#FF44504A</color>
-    <color name="md_theme_light_outline">#FF7D8B86</color>
-    <color name="md_theme_light_outlineVariant">#FFD0D7D5</color>
+    <color name="md_theme_light_tertiaryContainer">#FFCAE8FF</color>
+    <color name="md_theme_light_onTertiaryContainer">#FF001E2A</color>
+    <color name="md_theme_light_surface">#FFF4F8FF</color>
+    <color name="md_theme_light_onSurface">#FF0D1A33</color>
+    <color name="md_theme_light_surfaceVariant">#FFE8EEFF</color>
+    <color name="md_theme_light_onSurfaceVariant">#FF4B5B79</color>
+    <color name="md_theme_light_outline">#FF7E8DAA</color>
+    <color name="md_theme_light_outlineVariant">#FFC5D0E8</color>
     <color name="md_theme_light_error">#FFBA1A1A</color>
     <color name="md_theme_light_onError">#FFFFFFFF</color>
     <color name="md_theme_light_errorContainer">#FFFFDAD6</color>
     <color name="md_theme_light_onErrorContainer">#FF410002</color>
     
     <!-- Material Design 3 Dark Theme Colors -->
-    <color name="md_theme_dark_primary">#FF6ED0C9</color>
-    <color name="md_theme_dark_onPrimary">#FF003733</color>
-    <color name="md_theme_dark_primaryContainer">#FF1F4B47</color>
-    <color name="md_theme_dark_onPrimaryContainer">#FFD9F0EE</color>
-    <color name="md_theme_dark_secondary">#FFE6C89B</color>
-    <color name="md_theme_dark_onSecondary">#FF3A2B16</color>
-    <color name="md_theme_dark_secondaryContainer">#FF5A432A</color>
-    <color name="md_theme_dark_onSecondaryContainer">#FFFFF5E7</color>
-    <color name="md_theme_dark_tertiary">#FFB7E6D8</color>
-    <color name="md_theme_dark_onTertiary">#FF063029</color>
-    <color name="md_theme_dark_tertiaryContainer">#FF114E41</color>
-    <color name="md_theme_dark_onTertiaryContainer">#FFDFF7F0</color>
-    <color name="md_theme_dark_surface">#FF121212</color>
-    <color name="md_theme_dark_onSurface">#FFE6F1EE</color>
-    <color name="md_theme_dark_surfaceVariant">#FF374E47</color>
-    <color name="md_theme_dark_onSurfaceVariant">#FFD0E0DB</color>
-    <color name="md_theme_dark_outline">#FF94A19C</color>
-    <color name="md_theme_dark_outlineVariant">#FF374E47</color>
+    <color name="md_theme_dark_primary">#FFB8C7FF</color>
+    <color name="md_theme_dark_onPrimary">#FF002B75</color>
+    <color name="md_theme_dark_primaryContainer">#FF0E3A97</color>
+    <color name="md_theme_dark_onPrimaryContainer">#FFDEE5FF</color>
+    <color name="md_theme_dark_secondary">#FF72DCE7</color>
+    <color name="md_theme_dark_onSecondary">#FF00363C</color>
+    <color name="md_theme_dark_secondaryContainer">#FF004F57</color>
+    <color name="md_theme_dark_onSecondaryContainer">#FFBEF3F8</color>
+    <color name="md_theme_dark_tertiary">#FF8FD3FF</color>
+    <color name="md_theme_dark_onTertiary">#FF00344A</color>
+    <color name="md_theme_dark_tertiaryContainer">#FF004C6A</color>
+    <color name="md_theme_dark_onTertiaryContainer">#FFC8E9FF</color>
+    <color name="md_theme_dark_surface">#FF060C18</color>
+    <color name="md_theme_dark_onSurface">#FFE2E9FF</color>
+    <color name="md_theme_dark_surfaceVariant">#FF1A2438</color>
+    <color name="md_theme_dark_onSurfaceVariant">#FFB6C3DF</color>
+    <color name="md_theme_dark_outline">#FF8797B4</color>
+    <color name="md_theme_dark_outlineVariant">#FF35435E</color>
     <color name="md_theme_dark_error">#FFFFB4AB</color>
     <color name="md_theme_dark_onError">#FF690005</color>
     <color name="md_theme_dark_errorContainer">#FF93000A</color>
@@ -83,4 +83,54 @@
     <!-- Shimmer loading colors -->
     <color name="shimmer_placeholder">#FFE0E0E0</color>
     <color name="switch_track_color">#4CAF50</color>
+
+    <!-- Semantic UI tokens (light) -->
+    <color name="color_primary">@color/md_theme_light_primary</color>
+    <color name="color_on_primary">@color/md_theme_light_onPrimary</color>
+    <color name="color_primary_container">@color/md_theme_light_primaryContainer</color>
+    <color name="color_on_primary_container">@color/md_theme_light_onPrimaryContainer</color>
+    <color name="color_secondary">@color/md_theme_light_secondary</color>
+    <color name="color_on_secondary">@color/md_theme_light_onSecondary</color>
+    <color name="color_secondary_container">@color/md_theme_light_secondaryContainer</color>
+    <color name="color_on_secondary_container">@color/md_theme_light_onSecondaryContainer</color>
+    <color name="color_tertiary">@color/md_theme_light_tertiary</color>
+    <color name="color_on_tertiary">@color/md_theme_light_onTertiary</color>
+    <color name="color_tertiary_container">@color/md_theme_light_tertiaryContainer</color>
+    <color name="color_on_tertiary_container">@color/md_theme_light_onTertiaryContainer</color>
+    <color name="color_surface">@color/md_theme_light_surface</color>
+    <color name="color_on_surface">@color/md_theme_light_onSurface</color>
+    <color name="color_surface_variant">@color/md_theme_light_surfaceVariant</color>
+    <color name="color_on_surface_variant">@color/md_theme_light_onSurfaceVariant</color>
+    <color name="color_outline">@color/md_theme_light_outline</color>
+    <color name="color_outline_variant">@color/md_theme_light_outlineVariant</color>
+    <color name="color_error">@color/md_theme_light_error</color>
+    <color name="color_on_error">@color/md_theme_light_onError</color>
+    <color name="color_error_container">@color/md_theme_light_errorContainer</color>
+    <color name="color_on_error_container">@color/md_theme_light_onErrorContainer</color>
+
+    <!-- Status semantic colors -->
+    <color name="status_success">#FF00A37A</color>
+    <color name="status_warning">#FFB07400</color>
+    <color name="status_info">#FF2A6DFF</color>
+    <color name="status_muted">#FF5C6F93</color>
+
+    <!-- Futuristic decorative colors -->
+    <color name="fx_atmosphere_start">#FFF2F7FF</color>
+    <color name="fx_atmosphere_mid">#FFE8F2FF</color>
+    <color name="fx_atmosphere_end">#FFDDEBFF</color>
+    <color name="fx_glow_primary">#4D4B7DFF</color>
+    <color name="fx_glow_secondary">#3367F3FF</color>
+    <color name="fx_glow_tertiary">#2644FFC8</color>
+    <color name="fx_glass_surface">#E6FFFFFF</color>
+    <color name="fx_glass_surface_alt">#CCEFF5FF</color>
+    <color name="fx_glass_stroke">#66FFFFFF</color>
+    <color name="fx_panel_stroke">#3397B5E6</color>
+    <color name="fx_nav_surface_start">#F2FFFFFF</color>
+    <color name="fx_nav_surface_end">#E6E8F2FF</color>
+    <color name="fx_nav_active_indicator">#332A6DFF</color>
+    <color name="fx_badge_start">#FFFFF0A8</color>
+    <color name="fx_badge_end">#FFFFB347</color>
+    <color name="fx_badge_stroke">#4DFFFFFF</color>
+    <color name="fx_badge_text">#FF6E4500</color>
+    <color name="fx_search_overlay">#D9FFFFFF</color>
 </resources>

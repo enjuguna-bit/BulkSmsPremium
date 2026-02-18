@@ -1,8 +1,4 @@
----
-permalink: /privacy-policy/
----
-
-# Privacy Policy
+﻿ass# Privacy Policy
 
 Effective date: February 9, 2026
 

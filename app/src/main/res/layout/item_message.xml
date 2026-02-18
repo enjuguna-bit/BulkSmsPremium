@@ -11,7 +11,7 @@
         android:layout_height="wrap_content"
         android:layout_marginBottom="4dp"
         android:textSize="12sp"
-        android:textColor="@android:color/darker_gray"
+        android:textColor="@color/color_on_surface_variant"
         android:textStyle="bold" />
 
     <TextView
@@ -21,7 +21,7 @@
         android:layout_marginBottom="4dp"
         android:padding="12dp"
         android:textSize="16sp"
-        android:textColor="@android:color/black"
+        android:textColor="@color/color_on_surface"
         android:background="@drawable/received_message_background" />
 
     <TextView
@@ -30,6 +30,6 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="2dp"
         android:textSize="10sp"
-        android:textColor="@android:color/darker_gray" />
+        android:textColor="@color/color_on_surface_variant" />
 
 </LinearLayout>

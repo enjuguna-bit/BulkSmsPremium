@@ -3,27 +3,27 @@
 
     <item
         android:id="@+id/nav_dashboard"
-        android:icon="@drawable/ic_message_empty"
-        android:title="Dashboard" />
+        android:icon="@drawable/ic_chart_bar"
+        android:title="@string/nav_dashboard" />
 
     <item
         android:id="@+id/nav_inbox"
-        android:icon="@drawable/ic_message_empty"
-        android:title="Inbox" />
+        android:icon="@drawable/ic_message"
+        android:title="@string/nav_inbox" />
 
     <item
         android:id="@+id/nav_send"
-        android:icon="@drawable/ic_person"
-        android:title="Send SMS" />
+        android:icon="@drawable/ic_send_sms_action"
+        android:title="@string/nav_send_sms" />
 
     <item
         android:id="@+id/nav_bulk"
-        android:icon="@drawable/ic_person"
-        android:title="Bulk SMS" />
+        android:icon="@drawable/ic_campaign"
+        android:title="@string/nav_bulk_sms" />
 
     <item
         android:id="@+id/nav_settings"
-        android:icon="@drawable/ic_person"
-        android:title="Settings" />
+        android:icon="@drawable/ic_action_settings"
+        android:title="@string/nav_settings" />
 
 </menu>

@@ -1,5 +1,6 @@
 package com.afriserve.smsmanager.receivers;
 
+import android.app.role.RoleManager;
 import android.content.BroadcastReceiver;
 import android.content.ContentResolver;
 import android.content.ContentUris;
@@ -8,6 +9,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
 import android.net.Uri;
+import android.os.Build;
 import android.provider.Telephony;
 import android.telephony.SmsMessage;
 import android.util.Log;
@@ -34,6 +36,12 @@ public class SmsDeliverReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {
         if (!Telephony.Sms.Intents.SMS_DELIVER_ACTION.equals(intent.getAction())) {
+            return;
+        }
+
+        // Safety check: only process SMS_DELIVER when app holds SMS role.
+        if (!isDefaultSmsApp(context)) {
+            Log.d(TAG, "Ignoring SMS_DELIVER broadcast because app is not default SMS app");
             return;
         }
         
@@ -222,5 +230,30 @@ public class SmsDeliverReceiver extends BroadcastReceiver {
             }
         }
         return null;
+    }
+
+    private boolean isDefaultSmsApp(Context context) {
+        if (context == null) {
+            return false;
+        }
+
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                RoleManager roleManager = context.getSystemService(RoleManager.class);
+                if (roleManager != null) {
+                    return roleManager.isRoleHeld(RoleManager.ROLE_SMS);
+                }
+            }
+        } catch (Exception e) {
+            Log.w(TAG, "Failed to check SMS role via RoleManager", e);
+        }
+
+        try {
+            String defaultSmsPackage = Telephony.Sms.getDefaultSmsPackage(context);
+            return context.getPackageName().equals(defaultSmsPackage);
+        } catch (Exception e) {
+            Log.w(TAG, "Failed to check default SMS package", e);
+            return false;
+        }
     }
 }

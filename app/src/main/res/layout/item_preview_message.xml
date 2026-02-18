@@ -7,9 +7,10 @@
     android:layout_marginStart="8dp"
     android:layout_marginEnd="8dp"
     android:layout_marginBottom="8dp"
+    app:cardBackgroundColor="@color/color_surface"
     app:cardCornerRadius="8dp"
     app:cardElevation="2dp"
-    app:strokeColor="@android:color/darker_gray"
+    app:strokeColor="@color/color_outline_variant"
     app:strokeWidth="1dp">
 
     <LinearLayout
@@ -23,8 +24,8 @@
             android:id="@+id/text_phone"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="+1234567890"
-            android:textColor="@color/design_default_color_primary"
+            android:text="@string/preview_phone_placeholder"
+            android:textColor="@color/color_primary"
             android:textSize="14sp"
             android:textStyle="bold"
             android:layout_marginBottom="4dp" />
@@ -34,8 +35,8 @@
             android:id="@+id/text_message"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Hello John, your order #12345 is ready for pickup!"
-            android:textColor="@android:color/black"
+            android:text="@string/preview_message_placeholder"
+            android:textColor="@color/color_on_surface"
             android:textSize="14sp"
             android:layout_marginBottom="4dp"
             android:background="@drawable/message_preview_background"
@@ -46,8 +47,8 @@
             android:id="@+id/text_info"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Name: John Doe\nEmail: john@example.com"
-            android:textColor="@android:color/darker_gray"
+            android:text="@string/preview_info_placeholder"
+            android:textColor="@color/color_on_surface_variant"
             android:textSize="12sp"
             android:visibility="gone" />
 

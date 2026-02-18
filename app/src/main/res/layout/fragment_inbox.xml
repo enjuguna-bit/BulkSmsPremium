@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.swiperefreshlayout.widget.SwipeRefreshLayout 
+<androidx.swiperefreshlayout.widget.SwipeRefreshLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/swipeRefresh"
@@ -12,16 +12,15 @@
         android:layout_height="match_parent"
         android:orientation="vertical">
 
-        <!-- Header -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginStart="16dp"
-            android:layout_marginEnd="16dp"
-            android:layout_marginTop="16dp"
-            android:layout_marginBottom="8dp"
-            android:orientation="horizontal"
-            android:gravity="center_vertical">
+            android:layout_marginStart="@dimen/spacing_medium"
+            android:layout_marginEnd="@dimen/spacing_medium"
+            android:layout_marginTop="@dimen/spacing_medium"
+            android:layout_marginBottom="@dimen/spacing_small"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
 
             <LinearLayout
                 android:layout_width="0dp"
@@ -33,131 +32,127 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="@string/inbox_title"
+                    android:textColor="@color/color_on_surface"
                     android:textSize="22sp"
-                    android:textStyle="bold"
-                    android:textColor="#0F172A" />
+                    android:textStyle="bold" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/spacing_tiny"
                     android:text="@string/inbox_subtitle"
-                    android:textSize="13sp"
-                    android:textColor="#475569"
-                    android:layout_marginTop="4dp" />
-
+                    android:textColor="@color/color_on_surface_variant"
+                    android:textSize="@dimen/text_small" />
             </LinearLayout>
 
             <TextView
                 android:id="@+id/txtInboxBadge"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/inbox_badge"
-                android:textSize="11sp"
-                android:textStyle="bold"
-                android:textColor="#2B1A00"
                 android:background="@drawable/bg_premium_badge"
                 android:paddingStart="10dp"
-                android:paddingEnd="10dp"
                 android:paddingTop="6dp"
-                android:paddingBottom="6dp" />
-
+                android:paddingEnd="10dp"
+                android:paddingBottom="6dp"
+                android:text="@string/inbox_badge"
+                android:textColor="@color/fx_badge_text"
+                android:textSize="11sp"
+                android:textStyle="bold" />
         </LinearLayout>
 
-        <!-- Search Bar -->
-        <androidx.appcompat.widget.SearchView
-            android:id="@+id/searchView"
+        <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_margin="16dp"
-            android:background="@drawable/bg_search_premium"
-            android:elevation="4dp"
-            app:iconifiedByDefault="false"
-            app:queryHint="@string/search_hint" />
+            android:layout_marginStart="@dimen/spacing_medium"
+            android:layout_marginEnd="@dimen/spacing_medium"
+            android:layout_marginBottom="@dimen/spacing_small"
+            app:cardBackgroundColor="@color/color_surface"
+            app:cardCornerRadius="14dp"
+            app:cardElevation="2dp"
+            app:strokeColor="@color/color_outline_variant"
+            app:strokeWidth="1dp">
 
-        <!-- Filter Chips -->
+            <com.google.android.material.textfield.TextInputLayout
+                style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="@string/inbox_search_hint"
+                app:startIconDrawable="@drawable/ic_message"
+                app:startIconTint="@color/color_primary">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/searchInput"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:imeOptions="actionSearch"
+                    android:inputType="text"
+                    android:maxLines="1" />
+            </com.google.android.material.textfield.TextInputLayout>
+        </com.google.android.material.card.MaterialCardView>
+
         <HorizontalScrollView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginStart="16dp"
-            android:layout_marginEnd="16dp"
-            android:layout_marginBottom="8dp"
+            android:layout_marginStart="@dimen/spacing_medium"
+            android:layout_marginEnd="@dimen/spacing_medium"
+            android:layout_marginBottom="@dimen/spacing_small"
             android:scrollbars="none">
 
             <com.google.android.material.chip.ChipGroup
                 android:id="@+id/chipGroupFilters"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                app:singleLine="true"
+                app:chipSpacingHorizontal="@dimen/spacing_small"
                 app:selectionRequired="true"
-                app:singleSelection="true"
-                app:chipSpacingHorizontal="8dp">
+                app:singleLine="true"
+                app:singleSelection="true">
 
                 <com.google.android.material.chip.Chip
                     android:id="@+id/chipAll"
-                    style="@style/Widget.MaterialComponents.Chip.Choice"
+                    style="@style/Widget.Material3.Chip.Filter"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:checked="true"
-                    android:text="All"
-                    app:chipBackgroundColor="#F7FAFF"
-                    app:chipCornerRadius="14dp"
-                    app:chipStrokeColor="#D6E4FF"
-                    app:chipStrokeWidth="1dp"
+                    android:text="@string/filter_all"
                     app:checkedIconVisible="false" />
 
                 <com.google.android.material.chip.Chip
                     android:id="@+id/chipInbox"
-                    style="@style/Widget.MaterialComponents.Chip.Choice"
+                    style="@style/Widget.Material3.Chip.Filter"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Inbox"
-                    app:chipBackgroundColor="#F7FAFF"
-                    app:chipCornerRadius="14dp"
-                    app:chipStrokeColor="#D6E4FF"
-                    app:chipStrokeWidth="1dp"
+                    android:text="@string/filter_inbox"
                     app:checkedIconVisible="false" />
 
                 <com.google.android.material.chip.Chip
                     android:id="@+id/chipSent"
-                    style="@style/Widget.MaterialComponents.Chip.Choice"
+                    style="@style/Widget.Material3.Chip.Filter"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Sent"
-                    app:chipBackgroundColor="#F7FAFF"
-                    app:chipCornerRadius="14dp"
-                    app:chipStrokeColor="#D6E4FF"
-                    app:chipStrokeWidth="1dp"
+                    android:text="@string/filter_sent"
                     app:checkedIconVisible="false" />
 
                 <com.google.android.material.chip.Chip
                     android:id="@+id/chipUnread"
-                    style="@style/Widget.MaterialComponents.Chip.Choice"
+                    style="@style/Widget.Material3.Chip.Filter"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Unread"
-                    app:chipBackgroundColor="#F7FAFF"
-                    app:chipCornerRadius="14dp"
-                    app:chipStrokeColor="#D6E4FF"
-                    app:chipStrokeWidth="1dp"
+                    android:text="@string/filter_unread"
                     app:checkedIconVisible="false" />
-
             </com.google.android.material.chip.ChipGroup>
-
         </HorizontalScrollView>
 
-        <!-- Statistics -->
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginStart="16dp"
-            android:layout_marginEnd="16dp"
-            android:layout_marginBottom="8dp"
-            app:cardCornerRadius="16dp"
-            app:cardElevation="4dp"
-            app:cardUseCompatPadding="true"
-            app:strokeColor="#E3ECFF"
-            app:strokeWidth="1dp"
-            app:cardBackgroundColor="#FFFFFF">
+            android:layout_marginStart="@dimen/spacing_medium"
+            android:layout_marginEnd="@dimen/spacing_medium"
+            android:layout_marginBottom="@dimen/spacing_small"
+            app:cardBackgroundColor="@color/color_surface"
+            app:cardCornerRadius="14dp"
+            app:cardElevation="2dp"
+            app:strokeColor="@color/color_outline_variant"
+            app:strokeWidth="1dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -170,9 +165,9 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="Total: 0"
-                    android:textColor="#0F172A"
-                    android:textSize="14sp"
+                    android:text="@string/inbox_total_default"
+                    android:textColor="@color/color_on_surface"
+                    android:textSize="@dimen/text_medium"
                     android:textStyle="bold" />
 
                 <TextView
@@ -180,16 +175,14 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="Unread: 0"
-                    android:textColor="#1E3A8A"
-                    android:textSize="14sp"
+                    android:gravity="end"
+                    android:text="@string/inbox_unread_default"
+                    android:textColor="@color/color_primary"
+                    android:textSize="@dimen/text_medium"
                     android:textStyle="bold" />
-
             </LinearLayout>
-
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- Messages List -->
         <FrameLayout
             android:layout_width="match_parent"
             android:layout_height="0dp"
@@ -201,10 +194,9 @@
                 android:layout_height="match_parent"
                 android:background="@drawable/bg_activity_list"
                 android:clipToPadding="false"
-                android:paddingTop="8dp"
-                android:paddingBottom="8dp" />
+                android:paddingTop="@dimen/spacing_small"
+                android:paddingBottom="@dimen/spacing_small" />
 
-            <!-- Shimmer Loading Container -->
             <com.facebook.shimmer.ShimmerFrameLayout
                 android:id="@+id/shimmerContainer"
                 android:layout_width="match_parent"
@@ -216,18 +208,14 @@
                     android:layout_height="match_parent"
                     android:orientation="vertical">
 
-                    <!-- Add multiple shimmer items for better effect -->
                     <include layout="@layout/item_conversation_shimmer" />
                     <include layout="@layout/item_conversation_shimmer" />
                     <include layout="@layout/item_conversation_shimmer" />
                     <include layout="@layout/item_conversation_shimmer" />
                     <include layout="@layout/item_conversation_shimmer" />
-
                 </LinearLayout>
-
             </com.facebook.shimmer.ShimmerFrameLayout>
 
-            <!-- Progress Bar -->
             <ProgressBar
                 android:id="@+id/progressBar"
                 android:layout_width="wrap_content"
@@ -235,12 +223,10 @@
                 android:layout_gravity="center"
                 android:visibility="gone" />
 
-            <!-- Empty State -->
             <LinearLayout
                 android:id="@+id/emptyView"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:layout_gravity="center"
                 android:gravity="center"
                 android:orientation="vertical"
                 android:visibility="gone">
@@ -251,40 +237,37 @@
                     android:layout_height="80dp"
                     android:alpha="0.5"
                     android:src="@drawable/ic_message_empty"
-                    app:tint="#94A3B8" />
+                    app:tint="@color/color_on_surface_variant" />
 
                 <TextView
                     android:id="@+id/tvEmptyTitle"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
+                    android:layout_marginTop="@dimen/spacing_medium"
                     android:gravity="center"
-                    android:text="No messages found"
-                    android:textColor="#64748B"
-                    android:textSize="16sp" />
+                    android:text="@string/no_messages_found"
+                    android:textColor="@color/color_on_surface_variant"
+                    android:textSize="@dimen/text_large" />
 
                 <TextView
                     android:id="@+id/tvEmptySubtitle"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
+                    android:layout_marginTop="@dimen/spacing_small"
                     android:gravity="center"
-                    android:text="Try adjusting your search or filters"
-                    android:textColor="#64748B"
-                    android:textSize="14sp" />
+                    android:text="@string/try_adjusting_search"
+                    android:textColor="@color/color_on_surface_variant"
+                    android:textSize="@dimen/text_medium" />
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnEmptyAction"
+                    style="@style/Widget.Material3.Button.OutlinedButton"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
-                    android:visibility="gone"
-                    android:text="Action" />
-
+                    android:layout_marginTop="@dimen/spacing_medium"
+                    android:text="@string/inbox_action_label"
+                    android:visibility="gone" />
             </LinearLayout>
-
         </FrameLayout>
-
     </LinearLayout>
-
 </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>

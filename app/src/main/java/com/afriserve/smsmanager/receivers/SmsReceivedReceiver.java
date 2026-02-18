@@ -1,11 +1,15 @@
 package com.afriserve.smsmanager.receivers;
 
+import android.app.role.RoleManager;
 import android.content.BroadcastReceiver;
 import android.content.ContentResolver;
+import android.content.ContentUris;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
 import android.net.Uri;
+import android.os.Build;
 import android.provider.Telephony;
 import android.telephony.SmsMessage;
 import android.util.Log;
@@ -32,6 +36,13 @@ public class SmsReceivedReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {
         if (!Telephony.Sms.Intents.SMS_RECEIVED_ACTION.equals(intent.getAction())) {
+            return;
+        }
+
+        // Prevent duplicate inbox inserts when app is default SMS app.
+        // In that mode SMS_DELIVER is the canonical incoming path.
+        if (isDefaultSmsApp(context)) {
+            Log.d(TAG, "Ignoring SMS_RECEIVED broadcast because app is default SMS app");
             return;
         }
         
@@ -95,10 +106,20 @@ public class SmsReceivedReceiver extends BroadcastReceiver {
                           " (multipart: " + completeMessage.wasMultipart + ") (fallback)");
                     
                     ProviderMatch providerMatch = findProviderMatch(context, normalizedAddress, body, timestamp);
-                    if (providerMatch != null) {
+                    Long deviceSmsId = providerMatch != null ? providerMatch.deviceSmsId : null;
+                    Long threadId = providerMatch != null ? providerMatch.threadId : null;
+
+                    if (deviceSmsId == null) {
+                        deviceSmsId = insertIntoTelephonyInbox(context, normalizedAddress, body, timestamp);
+                        if (deviceSmsId != null) {
+                            threadId = resolveThreadId(context, deviceSmsId);
+                        }
+                    }
+
+                    if (deviceSmsId != null) {
                         try {
-                            smsDao.getSmsByDeviceSmsId(providerMatch.deviceSmsId).blockingGet();
-                            Log.d(TAG, "Skipping duplicate message by deviceSmsId: " + providerMatch.deviceSmsId + " (fallback)");
+                            smsDao.getSmsByDeviceSmsId(deviceSmsId).blockingGet();
+                            Log.d(TAG, "Skipping duplicate message by deviceSmsId: " + deviceSmsId + " (fallback)");
                             continue;
                         } catch (Exception ignored) {
                             // Not found, proceed
@@ -107,8 +128,8 @@ public class SmsReceivedReceiver extends BroadcastReceiver {
 
                     // Create SMS entity
                     SmsEntity smsEntity = new SmsEntity();
-                    smsEntity.deviceSmsId = providerMatch != null ? providerMatch.deviceSmsId : null;
-                    smsEntity.threadId = providerMatch != null ? providerMatch.threadId : null;
+                    smsEntity.deviceSmsId = deviceSmsId;
+                    smsEntity.threadId = threadId;
                     smsEntity.boxType = 1; // Telephony.Sms.MESSAGE_TYPE_INBOX
                     smsEntity.isRead = false; // New incoming messages are unread
                     smsEntity.phoneNumber = normalizedAddress;
@@ -226,6 +247,78 @@ public class SmsReceivedReceiver extends BroadcastReceiver {
             }
         }
         return null;
+    }
+
+    private Long insertIntoTelephonyInbox(Context context, String address, String body, long timestamp) {
+        try {
+            if (context == null) {
+                return null;
+            }
+            ContentResolver resolver = context.getContentResolver();
+            ContentValues values = new ContentValues();
+            values.put(Telephony.Sms.ADDRESS, address);
+            values.put(Telephony.Sms.BODY, body != null ? body : "");
+            values.put(Telephony.Sms.DATE, timestamp);
+            values.put(Telephony.Sms.READ, 0);
+            values.put(Telephony.Sms.SEEN, 0);
+            values.put(Telephony.Sms.TYPE, Telephony.Sms.MESSAGE_TYPE_INBOX);
+            Uri uri = resolver.insert(Telephony.Sms.Inbox.CONTENT_URI, values);
+            if (uri == null) {
+                return null;
+            }
+            long id = ContentUris.parseId(uri);
+            return id > 0 ? id : null;
+        } catch (SecurityException se) {
+            Log.w(TAG, "No permission to insert incoming SMS into Telephony provider (fallback)", se);
+            return null;
+        } catch (Exception e) {
+            Log.w(TAG, "Failed to insert incoming SMS into Telephony provider (fallback)", e);
+            return null;
+        }
+    }
+
+    private Long resolveThreadId(Context context, long deviceSmsId) {
+        Cursor cursor = null;
+        try {
+            ContentResolver resolver = context.getContentResolver();
+            Uri uri = ContentUris.withAppendedId(Telephony.Sms.CONTENT_URI, deviceSmsId);
+            cursor = resolver.query(uri, new String[] { Telephony.Sms.THREAD_ID }, null, null, null);
+            if (cursor != null && cursor.moveToFirst()) {
+                return cursor.getLong(cursor.getColumnIndexOrThrow(Telephony.Sms.THREAD_ID));
+            }
+        } catch (Exception e) {
+            Log.w(TAG, "Failed to resolve threadId for deviceSmsId=" + deviceSmsId + " (fallback)", e);
+        } finally {
+            if (cursor != null) {
+                cursor.close();
+            }
+        }
+        return null;
+    }
+
+    private boolean isDefaultSmsApp(Context context) {
+        if (context == null) {
+            return false;
+        }
+
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                RoleManager roleManager = context.getSystemService(RoleManager.class);
+                if (roleManager != null) {
+                    return roleManager.isRoleHeld(RoleManager.ROLE_SMS);
+                }
+            }
+        } catch (Exception e) {
+            Log.w(TAG, "Failed to check SMS role via RoleManager", e);
+        }
+
+        try {
+            String defaultSmsPackage = Telephony.Sms.getDefaultSmsPackage(context);
+            return context.getPackageName().equals(defaultSmsPackage);
+        } catch (Exception e) {
+            Log.w(TAG, "Failed to check default SMS package", e);
+            return false;
+        }
     }
 
     private static final class ProviderMatch {

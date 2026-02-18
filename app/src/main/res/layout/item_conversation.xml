@@ -8,7 +8,10 @@
     android:layout_marginEnd="8dp"
     android:layout_marginBottom="4dp"
     app:cardCornerRadius="8dp"
-    app:cardElevation="2dp">
+    app:cardElevation="2dp"
+    app:cardBackgroundColor="@color/color_surface"
+    app:strokeColor="@color/color_outline_variant"
+    app:strokeWidth="1dp">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -23,10 +26,10 @@
             android:layout_height="48dp"
             android:layout_marginEnd="12dp"
             android:background="@drawable/circle_background"
-            android:backgroundTint="@color/design_default_color_primary"
+            android:backgroundTint="@color/color_primary"
             android:gravity="center"
-            android:text="A"
-            android:textColor="@android:color/white"
+            android:text="@string/placeholder_avatar_initial"
+            android:textColor="@color/color_on_primary"
             android:textSize="20sp"
             android:textStyle="bold" />
 
@@ -51,8 +54,8 @@
                     android:layout_weight="1"
                     android:ellipsize="end"
                     android:maxLines="1"
-                    android:text="Contact Name"
-                    android:textColor="@android:color/black"
+                    android:text="@string/placeholder_contact_name"
+                    android:textColor="@color/color_on_surface"
                     android:textSize="16sp"
                     android:textStyle="bold" />
 
@@ -64,7 +67,7 @@
                     android:layout_marginEnd="4dp"
                     android:src="@drawable/ic_push_pin"
                     android:visibility="gone"
-                    app:tint="@color/design_default_color_primary" />
+                    app:tint="@color/color_primary" />
 
                 <!-- Archived indicator -->
                 <ImageView
@@ -74,14 +77,14 @@
                     android:layout_marginEnd="4dp"
                     android:src="@drawable/ic_archive"
                     android:visibility="gone"
-                    app:tint="@android:color/darker_gray" />
+                    app:tint="@color/color_on_surface_variant" />
 
                 <TextView
                     android:id="@+id/tvTimestamp"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="10:30 AM"
-                    android:textColor="@android:color/darker_gray"
+                    android:text="@string/placeholder_time_1030_am"
+                    android:textColor="@color/color_on_surface_variant"
                     android:textSize="12sp" />
 
             </LinearLayout>
@@ -94,8 +97,8 @@
                 android:layout_marginTop="2dp"
                 android:ellipsize="end"
                 android:maxLines="1"
-                android:text="+1234567890"
-                android:textColor="@android:color/darker_gray"
+                android:text="@string/placeholder_phone_number"
+                android:textColor="@color/color_on_surface_variant"
                 android:textSize="12sp"
                 android:visibility="gone" />
 
@@ -119,8 +122,8 @@
                         android:layout_height="wrap_content"
                         android:ellipsize="end"
                         android:maxLines="2"
-                        android:text="This is a preview of the last message in the conversation..."
-                        android:textColor="@android:color/secondary_text_dark"
+                        android:text="@string/placeholder_last_message_preview"
+                        android:textColor="@color/color_on_surface_variant"
                         android:textSize="14sp" />
 
                     <!-- Message Count -->
@@ -131,8 +134,8 @@
                         android:layout_marginTop="2dp"
                         android:ellipsize="end"
                         android:maxLines="1"
-                        android:text="5 messages"
-                        android:textColor="@android:color/darker_gray"
+                        android:text="@string/placeholder_message_count"
+                        android:textColor="@color/color_on_surface_variant"
                         android:textSize="11sp"
                         android:visibility="gone" />
 
@@ -158,8 +161,8 @@
                         android:paddingTop="3dp"
                         android:paddingEnd="6dp"
                         android:paddingBottom="3dp"
-                        android:text="1"
-                        android:textColor="@android:color/white"
+                        android:text="@string/placeholder_unread_count"
+                        android:textColor="@color/color_on_primary"
                         android:textSize="12sp"
                         android:textStyle="bold" />
 

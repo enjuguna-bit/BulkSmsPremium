@@ -161,7 +161,7 @@ public class AutoSyncManager {
 
             // If default SMS app, sync bidirectional
             if (bidirectionalSmsSync.isBidirectionalSyncAvailable()) {
-                bidirectionalSmsSync.syncSentMessagesToContentProvider()
+                bidirectionalSmsSync.syncMissingMessagesToContentProvider()
                         .blockingAwait();
             }
 
@@ -209,7 +209,7 @@ public class AutoSyncManager {
 
         // Enable bidirectional sync features
         disposables.add(
-                bidirectionalSmsSync.syncSentMessagesToContentProvider()
+                bidirectionalSmsSync.syncMissingMessagesToContentProvider()
                         .subscribe(
                                 () -> Log.d(TAG, "Bidirectional sync enabled successfully"),
                                 error -> Log.e(TAG, "Failed to enable bidirectional sync", error)));

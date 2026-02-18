@@ -21,6 +21,7 @@ import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.afriserve.smsmanager.AppConfig;
 import com.afriserve.smsmanager.R;
 import com.afriserve.smsmanager.models.CsvRowModel;
 import com.afriserve.smsmanager.models.Recipient;
@@ -36,6 +37,8 @@ import com.google.android.material.textfield.TextInputEditText;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import dagger.hilt.android.AndroidEntryPoint;
 import javax.inject.Inject;
@@ -43,7 +46,6 @@ import javax.inject.Inject;
 @AndroidEntryPoint
 public class CsvUploadFragment extends Fragment {
     private static final int PICK_CSV_FILE = 1001;
-    private static final int CSV_FREE_LIMIT = 15;
 
     private ProgressBar progressLoading;
     private TextView tvSummary, tvPhoneValidation;
@@ -58,6 +60,14 @@ public class CsvUploadFragment extends Fragment {
 
     @Inject
     UploadPersistenceService uploadPersistence;
+
+    private ExecutorService subscriptionExecutor;
+
+    @Override
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        subscriptionExecutor = Executors.newSingleThreadExecutor();
+    }
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, 
@@ -229,22 +239,50 @@ public class CsvUploadFragment extends Fragment {
             return;
         }
 
-        if (!SubscriptionHelper.INSTANCE.hasActiveSubscription(requireContext())
-                && recipients.size() > CSV_FREE_LIMIT) {
-            if (SubscriptionHelper.INSTANCE.isPaymentPending(requireContext())) {
-                Snackbar.make(requireView(), "Payment processing. Please refresh status.", Snackbar.LENGTH_LONG).show();
-            } else {
-                new MaterialAlertDialogBuilder(requireContext())
-                    .setTitle("Premium required")
-                    .setMessage("Free version allows up to " + CSV_FREE_LIMIT + " recipients per CSV.")
-                    .setPositiveButton("Subscribe", (dialog, which) ->
-                        SubscriptionHelper.INSTANCE.launch(requireContext()))
-                    .setNegativeButton("Cancel", null)
-                    .show();
-            }
+        refreshSubscriptionStatusAndSend(recipients, template);
+    }
+
+    private void refreshSubscriptionStatusAndSend(
+            @NonNull List<com.afriserve.smsmanager.data.csv.CsvRecipient> recipients,
+            @NonNull String template
+    ) {
+        if (!isAdded()) {
             return;
         }
+        if (btnSend != null) {
+            btnSend.setEnabled(false);
+        }
+        getSubscriptionExecutor().execute(() -> {
+            SubscriptionHelper.SubscriptionStatus status;
+            try {
+                status = SubscriptionHelper.INSTANCE.refreshSubscriptionStatusBlocking(requireContext(), true);
+            } catch (Exception e) {
+                status = SubscriptionHelper.INSTANCE.getCachedStatus(requireContext());
+            }
+            final SubscriptionHelper.SubscriptionStatus finalStatus = status;
 
+            if (!isAdded()) {
+                return;
+            }
+            requireActivity().runOnUiThread(() -> {
+                if (btnSend != null) {
+                    btnSend.setEnabled(true);
+                }
+                if (!isSubscriptionActive(finalStatus)
+                        && recipients.size() > AppConfig.Limits.FREE_RECIPIENTS_LIMIT) {
+                    Snackbar.make(requireView(),
+                            "Large send detected. Continuing with delivery-safe mode.",
+                            Snackbar.LENGTH_LONG).show();
+                }
+                proceedWithSend(recipients, template);
+            });
+        });
+    }
+
+    private void proceedWithSend(
+            @NonNull List<com.afriserve.smsmanager.data.csv.CsvRecipient> recipients,
+            @NonNull String template
+    ) {
         new MaterialAlertDialogBuilder(requireContext())
             .setTitle("Send Bulk SMS")
             .setMessage("Are you sure you want to send SMS to all recipients? This will send " + recipients.size() + " messages.")
@@ -257,10 +295,10 @@ public class CsvUploadFragment extends Fragment {
                 session.totalRecords = recipients.size();
                 session.validRecords = recipients.size();
                 session.processingStatus = "ready";
-                session.sendSpeed = 300;
+                session.sendSpeed = 2000;
                 session.simSlot = 0;
                 session.campaignName = "CSV Campaign";
-                session.campaignType = "MARKETING";
+                session.campaignType = "TRANSACTIONAL";
                 session.source = "csv";
 
                 for (com.afriserve.smsmanager.data.csv.CsvRecipient csvRecipient : recipients) {
@@ -283,6 +321,36 @@ public class CsvUploadFragment extends Fragment {
             })
             .setNegativeButton("Cancel", null)
             .show();
+    }
+
+    private boolean isSubscriptionActive(@Nullable SubscriptionHelper.SubscriptionStatus status) {
+        if (status == null) {
+            return false;
+        }
+        long now = System.currentTimeMillis();
+        return status.getPremium() && (status.getPaidUntilMillis() == null || status.getPaidUntilMillis() > now);
+    }
+
+    @NonNull
+    private ExecutorService getSubscriptionExecutor() {
+        if (subscriptionExecutor == null || subscriptionExecutor.isShutdown()) {
+            subscriptionExecutor = Executors.newSingleThreadExecutor();
+        }
+        return subscriptionExecutor;
+    }
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        if (subscriptionExecutor != null) {
+            subscriptionExecutor.shutdown();
+            subscriptionExecutor = null;
+        }
     }
 
     private void showError(String message) {

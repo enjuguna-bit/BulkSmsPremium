@@ -26,9 +26,9 @@
                 app:cardCornerRadius="16dp"
                 app:cardElevation="6dp"
                 app:cardUseCompatPadding="true"
-                app:strokeColor="#E3ECFF"
+                app:strokeColor="@color/color_outline_variant"
                 app:strokeWidth="1dp"
-                app:cardBackgroundColor="#FFFFFF">
+                app:cardBackgroundColor="@color/color_surface">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -54,7 +54,7 @@
                                 android:layout_width="@dimen/icon_medium"
                                 android:layout_height="@dimen/icon_medium"
                                 android:src="@drawable/ic_campaign"
-                                app:tint="#1E3A8A"
+                                app:tint="@color/color_primary"
                                 android:layout_marginEnd="@dimen/spacing_small"
                                 android:contentDescription="@null" />
 
@@ -64,7 +64,7 @@
                                 android:text="@string/bulk_sms_title"
                                 android:textSize="@dimen/text_xlarge"
                                 android:textStyle="bold"
-                                android:textColor="#0F172A" />
+                                android:textColor="@color/color_on_surface" />
                         </LinearLayout>
 
                         <TextView
@@ -74,7 +74,7 @@
                             android:text="@string/bulk_sms_badge"
                             android:textSize="11sp"
                             android:textStyle="bold"
-                            android:textColor="#2B1A00"
+                            android:textColor="@color/fx_badge_text"
                             android:background="@drawable/bg_premium_badge"
                             android:paddingStart="10dp"
                             android:paddingEnd="10dp"
@@ -87,7 +87,7 @@
                         android:layout_height="wrap_content"
                         android:text="@string/bulk_sms_subtitle"
                         android:textSize="13sp"
-                        android:textColor="#475569"
+                        android:textColor="@color/color_on_surface_variant"
                         android:layout_marginBottom="@dimen/spacing_small" />
 
                     <TextView
@@ -97,7 +97,7 @@
                         android:text="@string/bulk_sms_recipients_format"
                         android:textSize="@dimen/text_medium"
                         android:gravity="center"
-                        android:textColor="#64748B" />
+                        android:textColor="@color/color_on_surface_variant" />
 
                 </LinearLayout>
 
@@ -111,9 +111,9 @@
                 app:cardCornerRadius="16dp"
                 app:cardElevation="6dp"
                 app:cardUseCompatPadding="true"
-                app:strokeColor="#E3ECFF"
+                app:strokeColor="@color/color_outline_variant"
                 app:strokeWidth="1dp"
-                app:cardBackgroundColor="#FFFFFF">
+                app:cardBackgroundColor="@color/color_surface">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -132,7 +132,7 @@
                             android:layout_width="@dimen/icon_small"
                             android:layout_height="@dimen/icon_small"
                             android:src="@drawable/ic_file_upload"
-                            app:tint="#1E3A8A"
+                            app:tint="@color/color_primary"
                             android:layout_marginEnd="@dimen/spacing_small"
                             android:contentDescription="@null" />
 
@@ -142,7 +142,7 @@
                             android:text="@string/bulk_sms_import_title"
                             android:textSize="@dimen/text_large"
                             android:textStyle="bold"
-                            android:textColor="#0F172A" />
+                            android:textColor="@color/color_on_surface" />
                     </LinearLayout>
 
                     <TextView
@@ -151,7 +151,7 @@
                         android:layout_height="wrap_content"
                         android:text="@string/bulk_sms_file_loaded_format"
                         android:textSize="@dimen/text_medium"
-                        android:textColor="#64748B"
+                        android:textColor="@color/color_on_surface_variant"
                         android:layout_marginBottom="@dimen/spacing_small"
                         android:background="@drawable/bg_activity_list"
                         android:padding="@dimen/spacing_medium" />
@@ -168,7 +168,7 @@
                             android:layout_weight="1"
                             android:text="@string/bulk_sms_select_file"
                             android:layout_marginEnd="@dimen/spacing_small"
-                            style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
+                            style="@style/Widget.Material3.Button.OutlinedButton" />
 
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/btnAddRecipient"
@@ -177,7 +177,7 @@
                             android:layout_weight="1"
                             android:text="@string/bulk_sms_add_manual"
                             android:layout_marginStart="@dimen/spacing_small"
-                            style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
+                            style="@style/Widget.Material3.Button.OutlinedButton" />
 
                     </LinearLayout>
 
@@ -201,9 +201,9 @@
                 app:cardCornerRadius="16dp"
                 app:cardElevation="6dp"
                 app:cardUseCompatPadding="true"
-                app:strokeColor="#E3ECFF"
+                app:strokeColor="@color/color_outline_variant"
                 app:strokeWidth="1dp"
-                app:cardBackgroundColor="#FFFFFF">
+                app:cardBackgroundColor="@color/color_surface">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -222,7 +222,7 @@
                             android:layout_width="@dimen/icon_small"
                             android:layout_height="@dimen/icon_small"
                             android:src="@drawable/ic_template"
-                            app:tint="#1E3A8A"
+                            app:tint="@color/color_primary"
                             android:layout_marginEnd="@dimen/spacing_small"
                             android:contentDescription="@null" />
 
@@ -232,7 +232,7 @@
                             android:text="@string/bulk_sms_template_title"
                             android:textSize="@dimen/text_large"
                             android:textStyle="bold"
-                            android:textColor="#0F172A" />
+                            android:textColor="@color/color_on_surface" />
                     </LinearLayout>
 
                     <com.google.android.material.textfield.TextInputLayout
@@ -243,9 +243,9 @@
                         app:endIconMode="custom"
                         app:endIconDrawable="@drawable/ic_copy"
                         app:endIconContentDescription="@string/bulk_sms_copy_template"
-                        app:endIconTint="#1E3A8A"
-                        app:boxStrokeColor="#1E3A8A"
-                        app:hintTextColor="#1E3A8A">
+                        app:endIconTint="@color/color_primary"
+                        app:boxStrokeColor="@color/color_primary"
+                        app:hintTextColor="@color/color_primary">
 
                         <com.google.android.material.textfield.TextInputEditText
                             android:id="@+id/inputTemplate"
@@ -263,7 +263,7 @@
                         android:layout_height="wrap_content"
                         android:text="@string/bulk_sms_placeholders"
                         android:textSize="@dimen/text_small"
-                        android:textColor="#64748B"
+                        android:textColor="@color/color_on_surface_variant"
                         android:layout_marginBottom="@dimen/spacing_small" />
 
                     <LinearLayout
@@ -278,7 +278,7 @@
                             android:layout_weight="1"
                             android:text="@string/bulk_sms_save_template"
                             android:layout_marginEnd="@dimen/spacing_small"
-                            style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
+                            style="@style/Widget.Material3.Button.OutlinedButton" />
 
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/btnTemplateLibrary"
@@ -287,7 +287,7 @@
                             android:layout_weight="1"
                             android:text="@string/bulk_sms_templates"
                             android:layout_marginStart="@dimen/spacing_small"
-                            style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
+                            style="@style/Widget.Material3.Button.OutlinedButton" />
 
                     </LinearLayout>
 
@@ -305,9 +305,9 @@
                 app:cardCornerRadius="16dp"
                 app:cardElevation="6dp"
                 app:cardUseCompatPadding="true"
-                app:strokeColor="#E3ECFF"
+                app:strokeColor="@color/color_outline_variant"
                 app:strokeWidth="1dp"
-                app:cardBackgroundColor="#FFFFFF">
+                app:cardBackgroundColor="@color/color_surface">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -321,7 +321,7 @@
                         android:text="@string/bulk_sms_variables_title"
                         android:textSize="@dimen/text_large"
                         android:textStyle="bold"
-                        android:textColor="#0F172A"
+                        android:textColor="@color/color_on_surface"
                         android:layout_marginBottom="@dimen/spacing_small" />
 
                     <TextView
@@ -330,7 +330,7 @@
                         android:layout_height="wrap_content"
                         android:text="@string/bulk_sms_variables_count_format"
                         android:textSize="@dimen/text_small"
-                        android:textColor="#64748B"
+                        android:textColor="@color/color_on_surface_variant"
                         android:layout_marginBottom="@dimen/spacing_small" />
 
                     <TextView
@@ -339,7 +339,7 @@
                         android:layout_height="wrap_content"
                         android:text="@string/bulk_sms_detected_columns_prefix"
                         android:textSize="@dimen/text_small"
-                        android:textColor="#64748B"
+                        android:textColor="@color/color_on_surface_variant"
                         android:layout_marginBottom="@dimen/spacing_small"
                         android:visibility="gone" />
 
@@ -348,7 +348,7 @@
                         android:layout_height="wrap_content"
                         android:text="@string/bulk_sms_variables_hint"
                         android:textSize="@dimen/text_small"
-                        android:textColor="#64748B"
+                        android:textColor="@color/color_on_surface_variant"
                         android:layout_marginBottom="@dimen/spacing_medium" />
 
                     <androidx.recyclerview.widget.RecyclerView
@@ -371,9 +371,9 @@
                 app:cardCornerRadius="16dp"
                 app:cardElevation="6dp"
                 app:cardUseCompatPadding="true"
-                app:strokeColor="#E3ECFF"
+                app:strokeColor="@color/color_outline_variant"
                 app:strokeWidth="1dp"
-                app:cardBackgroundColor="#FFFFFF">
+                app:cardBackgroundColor="@color/color_surface">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -387,7 +387,7 @@
                         android:text="@string/bulk_sms_preview_title"
                         android:textSize="@dimen/text_large"
                         android:textStyle="bold"
-                        android:textColor="#0F172A"
+                        android:textColor="@color/color_on_surface"
                         android:layout_marginBottom="@dimen/spacing_medium" />
 
                     <androidx.recyclerview.widget.RecyclerView
@@ -408,9 +408,9 @@
                 app:cardCornerRadius="16dp"
                 app:cardElevation="6dp"
                 app:cardUseCompatPadding="true"
-                app:strokeColor="#E3ECFF"
+                app:strokeColor="@color/color_outline_variant"
                 app:strokeWidth="1dp"
-                app:cardBackgroundColor="#FFFFFF">
+                app:cardBackgroundColor="@color/color_surface">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -429,7 +429,7 @@
                             android:layout_width="@dimen/icon_small"
                             android:layout_height="@dimen/icon_small"
                             android:src="@drawable/ic_sim_card"
-                            app:tint="#1E3A8A"
+                            app:tint="@color/color_primary"
                             android:layout_marginEnd="@dimen/spacing_small"
                             android:contentDescription="@null" />
 
@@ -439,7 +439,7 @@
                             android:text="@string/bulk_sms_sim_title"
                             android:textSize="@dimen/text_large"
                             android:textStyle="bold"
-                            android:textColor="#0F172A" />
+                            android:textColor="@color/color_on_surface" />
                             
                     </LinearLayout>
 
@@ -454,7 +454,7 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="SIM 1"
+                            android:text="@string/send_sms_sim_1"
                             android:checked="true" />
 
                         <RadioButton
@@ -462,7 +462,7 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="SIM 2" />
+                            android:text="@string/send_sms_sim_2" />
 
                     </RadioGroup>
 
@@ -484,7 +484,7 @@
                     android:layout_weight="1"
                     android:text="@string/bulk_sms_clear_all"
                     android:layout_marginEnd="@dimen/spacing_small"
-                    style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
+                    style="@style/Widget.Material3.Button.OutlinedButton" />
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnSendBulk"
@@ -493,7 +493,7 @@
                     android:layout_weight="1"
                     android:text="@string/bulk_sms_send_button"
                     android:layout_marginStart="@dimen/spacing_small"
-                    style="@style/Widget.MaterialComponents.Button"
+                    style="@style/Widget.Material3.Button"
                     app:icon="@drawable/ic_rocket_launch"
                     app:iconGravity="textStart" />
 
@@ -507,9 +507,9 @@
                 app:cardCornerRadius="16dp"
                 app:cardElevation="6dp"
                 app:cardUseCompatPadding="true"
-                app:strokeColor="#E3ECFF"
+                app:strokeColor="@color/color_outline_variant"
                 app:strokeWidth="1dp"
-                app:cardBackgroundColor="#FFFFFF">
+                app:cardBackgroundColor="@color/color_surface">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -528,7 +528,7 @@
                             android:layout_width="@dimen/icon_small"
                             android:layout_height="@dimen/icon_small"
                             android:src="@drawable/ic_chart_bar"
-                            app:tint="#1E3A8A"
+                            app:tint="@color/color_primary"
                             android:layout_marginEnd="@dimen/spacing_small"
                             android:contentDescription="@null" />
 
@@ -538,7 +538,7 @@
                             android:text="@string/bulk_sms_progress_title"
                             android:textSize="@dimen/text_large"
                             android:textStyle="bold"
-                            android:textColor="#0F172A" />
+                            android:textColor="@color/color_on_surface" />
                     </LinearLayout>
 
                     <ProgressBar
@@ -567,7 +567,7 @@
                         android:textSize="@dimen/text_small"
                         android:layout_marginTop="@dimen/spacing_small"
                         android:gravity="center"
-                        android:textColor="#64748B" />
+                        android:textColor="@color/color_on_surface_variant" />
 
                     <LinearLayout
                         android:layout_width="match_parent"
@@ -587,7 +587,7 @@
                             android:id="@+id/txtSentCount"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="0"
+                            android:text="@string/bulk_zero"
                             android:textSize="@dimen/text_small"
                             android:textStyle="bold" />
 
@@ -603,7 +603,23 @@
                             android:id="@+id/txtFailedCount"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="0"
+                            android:text="@string/bulk_zero"
+                            android:textSize="@dimen/text_small"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="@string/bulk_sms_skipped_label"
+                            android:textSize="@dimen/text_small"
+                            android:gravity="center" />
+
+                        <TextView
+                            android:id="@+id/txtSkippedCount"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/bulk_zero"
                             android:textSize="@dimen/text_small"
                             android:textStyle="bold" />
 
@@ -619,7 +635,7 @@
                             android:id="@+id/txtQueuedCount"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="0"
+                            android:text="@string/bulk_zero"
                             android:textSize="@dimen/text_small"
                             android:textStyle="bold" />
 
@@ -634,7 +650,7 @@
                         android:textSize="@dimen/text_small"
                         android:layout_marginTop="@dimen/spacing_tiny"
                         android:gravity="center"
-                        android:textColor="#475569" />
+                        android:textColor="@color/color_on_surface_variant" />
 
                     <!-- Queue Status -->
                     <TextView
@@ -645,14 +661,14 @@
                         android:textSize="@dimen/text_small"
                         android:layout_marginTop="@dimen/spacing_tiny"
                         android:gravity="center"
-                        android:textColor="#475569" />
+                        android:textColor="@color/color_on_surface_variant" />
 
                     <!-- Circuit Breaker Status -->
                     <TextView
                         android:id="@+id/txtCircuitBreakerStatus"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text=""
+                        android:text="@string/empty_text"
                         android:textSize="12sp"
                         android:layout_marginTop="4dp"
                         android:gravity="center"
@@ -663,7 +679,7 @@
                         android:id="@+id/txtSessionInfo"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text=""
+                        android:text="@string/empty_text"
                         android:textSize="12sp"
                         android:layout_marginTop="4dp"
                         android:gravity="center"
@@ -690,9 +706,9 @@
                 app:cardCornerRadius="16dp"
                 app:cardElevation="6dp"
                 app:cardUseCompatPadding="true"
-                app:strokeColor="#E3ECFF"
+                app:strokeColor="@color/color_outline_variant"
                 app:strokeWidth="1dp"
-                app:cardBackgroundColor="#FFFFFF">
+                app:cardBackgroundColor="@color/color_surface">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -706,7 +722,7 @@
                         android:text="@string/bulk_sms_advanced"
                         android:textSize="@dimen/text_large"
                         android:textStyle="bold"
-                        android:textColor="#0F172A"
+                        android:textColor="@color/color_on_surface"
                         android:layout_marginBottom="@dimen/spacing_medium" />
 
                     <!-- Send Speed Controls -->
@@ -723,16 +739,16 @@
                         android:orientation="horizontal"
                         android:layout_marginBottom="@dimen/spacing_medium">
 
-                        <Button
+                        <com.google.android.material.button.MaterialButton
                             android:id="@+id/btnSpeed300"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
                             android:text="@string/bulk_sms_speed_fast"
                             android:layout_marginEnd="@dimen/spacing_tiny"
-                            style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
+                            style="@style/Widget.Material3.Button.OutlinedButton" />
 
-                        <Button
+                        <com.google.android.material.button.MaterialButton
                             android:id="@+id/btnSpeed600"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
@@ -740,16 +756,16 @@
                             android:text="@string/bulk_sms_speed_normal"
                             android:layout_marginStart="@dimen/spacing_tiny"
                             android:layout_marginEnd="@dimen/spacing_tiny"
-                            style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
+                            style="@style/Widget.Material3.Button.OutlinedButton" />
 
-                        <Button
+                        <com.google.android.material.button.MaterialButton
                             android:id="@+id/btnSpeed1000"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
                             android:text="@string/bulk_sms_speed_slow"
                             android:layout_marginStart="@dimen/spacing_tiny"
-                            style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
+                            style="@style/Widget.Material3.Button.OutlinedButton" />
 
                     </LinearLayout>
 
@@ -757,9 +773,9 @@
                         android:id="@+id/txtSendSpeed"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="0 SMS/min"
+                        android:text="@string/bulk_sms_speed_default"
                         android:textSize="14sp"
-                        android:textColor="#64748B"
+                        android:textColor="@color/color_on_surface_variant"
                         android:gravity="center"
                         android:layout_marginTop="8dp" />
 
@@ -776,23 +792,23 @@
                         android:layout_height="wrap_content"
                         android:orientation="horizontal">
 
-                        <Button
+                        <com.google.android.material.button.MaterialButton
                             android:id="@+id/btnRunQueue"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
                             android:text="@string/bulk_sms_run_queue"
                             android:layout_marginEnd="@dimen/spacing_tiny"
-                            style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
+                            style="@style/Widget.Material3.Button.OutlinedButton" />
 
-                        <Button
+                        <com.google.android.material.button.MaterialButton
                             android:id="@+id/btnClearExhausted"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
                             android:text="@string/bulk_sms_clear_exhausted"
                             android:layout_marginStart="@dimen/spacing_tiny"
-                            style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
+                            style="@style/Widget.Material3.Button.OutlinedButton" />
 
                     </LinearLayout>
 
@@ -803,23 +819,23 @@
                         android:orientation="horizontal"
                         android:layout_marginTop="@dimen/spacing_small">
 
-                        <Button
+                        <com.google.android.material.button.MaterialButton
                             android:id="@+id/btnPauseResume"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
                             android:text="@string/bulk_sms_pause"
                             android:layout_marginEnd="@dimen/spacing_tiny"
-                            style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
+                            style="@style/Widget.Material3.Button.OutlinedButton" />
 
-                        <Button
+                        <com.google.android.material.button.MaterialButton
                             android:id="@+id/btnStopSending"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
                             android:text="@string/bulk_sms_stop"
                             android:layout_marginStart="@dimen/spacing_tiny"
-                            style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
+                            style="@style/Widget.Material3.Button.OutlinedButton" />
 
                     </LinearLayout>
 
@@ -834,9 +850,9 @@
                 app:cardCornerRadius="16dp"
                 app:cardElevation="6dp"
                 app:cardUseCompatPadding="true"
-                app:strokeColor="#E3ECFF"
+                app:strokeColor="@color/color_outline_variant"
                 app:strokeWidth="1dp"
-                app:cardBackgroundColor="#FFFFFF">
+                app:cardBackgroundColor="@color/color_surface">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -855,7 +871,7 @@
                             android:layout_width="@dimen/icon_small"
                             android:layout_height="@dimen/icon_small"
                             android:src="@drawable/ic_group"
-                            app:tint="#1E3A8A"
+                            app:tint="@color/color_primary"
                             android:layout_marginEnd="@dimen/spacing_small"
                             android:contentDescription="@null" />
 
@@ -865,7 +881,7 @@
                             android:text="@string/bulk_sms_recipients_list"
                             android:textSize="@dimen/text_large"
                             android:textStyle="bold"
-                            android:textColor="#0F172A" />
+                            android:textColor="@color/color_on_surface" />
                     </LinearLayout>
 
                     <androidx.recyclerview.widget.RecyclerView
@@ -884,3 +900,5 @@
     </androidx.core.widget.NestedScrollView>
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
+
+

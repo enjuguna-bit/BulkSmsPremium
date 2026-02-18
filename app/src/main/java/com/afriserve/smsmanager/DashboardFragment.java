@@ -1,39 +1,34 @@
 package com.afriserve.smsmanager;
 
-import android.database.Cursor;
 import android.os.Bundle;
-import android.provider.Telephony;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
-import java.util.Locale;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.cardview.widget.CardView;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
-import androidx.lifecycle.ViewModel;
-
 import androidx.navigation.NavController;
-import androidx.navigation.Navigation;
 import androidx.navigation.NavOptions;
+import androidx.navigation.fragment.NavHostFragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import com.afriserve.smsmanager.models.SmsModel;
 import com.afriserve.smsmanager.ui.dashboard.DashboardViewModel;
+import com.afriserve.smsmanager.ui.dashboard.SmsStats;
 import com.google.android.material.snackbar.Snackbar;
 
 import dagger.hilt.android.AndroidEntryPoint;
 
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
@@ -45,6 +40,7 @@ public class DashboardFragment extends Fragment {
     private SwipeRefreshLayout swipeRefresh;
     private TextView txtSmsSent, txtDeliveryRate, txtDeliveryStatus, txtFailed,
                      txtQueued, txtSmsTrend, txtNoActivity;
+    private ImageView imgTrendIndicator;
     private RecyclerView recyclerActivity;
     private CardView actionBulkSms, actionSingleSms, actionInbox, actionSettings;
 
@@ -62,16 +58,18 @@ public class DashboardFragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        // Use Activity's default factory (Hilt provides it for Activities) as a workaround
-        // when Fragment's default factory isn't properly overridden in some release builds.
-        viewModel = new ViewModelProvider(this, requireActivity().getDefaultViewModelProviderFactory()).get(DashboardViewModel.class);
+        viewModel = new ViewModelProvider(this).get(DashboardViewModel.class);
         initViews(view);
         setupQuickActions();
         setupActivityList();
         setupObservers();
         loadInitialData();
 
-        swipeRefresh.setOnRefreshListener(() -> viewModel.loadDashboardData());
+        swipeRefresh.setOnRefreshListener(this::refreshDashboard);
+    }
+
+    private void refreshDashboard() {
+        viewModel.loadDashboardData();
     }
 
     private void setupObservers() {
@@ -79,6 +77,10 @@ public class DashboardFragment extends Fragment {
         viewModel.getIsLoading().observe(getViewLifecycleOwner(), isLoading -> {
             swipeRefresh.setRefreshing(isLoading);
         });
+        viewModel.getDashboardState().observe(getViewLifecycleOwner(), state ->
+                applyDashboardState(state, viewModel.getStateMessage().getValue()));
+        viewModel.getStateMessage().observe(getViewLifecycleOwner(), message ->
+                applyDashboardState(viewModel.getDashboardState().getValue(), message));
         viewModel.getError().observe(getViewLifecycleOwner(), error -> {
             if (error != null) {
                 showError(error);
@@ -89,27 +91,23 @@ public class DashboardFragment extends Fragment {
     private void updateUI(com.afriserve.smsmanager.ui.dashboard.DashboardStats stats) {
         if (stats == null) return;
 
-        // Update SMS stats
         txtSmsSent.setText(String.valueOf(stats.getSmsStats().getTotalSent()));
-        txtDeliveryRate.setText(String.format("%.1f%%", stats.getSmsStats().getDeliveryRate()));
-        txtDeliveryStatus.setText(stats.getSmsStats().getDeliveryStatus());
+        txtDeliveryRate.setText(String.format(Locale.getDefault(), "%.1f%%", stats.getSmsStats().getDeliveryRate()));
         txtFailed.setText(String.valueOf(stats.getSmsStats().getTotalFailed()));
         txtQueued.setText(String.valueOf(stats.getSmsStats().getTotalQueued()));
-        txtSmsTrend.setText("Trend: " + stats.getSmsStats().getTrend());
+        updateDeliveryStatus(stats.getSmsStats().getDeliveryStatus());
+        updateTrendDisplay(stats.getSmsStats());
 
-        // Update activity list
         activityList.clear();
         if (stats.getRecentActivity() != null) {
             activityList.addAll(stats.getRecentActivity());
         }
         activityAdapter.notifyDataSetChanged();
-        txtNoActivity.setVisibility(activityList.isEmpty() ? View.VISIBLE : View.GONE);
-        recyclerActivity.setVisibility(activityList.isEmpty() ? View.GONE : View.VISIBLE);
+        updateActivityStateVisibility();
     }
 
     private void loadInitialData() {
         viewModel.loadDashboardData();
-        viewModel.loadRecentActivity();
     }
 
     private void initViews(View view) {
@@ -120,6 +118,7 @@ public class DashboardFragment extends Fragment {
         txtFailed = view.findViewById(R.id.txtFailed);
         txtQueued = view.findViewById(R.id.txtQueued);
         txtSmsTrend = view.findViewById(R.id.txtSmsTrend);
+        imgTrendIndicator = view.findViewById(R.id.imgTrendIndicator);
         txtNoActivity = view.findViewById(R.id.txtNoActivity);
         recyclerActivity = view.findViewById(R.id.recyclerActivity);
         actionBulkSms = view.findViewById(R.id.actionBulkSms);
@@ -137,7 +136,7 @@ public class DashboardFragment extends Fragment {
 
     private void navigateTo(int destination) {
         try {
-            NavController navController = Navigation.findNavController(requireActivity(), R.id.nav_host_fragment_container);
+            NavController navController = NavHostFragment.findNavController(this);
             if (navController.getCurrentDestination() != null
                     && navController.getCurrentDestination().getId() == destination) {
                 return;
@@ -147,7 +146,7 @@ public class DashboardFragment extends Fragment {
                     .build();
             navController.navigate(destination, null, options);
         } catch (Exception e) {
-            Toast.makeText(requireContext(), "Navigation error", Toast.LENGTH_SHORT).show();
+            Toast.makeText(requireContext(), getString(R.string.dashboard_navigation_error), Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -157,25 +156,102 @@ public class DashboardFragment extends Fragment {
         recyclerActivity.setAdapter(activityAdapter);
     }
 
-    private void updateStatsDisplay(com.afriserve.smsmanager.ui.dashboard.DashboardStats stats) {
-        if (stats == null) return;
-
-        // Update SMS stats
-        txtSmsSent.setText(String.valueOf(stats.getSmsStats().getTotalSent()));
-        txtDeliveryRate.setText(String.format(Locale.getDefault(), "%.1f%%", stats.getSmsStats().getDeliveryRate()));
-        txtDeliveryStatus.setText(stats.getSmsStats().getDeliveryStatus());
-        txtFailed.setText(String.valueOf(stats.getSmsStats().getTotalFailed()));
-        txtQueued.setText(String.valueOf(stats.getSmsStats().getTotalQueued()));
-        txtSmsTrend.setText("SMS Trend: " + stats.getSmsStats().getTrend());
-
-        // Update activity list if available
-        if (stats.getRecentActivity() != null) {
-            activityList.clear();
-            activityList.addAll(stats.getRecentActivity());
+    private void updateDeliveryStatus(SmsStats.DeliveryStatus status) {
+        int textColor;
+        int labelRes;
+        switch (status) {
+            case EXCELLENT:
+                textColor = ContextCompat.getColor(requireContext(), R.color.status_success);
+                labelRes = R.string.dashboard_delivery_status_excellent;
+                break;
+            case GOOD:
+                textColor = ContextCompat.getColor(requireContext(), R.color.status_info);
+                labelRes = R.string.dashboard_delivery_status_good;
+                break;
+            case FAIR:
+                textColor = ContextCompat.getColor(requireContext(), R.color.status_warning);
+                labelRes = R.string.dashboard_delivery_status_fair;
+                break;
+            case POOR:
+            default:
+                textColor = ContextCompat.getColor(requireContext(), R.color.color_error);
+                labelRes = R.string.dashboard_delivery_status_poor;
+                break;
         }
-        activityAdapter.notifyDataSetChanged();
-        txtNoActivity.setVisibility(activityList.isEmpty() ? View.VISIBLE : View.GONE);
-        recyclerActivity.setVisibility(activityList.isEmpty() ? View.GONE : View.VISIBLE);
+        txtDeliveryStatus.setText(labelRes);
+        txtDeliveryStatus.setTextColor(textColor);
+    }
+
+    private void updateTrendDisplay(SmsStats stats) {
+        float absTrend = Math.abs(stats.getTrendPercentage());
+        int trendColor;
+        String signPrefix;
+        int contentDescription;
+
+        switch (stats.getTrendDirection()) {
+            case UP:
+                trendColor = ContextCompat.getColor(requireContext(), R.color.status_success);
+                signPrefix = "+";
+                imgTrendIndicator.setRotation(0f);
+                contentDescription = R.string.dashboard_trend_up;
+                break;
+            case DOWN:
+                trendColor = ContextCompat.getColor(requireContext(), R.color.color_error);
+                signPrefix = "-";
+                imgTrendIndicator.setRotation(180f);
+                contentDescription = R.string.dashboard_trend_down;
+                break;
+            case STABLE:
+            default:
+                trendColor = ContextCompat.getColor(requireContext(), R.color.status_muted);
+                signPrefix = "";
+                imgTrendIndicator.setRotation(90f);
+                contentDescription = R.string.dashboard_trend_stable;
+                break;
+        }
+
+        imgTrendIndicator.setColorFilter(trendColor);
+        imgTrendIndicator.setContentDescription(getString(contentDescription));
+        txtSmsTrend.setTextColor(trendColor);
+        txtSmsTrend.setText(getString(R.string.dashboard_trend_value_format, signPrefix, absTrend));
+    }
+
+    private void applyDashboardState(@Nullable DashboardViewModel.DashboardState state, @Nullable String message) {
+        if (state == null) {
+            return;
+        }
+
+        switch (state) {
+            case CONTENT:
+                updateActivityStateVisibility();
+                break;
+            case EMPTY:
+                txtNoActivity.setText(message != null ? message : getString(R.string.dashboard_state_empty));
+                txtNoActivity.setVisibility(View.VISIBLE);
+                recyclerActivity.setVisibility(View.GONE);
+                break;
+            case PERMISSION_REQUIRED:
+                txtNoActivity.setText(message != null ? message : getString(R.string.dashboard_state_permission_required));
+                txtNoActivity.setVisibility(View.VISIBLE);
+                recyclerActivity.setVisibility(View.GONE);
+                break;
+            case ERROR:
+                txtNoActivity.setText(message != null ? message : getString(R.string.dashboard_state_error));
+                txtNoActivity.setVisibility(View.VISIBLE);
+                recyclerActivity.setVisibility(View.GONE);
+                break;
+        }
+    }
+
+    private void updateActivityStateVisibility() {
+        if (activityList.isEmpty()) {
+            txtNoActivity.setText(R.string.dashboard_no_activity);
+            txtNoActivity.setVisibility(View.VISIBLE);
+            recyclerActivity.setVisibility(View.GONE);
+        } else {
+            txtNoActivity.setVisibility(View.GONE);
+            recyclerActivity.setVisibility(View.VISIBLE);
+        }
     }
 
     private void showError(String message) {
@@ -185,7 +261,7 @@ public class DashboardFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
-        viewModel.loadDashboardData();
+        refreshDashboard();
     }
 
     // ==================== INNER CLASSES ====================

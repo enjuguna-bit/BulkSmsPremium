@@ -1,133 +1,259 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/subscriptionScroll"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#F5F5F5">
+    android:background="@drawable/bg_dashboard_gradient">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="16dp">
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Choose Your Plan"
-            android:textSize="28sp"
-            android:textStyle="bold"
-            android:gravity="center"
-            android:layout_marginTop="24dp"
-            android:layout_marginBottom="32dp" />
-
-        <com.google.android.material.textfield.TextInputLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="24dp"
-            app:startIconDrawable="@android:drawable/ic_menu_call">
-
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/etPhoneNumber"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:hint="M-Pesa Phone Number (0712345678)"
-                android:inputType="phone" />
-        </com.google.android.material.textfield.TextInputLayout>
-
-        <Button
-            android:id="@+id/btnCheckStatus"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Check Status"
-            android:textSize="16sp"
-            android:layout_marginBottom="20dp" />
+        android:padding="@dimen/spacing_medium">
 
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
-            app:cardCornerRadius="12dp"
-            app:cardElevation="4dp">
+            android:layout_marginTop="@dimen/spacing_medium"
+            android:layout_marginBottom="@dimen/spacing_medium"
+            app:cardCornerRadius="20dp"
+            app:cardElevation="0dp"
+            app:cardBackgroundColor="@android:color/transparent"
+            app:strokeColor="@color/fx_panel_stroke"
+            app:strokeWidth="1dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
+                android:background="@drawable/subscription_background"
                 android:padding="20dp">
 
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Daily Plan"
-                    android:textSize="24sp"
+                    android:text="@string/subscription_title"
+                    android:textColor="@color/color_on_surface"
+                    android:textSize="28sp"
                     android:textStyle="bold" />
 
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="KSH 200 per day"
-                    android:textSize="18sp"
-                    android:layout_marginTop="8dp"
-                    android:layout_marginBottom="16dp" />
+                    android:layout_marginTop="@dimen/spacing_tiny"
+                    android:text="@string/subscription_subtitle"
+                    android:textColor="@color/color_on_surface_variant"
+                    android:textSize="@dimen/text_medium" />
 
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="- Unlimited SMS\n- Premium features\n- Cancel anytime"
-                    android:textSize="14sp"
-                    android:layout_marginBottom="16dp" />
+                    android:layout_marginTop="@dimen/spacing_small"
+                    android:text="@string/subscription_highlight"
+                    android:textColor="@color/color_on_surface_variant"
+                    android:textSize="@dimen/text_small" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
 
-                <Button
-                    android:id="@+id/btnSubscribeDaily"
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="@dimen/spacing_small"
+            android:text="@string/subscription_step_phone"
+            android:textColor="@color/color_on_surface"
+            android:textSize="@dimen/text_medium"
+            android:textStyle="bold" />
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/phoneInputLayout"
+            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/subscription_phone_hint"
+            app:helperText="@string/subscription_phone_helper"
+            app:placeholderText="@string/subscription_phone_placeholder"
+            app:startIconDrawable="@drawable/ic_sim_card">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etPhoneNumber"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="phone"
+                android:textSize="16sp" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_medium"
+            android:layout_marginBottom="@dimen/spacing_small"
+            android:text="@string/subscription_step_plan"
+            android:textColor="@color/color_on_surface"
+            android:textSize="@dimen/text_medium"
+            android:textStyle="bold" />
+
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="@dimen/spacing_small"
+            app:cardBackgroundColor="@color/color_surface"
+            app:cardCornerRadius="14dp"
+            app:cardElevation="0dp"
+            app:strokeColor="@color/color_outline_variant"
+            app:strokeWidth="1dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="@dimen/spacing_small">
+
+                <com.google.android.material.chip.ChipGroup
+                    android:id="@+id/chipGroupPlans"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Subscribe Daily"
-                    android:textSize="16sp" />
+                    app:chipSpacingHorizontal="@dimen/spacing_small"
+                    app:chipSpacingVertical="@dimen/spacing_small"
+                    app:selectionRequired="true"
+                    app:singleSelection="true">
+
+                    <com.google.android.material.chip.Chip
+                        android:id="@+id/chipPlanOneHour"
+                        style="@style/Widget.Material3.Chip.Filter"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/subscription_plan_one_hour" />
+
+                    <com.google.android.material.chip.Chip
+                        android:id="@+id/chipPlanSixHour"
+                        style="@style/Widget.Material3.Chip.Filter"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/subscription_plan_six_hour" />
+
+                    <com.google.android.material.chip.Chip
+                        android:id="@+id/chipPlanDaily"
+                        style="@style/Widget.Material3.Chip.Filter"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/subscription_plan_daily" />
+
+                    <com.google.android.material.chip.Chip
+                        android:id="@+id/chipPlanWeekly"
+                        style="@style/Widget.Material3.Chip.Filter"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:checked="true"
+                        android:text="@string/subscription_plan_weekly" />
+                </com.google.android.material.chip.ChipGroup>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/spacing_small"
+                    android:background="@drawable/bg_premium_badge"
+                    android:paddingStart="10dp"
+                    android:paddingEnd="10dp"
+                    android:paddingTop="6dp"
+                    android:paddingBottom="6dp"
+                    android:text="@string/subscription_plan_best_value"
+                    android:textColor="@color/fx_badge_text"
+                    android:textSize="@dimen/text_small"
+                    android:textStyle="bold" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            app:cardCornerRadius="12dp"
-            app:cardElevation="4dp">
+            android:layout_marginBottom="@dimen/spacing_medium"
+            app:cardBackgroundColor="@color/color_surface"
+            app:cardCornerRadius="14dp"
+            app:cardElevation="0dp"
+            app:strokeColor="@color/color_outline_variant"
+            app:strokeWidth="1dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="20dp">
+                android:padding="@dimen/spacing_medium">
 
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Weekly Plan"
-                    android:textSize="24sp"
+                    android:text="@string/subscription_selected_plan"
+                    android:textColor="@color/color_on_surface_variant"
+                    android:textSize="@dimen/text_small" />
+
+                <TextView
+                    android:id="@+id/txtSelectedPlanSummary"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:text="@string/subscription_plan_weekly"
+                    android:textColor="@color/color_on_surface"
+                    android:textSize="@dimen/text_large"
                     android:textStyle="bold" />
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="KSH 1,000 per week (Save 28%!)"
-                    android:textSize="18sp"
-                    android:layout_marginTop="8dp"
-                    android:layout_marginBottom="16dp" />
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="- Unlimited SMS\n- Premium features\n- Better value"
-                    android:textSize="14sp"
-                    android:layout_marginBottom="16dp" />
-
-                <Button
-                    android:id="@+id/btnSubscribeWeekly"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Subscribe Weekly"
-                    android:textSize="16sp" />
             </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <com.google.android.material.progressindicator.LinearProgressIndicator
+            android:id="@+id/paymentProgress"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="@dimen/spacing_small"
+            android:indeterminate="true"
+            android:visibility="gone" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnStartPayment"
+            style="@style/Widget.Material3.Button"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/subscription_continue_payment"
+            app:icon="@drawable/ic_rocket_launch"
+            app:iconGravity="textStart"
+            app:iconPadding="@dimen/spacing_small" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnCheckStatus"
+            style="@style/Widget.Material3.Button.OutlinedButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_small"
+            android:text="@string/subscription_check_status" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_small"
+            android:layout_marginBottom="@dimen/spacing_small"
+            android:text="@string/subscription_status_hint"
+            android:textColor="@color/color_on_surface_variant"
+            android:textSize="@dimen/text_small" />
+
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/statusCard"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="@dimen/spacing_medium"
+            android:visibility="gone"
+            app:cardBackgroundColor="@color/color_surface"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="0dp"
+            app:strokeColor="@color/color_outline_variant"
+            app:strokeWidth="1dp">
+
+            <TextView
+                android:id="@+id/txtInlineStatus"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:padding="@dimen/spacing_medium"
+                android:text="@string/subscription_status_default"
+                android:textColor="@color/color_on_surface"
+                android:textSize="@dimen/text_medium" />
         </com.google.android.material.card.MaterialCardView>
 
     </LinearLayout>

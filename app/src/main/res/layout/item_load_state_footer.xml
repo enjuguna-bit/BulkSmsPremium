@@ -3,7 +3,7 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:padding="16dp"
+    android:padding="@dimen/spacing_medium"
     android:gravity="center">
 
     <ProgressBar
@@ -16,19 +16,19 @@
         android:id="@+id/errorMessage"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:textColor="@android:color/holo_red_dark"
-        android:textSize="14sp"
+        android:layout_marginTop="@dimen/spacing_small"
+        android:textColor="@color/color_error"
+        android:textSize="@dimen/text_medium"
         android:visibility="gone"
         android:gravity="center" />
 
-    <Button
+    <com.google.android.material.button.MaterialButton
         android:id="@+id/retryButton"
+        style="@style/Widget.Material3.Button.TextButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:text="Retry"
-        android:visibility="gone"
-        style="@style/Widget.MaterialComponents.Button.TextButton" />
+        android:layout_marginTop="@dimen/spacing_small"
+        android:text="@string/retry"
+        android:visibility="gone" />
 
 </LinearLayout>

@@ -62,11 +62,12 @@ public class ConversationRepository {
     }
     
     /**
-     * Get all conversations PagingSource
+     * Get conversations by phone number
      */
-    public PagingSource<Integer, ConversationEntity> getAllConversationsPaged() {
-        return conversationDao.getAllConversationsPaged();
+    public Single<ConversationEntity> getConversationByPhoneNumber(String phoneNumber) {
+        return conversationDao.getConversationByPhoneNumber(phoneNumber);
     }
+
     
     /**
      * Get active (non-archived) conversations PagingSource
@@ -80,6 +81,13 @@ public class ConversationRepository {
      */
     public PagingSource<Integer, ConversationEntity> getUnreadConversationsPaged() {
         return conversationDao.getUnreadConversationsPaged();
+    }
+
+    /**
+     * Get conversations where the latest message is sent
+     */
+    public PagingSource<Integer, ConversationEntity> getSentConversationsPaged() {
+        return conversationDao.getSentConversationsPaged();
     }
     
     /**
@@ -96,32 +104,11 @@ public class ConversationRepository {
      * Get conversation statistics
      */
     public LiveData<Integer> getUnreadConversationsCount() {
-        // Convert Single to LiveData
-        MutableLiveData<Integer> liveData = new MutableLiveData<>();
-        conversationDao.getUnreadConversationsCount()
-            .subscribeOn(Schedulers.io())
-            .subscribe(
-                liveData::postValue,
-                error -> {
-                    Log.e(TAG, "Failed to get unread conversations count", error);
-                    _errorState.postValue("Failed to get statistics: " + error.getMessage());
-                }
-            );
-        return liveData;
+        return conversationDao.getUnreadConversationsCountLive();
     }
     
     public LiveData<Integer> getTotalConversationsCount() {
-        MutableLiveData<Integer> liveData = new MutableLiveData<>();
-        conversationDao.getTotalConversationsCount()
-            .subscribeOn(Schedulers.io())
-            .subscribe(
-                liveData::postValue,
-                error -> {
-                    Log.e(TAG, "Failed to get total conversations count", error);
-                    _errorState.postValue("Failed to get statistics: " + error.getMessage());
-                }
-            );
-        return liveData;
+        return conversationDao.getTotalConversationsCountLive();
     }
     
     /**
@@ -191,16 +178,51 @@ public class ConversationRepository {
      * Mark conversation as read
      */
     public Completable markConversationAsRead(String phoneNumber) {
-        return conversationDao.markConversationAsRead(normalizePhoneNumber(phoneNumber))
-            .subscribeOn(Schedulers.io());
+        return Completable.fromAction(() -> {
+            String rawKey = phoneNumber != null ? phoneNumber.trim() : null;
+            if (rawKey == null || rawKey.isEmpty()) {
+                return;
+            }
+
+            String lookupKey = normalizeConversationLookupKey(rawKey);
+            Long threadId = parseThreadId(rawKey);
+
+            if (threadId != null && threadId > 0) {
+                conversationDao.markConversationAsReadByThreadId(threadId).blockingAwait();
+            }
+            if (lookupKey != null && !lookupKey.isEmpty()) {
+                conversationDao.markConversationAsRead(lookupKey).blockingAwait();
+            }
+            if (!rawKey.equals(lookupKey)) {
+                conversationDao.markConversationAsRead(rawKey).blockingAwait();
+            }
+        }).subscribeOn(Schedulers.io());
     }
 
     /**
      * Set unread count for a conversation (used for undo actions)
      */
     public Completable setConversationUnreadCount(String phoneNumber, int count) {
-        return conversationDao.setConversationUnreadCount(normalizePhoneNumber(phoneNumber), Math.max(0, count))
-            .subscribeOn(Schedulers.io());
+        return Completable.fromAction(() -> {
+            String rawKey = phoneNumber != null ? phoneNumber.trim() : null;
+            if (rawKey == null || rawKey.isEmpty()) {
+                return;
+            }
+
+            int safeCount = Math.max(0, count);
+            String lookupKey = normalizeConversationLookupKey(rawKey);
+            Long threadId = parseThreadId(rawKey);
+
+            if (threadId != null && threadId > 0) {
+                conversationDao.setConversationUnreadCountByThreadId(threadId, safeCount).blockingAwait();
+            }
+            if (lookupKey != null && !lookupKey.isEmpty()) {
+                conversationDao.setConversationUnreadCount(lookupKey, safeCount).blockingAwait();
+            }
+            if (!rawKey.equals(lookupKey)) {
+                conversationDao.setConversationUnreadCount(rawKey, safeCount).blockingAwait();
+            }
+        }).subscribeOn(Schedulers.io());
     }
     
     /**
@@ -215,12 +237,15 @@ public class ConversationRepository {
      * Get or create conversation by threadId or phone number
      */
     public ConversationEntity getOrCreateConversation(Long threadId, String phoneNumber) {
-        String normalized = normalizePhoneNumber(phoneNumber);
+        String lookupKey = normalizeConversationLookupKey(phoneNumber);
+        Long parsedThreadId = parseThreadId(phoneNumber);
+        Long resolvedThreadId = (threadId != null && threadId > 0) ? threadId : parsedThreadId;
+        String normalized = lookupKey != null && !lookupKey.startsWith("thread:") ? lookupKey : null;
         ConversationEntity existing = null;
 
         try {
-            if (threadId != null && threadId > 0) {
-                existing = conversationDao.getConversationByThreadId(threadId).blockingGet();
+            if (resolvedThreadId != null && resolvedThreadId > 0) {
+                existing = conversationDao.getConversationByThreadId(resolvedThreadId).blockingGet();
             }
         } catch (Exception e) {
             // ignore and fallback
@@ -228,8 +253,8 @@ public class ConversationRepository {
 
         if (existing == null) {
             try {
-                if (normalized != null && !normalized.trim().isEmpty()) {
-                    existing = conversationDao.getConversationByPhoneNumber(normalized).blockingGet();
+                if (lookupKey != null && !lookupKey.trim().isEmpty()) {
+                    existing = conversationDao.getConversationByPhoneNumber(lookupKey).blockingGet();
                 }
             } catch (Exception e) {
                 // ignore and fallback
@@ -260,11 +285,13 @@ public class ConversationRepository {
         }
 
         // Create new conversation if it doesn't exist
-        String key = normalized != null ? normalized : ("thread:" + (threadId != null ? threadId : "unknown"));
+        String key = normalized != null
+            ? normalized
+            : (lookupKey != null ? lookupKey : ("thread:" + (resolvedThreadId != null ? resolvedThreadId : "unknown")));
         Log.d(TAG, "Creating new conversation for: " + key);
         ConversationEntity conversation = new ConversationEntity();
         conversation.phoneNumber = key;
-        conversation.threadId = threadId;
+        conversation.threadId = resolvedThreadId;
         conversation.messageCount = 0;
         conversation.unreadCount = 0;
         conversation.createdAt = System.currentTimeMillis();
@@ -309,8 +336,8 @@ public class ConversationRepository {
     ) {
         return Completable.fromAction(() -> {
             try {
-                String normalized = normalizePhoneNumber(phoneNumber);
-                ConversationEntity conversation = getOrCreateConversation(null, normalized);
+                String lookupKey = normalizeConversationLookupKey(phoneNumber);
+                ConversationEntity conversation = getOrCreateConversation(null, lookupKey);
                 
                 conversation.lastMessageTime = messageTimestamp;
                 conversation.lastMessagePreview = truncateMessage(messagePreview);
@@ -322,7 +349,7 @@ public class ConversationRepository {
                 conversation.updatedAt = timestamp;
                 
                 conversationDao.updateConversation(conversation).blockingAwait();
-                Log.d(TAG, "Updated conversation with new message: " + normalized);
+                Log.d(TAG, "Updated conversation with new message: " + lookupKey);
                 
             } catch (Exception e) {
                 Log.e(TAG, "Failed to update conversation with new message", e);
@@ -346,8 +373,8 @@ public class ConversationRepository {
     ) {
         return Completable.fromAction(() -> {
             try {
-                String normalized = normalizePhoneNumber(phoneNumber);
-                ConversationEntity conversation = getOrCreateConversation(threadId, normalized);
+                String lookupKey = normalizeConversationLookupKey(phoneNumber);
+                ConversationEntity conversation = getOrCreateConversation(threadId, lookupKey);
 
                 conversation.lastMessageTime = messageTimestamp;
                 conversation.lastMessagePreview = truncateMessage(messagePreview);
@@ -360,7 +387,7 @@ public class ConversationRepository {
                 conversation.threadId = threadId;
 
                 conversationDao.updateConversation(conversation).blockingAwait();
-                Log.d(TAG, "Updated conversation with new message: " + normalized);
+                Log.d(TAG, "Updated conversation with new message: " + lookupKey);
 
             } catch (Exception e) {
                 Log.e(TAG, "Failed to update conversation with new message", e);
@@ -393,12 +420,25 @@ public class ConversationRepository {
         return Completable.fromAction(() -> {
             try {
                 List<SmsEntity> messages = new java.util.ArrayList<>();
+                Long effectiveThreadId = conversation.threadId;
                 try {
-                    if (conversation.threadId != null && conversation.threadId > 0) {
-                        messages.addAll(smsDao.getMessagesByThreadId(conversation.threadId).blockingGet());
-                    } else {
-                        messages.addAll(smsDao.getRecentSmsByStatus("SENT", 1000).blockingGet());
-                        messages.addAll(smsDao.getRecentSmsByStatus("DELIVERED", 1000).blockingGet());
+                    if ((effectiveThreadId == null || effectiveThreadId <= 0) && conversation.phoneNumber != null) {
+                        effectiveThreadId = parseThreadId(conversation.phoneNumber);
+                    }
+
+                    if (effectiveThreadId != null && effectiveThreadId > 0) {
+                        messages.addAll(smsDao.getMessagesByThreadId(effectiveThreadId).blockingGet());
+                    } else if (conversation.phoneNumber != null && !conversation.phoneNumber.trim().isEmpty()) {
+                        String normalized = normalizePhoneNumber(conversation.phoneNumber);
+                        if (normalized != null && !normalized.isEmpty()) {
+                            messages.addAll(smsDao.getMessagesByPhoneNumber(normalized).blockingGet());
+                            if (messages.isEmpty()) {
+                                String lastDigits = PhoneNumberUtils.getLastNDigits(normalized, 7);
+                                if (lastDigits != null && !lastDigits.isEmpty()) {
+                                    messages.addAll(smsDao.getMessagesByPhoneNumberLike(lastDigits).blockingGet());
+                                }
+                            }
+                        }
                     }
                 } catch (Exception e) {
                     Log.w(TAG, "Could not fetch messages for phone", e);
@@ -407,9 +447,11 @@ public class ConversationRepository {
                 // Filter messages by phone number and delete
                 List<SmsEntity> messagesToDelete = new java.util.ArrayList<>();
                 for (SmsEntity msg : messages) {
-                    if (conversation.threadId != null && conversation.threadId > 0) {
+                    if (effectiveThreadId != null && effectiveThreadId > 0) {
                         messagesToDelete.add(msg);
-                    } else if (conversation.phoneNumber.equals(msg.phoneNumber)) {
+                    } else if (conversation.phoneNumber != null && PhoneNumberUtils.areSameNumber(conversation.phoneNumber, msg.phoneNumber)) {
+                        messagesToDelete.add(msg);
+                    } else if (conversation.phoneNumber != null && conversation.phoneNumber.equals(msg.phoneNumber)) {
                         messagesToDelete.add(msg);
                     }
                 }
@@ -443,10 +485,12 @@ public class ConversationRepository {
                 Log.d(TAG, "Syncing conversations from messages...");
                 
                 // Get all messages and create conversations
-                // Use the new getAllRecentSms method to get all messages regardless of status
                 List<SmsEntity> allMessages = new java.util.ArrayList<>();
                 try {
-                    allMessages.addAll(smsDao.getAllRecentSms(10000).blockingGet());
+                    List<SmsEntity> fetched = smsDao.getAllSms().blockingGet();
+                    if (fetched != null) {
+                        allMessages.addAll(fetched);
+                    }
                     Log.d(TAG, "Fetched " + allMessages.size() + " messages for conversation sync");
                 } catch (Exception e) {
                     Log.w(TAG, "Could not fetch all messages", e);
@@ -525,6 +569,36 @@ public class ConversationRepository {
             return normalized;
         }
         return phoneNumber != null ? phoneNumber.trim() : null;
+    }
+
+    private String normalizeConversationLookupKey(String conversationKey) {
+        if (conversationKey == null) {
+            return null;
+        }
+        String trimmed = conversationKey.trim();
+        if (trimmed.isEmpty()) {
+            return null;
+        }
+        if (trimmed.startsWith("thread:")) {
+            return trimmed;
+        }
+        return normalizePhoneNumber(trimmed);
+    }
+
+    private Long parseThreadId(String conversationKey) {
+        if (conversationKey == null) {
+            return null;
+        }
+        String trimmed = conversationKey.trim();
+        if (!trimmed.startsWith("thread:")) {
+            return null;
+        }
+        try {
+            long threadId = Long.parseLong(trimmed.substring("thread:".length()).trim());
+            return threadId > 0 ? threadId : null;
+        } catch (Exception ignored) {
+            return null;
+        }
     }
     
     private String truncateMessage(String message) {
@@ -606,11 +680,14 @@ public class ConversationRepository {
 
     private String buildConversationKey(SmsEntity message) {
         if (message == null) return "unknown";
+        String phone = normalizePhoneNumber(message.phoneNumber);
+        if (phone != null && !phone.trim().isEmpty()) {
+            return phone;
+        }
         if (message.threadId != null && message.threadId > 0) {
             return "thread:" + message.threadId;
         }
-        String phone = normalizePhoneNumber(message.phoneNumber);
-        return phone != null ? phone : "unknown";
+        return "unknown";
     }
     
     /**
@@ -646,6 +723,13 @@ public class ConversationRepository {
     // Flow methods for coroutines support in OptimizedInboxViewModel
     
     /**
+     * Get all conversations PagingSource
+     */
+    public PagingSource<Integer, ConversationEntity> getAllConversationsPaged() {
+        return conversationDao.getAllConversationsPaged();
+    }
+
+    /**
      * Get all conversations as Flow for coroutines
      */
     public Flowable<PagingSource<Integer, ConversationEntity>> getAllConversationsPagedFlow() {
@@ -668,6 +752,14 @@ public class ConversationRepository {
         return Flowable.fromCallable(() -> getUnreadConversationsPaged())
             .subscribeOn(Schedulers.io());
     }
+
+    /**
+     * Get sent conversations as Flow for coroutines
+     */
+    public Flowable<PagingSource<Integer, ConversationEntity>> getSentConversationsPagedFlow() {
+        return Flowable.fromCallable(() -> getSentConversationsPaged())
+            .subscribeOn(Schedulers.io());
+    }
     
     /**
      * Search conversations as Flow for coroutines
@@ -682,8 +774,7 @@ public class ConversationRepository {
      */
     public Flowable<Void> markConversationAsReadFlow(String conversationId) {
         return Flowable.fromCallable(() -> {
-            // conversationDao.markConversationAsRead expects a phone number string
-            conversationDao.markConversationAsRead(conversationId).blockingAwait();
+            markConversationAsRead(conversationId).blockingAwait();
             return (Void) null;
         }).subscribeOn(Schedulers.io());
     }

@@ -4,15 +4,15 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:padding="24dp">
+    android:padding="@dimen/spacing_large">
 
     <com.google.android.material.textfield.TextInputLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="16dp"
-        android:hint="Name"
-        app:boxStrokeColor="@color/design_default_color_primary"
-        app:hintTextColor="@color/design_default_color_primary">
+        android:layout_marginBottom="@dimen/spacing_medium"
+        android:hint="@string/recipient_name_hint"
+        app:boxStrokeColor="@color/color_primary"
+        app:hintTextColor="@color/color_primary">
 
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/editName"
@@ -25,10 +25,10 @@
     <com.google.android.material.textfield.TextInputLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="16dp"
-        android:hint="Phone Number"
-        app:boxStrokeColor="@color/design_default_color_primary"
-        app:hintTextColor="@color/design_default_color_primary">
+        android:layout_marginBottom="@dimen/spacing_medium"
+        android:hint="@string/recipient_phone_hint"
+        app:boxStrokeColor="@color/color_primary"
+        app:hintTextColor="@color/color_primary">
 
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/editPhone"
@@ -41,10 +41,10 @@
     <com.google.android.material.textfield.TextInputLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="16dp"
-        android:hint="Email (Optional)"
-        app:boxStrokeColor="@color/design_default_color_primary"
-        app:hintTextColor="@color/design_default_color_primary">
+        android:layout_marginBottom="@dimen/spacing_medium"
+        android:hint="@string/recipient_email_optional_hint"
+        app:boxStrokeColor="@color/color_primary"
+        app:hintTextColor="@color/color_primary">
 
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/editEmail"

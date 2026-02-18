@@ -21,6 +21,7 @@ public class AppConfig {
     public static class Limits {
         public static final int MAX_RECENT_TEMPLATES = 10;
         public static final int MAX_RECIPIENTS_PER_BATCH = 100;
+        public static final int FREE_RECIPIENTS_LIMIT = 15;
         public static final int MIN_SEND_SPEED = 100;
         public static final int MAX_SEND_SPEED = 2000;
     }

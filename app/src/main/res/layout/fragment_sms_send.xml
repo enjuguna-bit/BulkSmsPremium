@@ -36,14 +36,14 @@
                         android:text="@string/send_sms_title"
                         android:textSize="22sp"
                         android:textStyle="bold"
-                        android:textColor="#0F172A" />
+                        android:textColor="@color/color_on_surface" />
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="@string/send_sms_subtitle"
                         android:textSize="13sp"
-                        android:textColor="#475569"
+                        android:textColor="@color/color_on_surface_variant"
                         android:layout_marginTop="4dp" />
 
                 </LinearLayout>
@@ -55,7 +55,7 @@
                     android:text="@string/send_sms_badge"
                     android:textSize="11sp"
                     android:textStyle="bold"
-                    android:textColor="#2B1A00"
+                    android:textColor="@color/fx_badge_text"
                     android:background="@drawable/bg_premium_badge"
                     android:paddingStart="10dp"
                     android:paddingEnd="10dp"
@@ -71,8 +71,8 @@
                 style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
                 android:hint="@string/send_sms_phone_hint"
                 app:helperText="@string/send_sms_phone_helper"
-                app:boxStrokeColor="#1E3A8A"
-                app:hintTextColor="#1E3A8A">
+                app:boxStrokeColor="@color/color_primary"
+                app:hintTextColor="@color/color_primary">
 
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/inputPhoneNumber"
@@ -112,8 +112,8 @@
                 android:layout_marginBottom="@dimen/spacing_small"
                 style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
                 android:hint="@string/send_sms_message_hint"
-                app:boxStrokeColor="#1E3A8A"
-                app:hintTextColor="#1E3A8A">
+                app:boxStrokeColor="@color/color_primary"
+                app:hintTextColor="@color/color_primary">
 
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/inputMessage"
@@ -129,9 +129,9 @@
                 android:id="@+id/txtCharCount"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="0 / 160 characters"
+                android:text="@string/send_sms_char_count_default"
                 android:textSize="@dimen/text_small"
-                android:textColor="#64748B"
+                android:textColor="@color/color_on_surface_variant"
                 android:gravity="end"
                 android:layout_marginBottom="@dimen/spacing_medium" />
 
@@ -143,8 +143,8 @@
                 app:cardElevation="4dp"
                 app:cardUseCompatPadding="true"
                 app:strokeWidth="1dp"
-                app:strokeColor="#E3ECFF"
-                app:cardBackgroundColor="#FFFFFF">
+                app:strokeColor="@color/color_outline_variant"
+                app:cardBackgroundColor="@color/color_surface">
                 
                 <RadioGroup
                     android:id="@+id/radioSimGroup"
@@ -190,7 +190,7 @@
                 app:cardElevation="2dp"
                 app:strokeWidth="1dp"
                 app:strokeColor="@color/error_red"
-                app:cardBackgroundColor="#FFF5F5">
+                app:cardBackgroundColor="@color/color_error_container">
                 
                 <TextView
                     android:id="@+id/txtStatus"
@@ -219,3 +219,4 @@
     </androidx.core.widget.NestedScrollView>
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
+

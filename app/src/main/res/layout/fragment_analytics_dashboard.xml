@@ -26,7 +26,7 @@
             android:id="@+id/tvStatus"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Ready"
+            android:text="@string/analytics_status_ready"
             android:textSize="14sp"
             android:textColor="@android:color/darker_gray"
             android:layout_marginBottom="16dp" />
@@ -48,7 +48,7 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="📊 Plan Information"
+                    android:text="@string/analytics_plan_information_title"
                     android:textSize="16sp"
                     android:textStyle="bold"
                     android:layout_marginBottom="12dp" />
@@ -63,7 +63,7 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="PRO"
+                        android:text="@string/analytics_plan_name_pro"
                         android:textSize="18sp"
                         android:textStyle="bold" />
 
@@ -71,7 +71,7 @@
                         android:id="@+id/tvPlanTier"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Tier: Professional"
+                        android:text="@string/analytics_plan_tier_professional"
                         android:textSize="14sp"
                         android:textColor="@android:color/darker_gray" />
 
@@ -98,7 +98,7 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="📅 Daily Usage"
+                    android:text="@string/analytics_daily_usage_title"
                     android:textSize="16sp"
                     android:textStyle="bold"
                     android:layout_marginBottom="12dp" />
@@ -121,7 +121,7 @@
                         android:id="@+id/tvDailyUsed"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="425"
+                        android:text="@string/analytics_daily_used_default"
                         android:textSize="16sp"
                         android:textStyle="bold" />
 
@@ -129,7 +129,7 @@
                         android:id="@+id/tvDailyLimit"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="/ 500"
+                        android:text="@string/analytics_daily_limit_default"
                         android:textSize="14sp"
                         android:textColor="@android:color/darker_gray" />
 
@@ -138,7 +138,7 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="85%"
+                        android:text="@string/analytics_usage_percentage_default"
                         android:textSize="14sp"
                         android:textAlignment="textEnd"
                         android:textColor="@android:color/holo_orange_dark" />
@@ -166,7 +166,7 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="📆 Monthly Usage"
+                    android:text="@string/analytics_monthly_usage_title"
                     android:textSize="16sp"
                     android:textStyle="bold"
                     android:layout_marginBottom="12dp" />
@@ -189,7 +189,7 @@
                         android:id="@+id/tvMonthlyUsed"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="8500"
+                        android:text="@string/analytics_monthly_used_default"
                         android:textSize="16sp"
                         android:textStyle="bold" />
 
@@ -197,7 +197,7 @@
                         android:id="@+id/tvMonthlyLimit"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="/ 10000"
+                        android:text="@string/analytics_monthly_limit_default"
                         android:textSize="14sp"
                         android:textColor="@android:color/darker_gray" />
 
@@ -206,7 +206,7 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="85%"
+                        android:text="@string/analytics_usage_percentage_default"
                         android:textSize="14sp"
                         android:textAlignment="textEnd"
                         android:textColor="@android:color/holo_orange_dark" />
@@ -234,7 +234,7 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="📋 Resources"
+                    android:text="@string/analytics_resources_title"
                     android:textSize="16sp"
                     android:textStyle="bold"
                     android:layout_marginBottom="12dp" />
@@ -253,7 +253,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Campaigns"
+                            android:text="@string/analytics_campaigns_label"
                             android:textSize="14sp"
                             android:textColor="@android:color/darker_gray" />
 
@@ -266,7 +266,7 @@
                                 android:id="@+id/tvCampaignsUsed"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="42"
+                                android:text="@string/analytics_campaigns_used_default"
                                 android:textSize="16sp"
                                 android:textStyle="bold" />
 
@@ -274,7 +274,7 @@
                                 android:id="@+id/tvCampaignsLimit"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="/ 50"
+                                android:text="@string/analytics_campaigns_limit_default"
                                 android:textSize="14sp"
                                 android:textColor="@android:color/darker_gray" />
 
@@ -291,7 +291,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Templates"
+                            android:text="@string/analytics_templates_label"
                             android:textSize="14sp"
                             android:textColor="@android:color/darker_gray" />
 
@@ -304,7 +304,7 @@
                                 android:id="@+id/tvTemplatesUsed"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="8"
+                                android:text="@string/analytics_templates_used_default"
                                 android:textSize="16sp"
                                 android:textStyle="bold" />
 
@@ -312,7 +312,7 @@
                                 android:id="@+id/tvTemplatesLimit"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="/ 10"
+                                android:text="@string/analytics_templates_limit_default"
                                 android:textSize="14sp"
                                 android:textColor="@android:color/darker_gray" />
 
@@ -345,7 +345,7 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="💡 Upgrade Suggestion"
+                    android:text="@string/analytics_upgrade_suggestion_title"
                     android:textSize="16sp"
                     android:textStyle="bold"
                     android:layout_marginBottom="8dp" />
@@ -354,7 +354,7 @@
                     android:id="@+id/tvUpgradeSuggestion"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="You're approaching your plan limits. Consider upgrading for higher limits."
+                    android:text="@string/analytics_upgrade_suggestion_body"
                     android:textSize="14sp" />
 
             </LinearLayout>
@@ -378,7 +378,7 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="👤 User Properties"
+                    android:text="@string/analytics_user_properties_title"
                     android:textSize="16sp"
                     android:textStyle="bold"
                     android:layout_marginBottom="12dp" />
@@ -387,7 +387,7 @@
                     android:id="@+id/tvUserProperties"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Loading user properties..."
+                    android:text="@string/analytics_user_properties_loading"
                     android:textSize="12sp"
                     android:fontFamily="monospace"
                     android:background="@android:color/black"
@@ -415,7 +415,7 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="🧪 Test Actions"
+                    android:text="@string/analytics_test_actions_title"
                     android:textSize="16sp"
                     android:textStyle="bold"
                     android:layout_marginBottom="12dp" />
@@ -430,18 +430,18 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="Test Event"
+                        android:text="@string/analytics_test_event"
                         android:layout_marginEnd="4dp"
-                        style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
+                        style="@style/Widget.Material3.Button.OutlinedButton" />
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btnTestError"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="Test Error"
+                        android:text="@string/analytics_test_error"
                         android:layout_marginStart="4dp"
-                        style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
+                        style="@style/Widget.Material3.Button.OutlinedButton" />
 
                 </LinearLayout>
 
@@ -456,18 +456,18 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="Test Performance"
+                        android:text="@string/analytics_test_performance"
                         android:layout_marginEnd="4dp"
-                        style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
+                        style="@style/Widget.Material3.Button.OutlinedButton" />
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btnFlush"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="Flush"
+                        android:text="@string/analytics_flush"
                         android:layout_marginStart="4dp"
-                        style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
+                        style="@style/Widget.Material3.Button.OutlinedButton" />
 
                 </LinearLayout>
 
@@ -475,9 +475,9 @@
                     android:id="@+id/btnResetUserProperties"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Reset User Properties"
+                    android:text="@string/analytics_reset_user_properties"
                     android:layout_marginTop="8dp"
-                    style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
+                    style="@style/Widget.Material3.Button.OutlinedButton" />
 
             </LinearLayout>
 
@@ -507,7 +507,7 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="📊 Recent Events"
+                        android:text="@string/analytics_recent_events_title"
                         android:textSize="16sp"
                         android:textStyle="bold" />
 
@@ -515,7 +515,7 @@
                         android:id="@+id/tvEventCount"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="0 events"
+                        android:text="@string/analytics_event_count_default"
                         android:textSize="12sp"
                         android:textColor="@android:color/darker_gray" />
 
@@ -544,18 +544,18 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="🔄 Refresh"
+                android:text="@string/analytics_refresh"
                 android:layout_marginEnd="8dp"
-                style="@style/Widget.MaterialComponents.Button" />
+                style="@style/Widget.Material3.Button" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnExportData"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="📤 Export Data"
+                android:text="@string/analytics_export_data"
                 android:layout_marginStart="8dp"
-                style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
+                style="@style/Widget.Material3.Button.OutlinedButton" />
 
         </LinearLayout>
 
@@ -564,7 +564,7 @@
             android:id="@+id/tvLastUpdated"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Last updated: Never"
+            android:text="@string/analytics_last_updated_never"
             android:textSize="12sp"
             android:textColor="@android:color/darker_gray"
             android:gravity="center"
@@ -575,7 +575,7 @@
             android:id="@+id/tvErrorMessage"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text=""
+            android:text="@string/empty_text"
             android:textSize="14sp"
             android:textColor="@android:color/holo_red_dark"
             android:gravity="center"
@@ -586,3 +586,5 @@
     </LinearLayout>
 
 </androidx.core.widget.NestedScrollView>
+
+

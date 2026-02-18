@@ -42,7 +42,7 @@
                     android:id="@+id/txtCurrentTheme"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="System"
+                    android:text="@string/settings_theme_system"
                     android:textSize="14sp"
                     android:textColor="@android:color/darker_gray" />
 
@@ -113,7 +113,7 @@
                     android:id="@+id/txtDefaultSmsStatus"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Tap to set as default"
+                    android:text="@string/settings_status_default_sms_inactive"
                     android:textSize="14sp"
                     android:textColor="@android:color/holo_orange_dark" />
 
@@ -151,7 +151,7 @@
                     android:id="@+id/txtBiometricStatus"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Setup required"
+                    android:text="@string/settings_status_biometric_setup"
                     android:textSize="14sp"
                     android:textColor="@android:color/holo_blue_bright" />
 

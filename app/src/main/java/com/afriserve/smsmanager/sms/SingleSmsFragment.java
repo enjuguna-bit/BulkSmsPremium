@@ -1,11 +1,17 @@
 package com.afriserve.smsmanager.ui.sms;
 
 import android.Manifest;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.provider.ContactsContract;
+import android.telephony.SubscriptionInfo;
+import android.telephony.SubscriptionManager;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.text.TextUtils;
@@ -17,13 +23,12 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
+import com.afriserve.smsmanager.R;
 import com.afriserve.smsmanager.databinding.FragmentSmsSendBinding;
 import com.afriserve.smsmanager.billing.SubscriptionHelper;
-import com.afriserve.smsmanager.sms.DefaultSmsAppManager;
 import com.afriserve.smsmanager.ui.contacts.ContactSearchDialog;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import dagger.hilt.android.AndroidEntryPoint;
@@ -31,6 +36,8 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * Single SMS Fragment for sending individual messages
@@ -39,11 +46,22 @@ import java.util.Map;
 @AndroidEntryPoint
 public class SingleSmsFragment extends Fragment {
     private static final int FREE_MULTI_LIMIT = 7;
+    private static final int SMS_PERMISSION_REQUEST_CODE = 1002;
+    private static final int CONTACTS_PERMISSION_REQUEST_CODE = 1003;
 
     private FragmentSmsSendBinding binding;
     private SingleSmsViewModel viewModel;
     private ActivityResultLauncher<Intent> contactPickerLauncher;
     private TextWatcher messageTextWatcher;
+    private ExecutorService subscriptionExecutor;
+    private PendingContactAction pendingContactAction = PendingContactAction.NONE;
+    private final Handler mainHandler = new Handler(Looper.getMainLooper());
+
+    private enum PendingContactAction {
+        NONE,
+        SINGLE,
+        MULTIPLE
+    }
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -72,21 +90,33 @@ public class SingleSmsFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
+        if (subscriptionExecutor == null || subscriptionExecutor.isShutdown()) {
+            subscriptionExecutor = Executors.newSingleThreadExecutor();
+        }
+
         // Initialize ViewModel
         viewModel = new ViewModelProvider(this).get(SingleSmsViewModel.class);
 
         setupClickListeners();
         setupMessageWatcher();
         observeViewModel();
+        updateSimSelectionAvailability();
 
         // Request permissions if needed
-        requestPermissions();
+        requestRequiredPermissions();
     }
 
     private void setupClickListeners() {
         binding.btnSendSms.setOnClickListener(v -> sendSms());
-        binding.btnSelectContact.setOnClickListener(v -> selectContact());
-        binding.btnSelectMultipleContacts.setOnClickListener(v -> selectMultipleContacts());
+        binding.btnSelectContact.setOnClickListener(v -> requestContactsPermission(PendingContactAction.SINGLE));
+        binding.btnSelectMultipleContacts.setOnClickListener(v -> requestContactsPermission(PendingContactAction.MULTIPLE));
+        binding.radioSimGroup.setOnCheckedChangeListener((group, checkedId) -> {
+            if (checkedId == R.id.radioSim2 && !hasReadPhoneStatePermission()) {
+                Toast.makeText(requireContext(), "Grant phone permission to use SIM 2", Toast.LENGTH_SHORT).show();
+                binding.radioSim1.setChecked(true);
+                requestPermissions(new String[] { Manifest.permission.READ_PHONE_STATE }, SMS_PERMISSION_REQUEST_CODE);
+            }
+        });
     }
 
     private void setupMessageWatcher() {
@@ -188,8 +218,8 @@ public class SingleSmsFragment extends Fragment {
         // Validation
         List<String> recipients = parseRecipients(phoneNumberInput);
         if (recipients.isEmpty()) {
-            Toast.makeText(requireContext(), "Please enter at least one phone number", Toast.LENGTH_SHORT).show();
-            binding.inputPhoneNumber.setError("Required");
+            Toast.makeText(requireContext(), "Please enter at least one valid phone number", Toast.LENGTH_SHORT).show();
+            binding.inputPhoneNumber.setError("Valid phone number required");
             return;
         }
 
@@ -199,23 +229,58 @@ public class SingleSmsFragment extends Fragment {
             return;
         }
 
-        if (recipients.size() > 1 && !hasPremiumAccess() && recipients.size() > FREE_MULTI_LIMIT) {
-            showFreeLimitDialog(FREE_MULTI_LIMIT);
+        refreshSubscriptionStatusAndSend(recipients, message, simSlot);
+    }
+
+    private void refreshSubscriptionStatusAndSend(List<String> recipients, String message, int simSlot) {
+        Context context = getContext();
+        if (!isAdded() || context == null) {
             return;
         }
-
-        // Check permissions
-        if (!hasSmsPermissions()) {
-            requestPermissions();
-            return;
+        if (subscriptionExecutor == null || subscriptionExecutor.isShutdown()) {
+            subscriptionExecutor = Executors.newSingleThreadExecutor();
         }
 
-        // Send SMS via ViewModel
-        if (recipients.size() == 1) {
-            viewModel.sendSms(recipients.get(0), message, simSlot);
-        } else {
-            viewModel.sendSmsToMultiple(recipients, message, simSlot);
+        final Context appContext = context.getApplicationContext();
+        subscriptionExecutor.execute(() -> {
+            SubscriptionHelper.SubscriptionStatus status;
+            try {
+                status = SubscriptionHelper.INSTANCE.refreshSubscriptionStatusBlocking(appContext, true);
+            } catch (Exception e) {
+                status = SubscriptionHelper.INSTANCE.getCachedStatus(appContext);
+            }
+            final SubscriptionHelper.SubscriptionStatus finalStatus = status;
+            mainHandler.post(() -> {
+                if (!isAdded() || binding == null) {
+                    return;
+                }
+                if (recipients.size() > 1 && !isSubscriptionActive(finalStatus) && recipients.size() > FREE_MULTI_LIMIT) {
+                    showFreeLimitDialog(FREE_MULTI_LIMIT);
+                    return;
+                }
+
+                // Check permissions
+                if (!hasSmsPermissions()) {
+                    requestRequiredPermissions();
+                    return;
+                }
+
+                // Send SMS via ViewModel
+                if (recipients.size() == 1) {
+                    viewModel.sendSms(recipients.get(0), message, simSlot);
+                } else {
+                    viewModel.sendSmsToMultiple(recipients, message, simSlot);
+                }
+            });
+        });
+    }
+
+    private boolean isSubscriptionActive(@Nullable SubscriptionHelper.SubscriptionStatus status) {
+        if (status == null) {
+            return false;
         }
+        long now = System.currentTimeMillis();
+        return status.getPremium() && (status.getPaidUntilMillis() == null || status.getPaidUntilMillis() > now);
     }
 
     private void selectMultipleContacts() {
@@ -231,6 +296,26 @@ public class SingleSmsFragment extends Fragment {
             }
         });
         dialog.show(getParentFragmentManager(), "contact_search_multi");
+    }
+
+    private void requestContactsPermission(PendingContactAction action) {
+        pendingContactAction = action;
+        if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.READ_CONTACTS)
+                == PackageManager.PERMISSION_GRANTED) {
+            runPendingContactAction();
+            return;
+        }
+        requestPermissions(new String[] { Manifest.permission.READ_CONTACTS }, CONTACTS_PERMISSION_REQUEST_CODE);
+    }
+
+    private void runPendingContactAction() {
+        PendingContactAction action = pendingContactAction;
+        pendingContactAction = PendingContactAction.NONE;
+        if (action == PendingContactAction.SINGLE) {
+            selectContact();
+        } else if (action == PendingContactAction.MULTIPLE) {
+            selectMultipleContacts();
+        }
     }
 
     private void applySelectedContacts(List<ContactSearchDialog.ContactInfo> contacts) {
@@ -306,101 +391,20 @@ public class SingleSmsFragment extends Fragment {
         }
         String normalized = com.afriserve.smsmanager.data.utils.PhoneNumberUtils.normalizePhoneNumber(value);
         if (normalized == null || normalized.isEmpty()) {
-            return value.trim().replaceAll("[\\s\\-()]", "");
+            return "";
+        }
+        if (!com.afriserve.smsmanager.data.utils.PhoneNumberUtils.isValidPhoneNumber(normalized)) {
+            return "";
         }
         return normalized;
     }
 
-    private void requestPermissions() {
-        if (!ensureDefaultSmsApp()) {
+    private void requestRequiredPermissions() {
+        if (hasSmsPermissions()) {
+            updateSimSelectionAvailability();
             return;
         }
-        String[] permissions = {
-                Manifest.permission.SEND_SMS,
-                Manifest.permission.READ_SMS,
-                Manifest.permission.READ_CONTACTS,
-                Manifest.permission.READ_PHONE_STATE
-        };
-
-        boolean allGranted = true;
-        for (String permission : permissions) {
-            if (ContextCompat.checkSelfPermission(requireContext(), permission) != PackageManager.PERMISSION_GRANTED) {
-                allGranted = false;
-                break;
-            }
-        }
-
-        if (!allGranted) {
-            requestPermissions(permissions, 1002);
-        }
-    }
-
-    private boolean ensureDefaultSmsApp() {
-        DefaultSmsAppManager manager = new DefaultSmsAppManager(requireContext());
-        if (manager.isDefaultSmsApp()) {
-            return true;
-        }
-
-        if (getActivity() instanceof AppCompatActivity) {
-            manager.requestDefaultSmsAppStatus((AppCompatActivity) getActivity(),
-                new DefaultSmsAppManager.DefaultSmsAppCallback() {
-                    @Override
-                    public void onAlreadyDefaultSmsApp() {
-                    }
-
-                    @Override
-                    public void onDefaultSmsAppIntentReady(Intent intent) {
-                        startActivity(intent);
-                    }
-
-                    @Override
-                    public void onDefaultSmsAppSuccess() {
-                    }
-
-                    @Override
-                    public void onDefaultSmsAppFailed() {
-                        Toast.makeText(requireContext(),
-                                "Unable to set default SMS app",
-                                Toast.LENGTH_SHORT).show();
-                    }
-
-                    @Override
-                    public void onDefaultSmsAppCancelled() {
-                    }
-
-                    @Override
-                    public void onPermissionsRequired(String[] missingPermissions) {
-                        Toast.makeText(requireContext(),
-                                "Default SMS app requires additional permissions",
-                                Toast.LENGTH_SHORT).show();
-                    }
-
-                    @Override
-                    public void onNotSupported() {
-                        Toast.makeText(requireContext(),
-                                "Default SMS app is not supported on this device",
-                                Toast.LENGTH_SHORT).show();
-                    }
-
-                    @Override
-                    public void onUserDeclined() {
-                    }
-
-                    @Override
-                    public void onShowMoreInfo() {
-                    }
-
-                    @Override
-                    public void onError(String message) {
-                        Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show();
-                    }
-                });
-        } else {
-            Toast.makeText(requireContext(),
-                    "Unable to request default SMS role",
-                    Toast.LENGTH_SHORT).show();
-        }
-        return false;
+        requestPermissions(new String[] { Manifest.permission.SEND_SMS }, SMS_PERMISSION_REQUEST_CODE);
     }
 
     @Override
@@ -408,19 +412,24 @@ public class SingleSmsFragment extends Fragment {
             @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
 
-        if (requestCode == 1002) {
-            boolean allGranted = true;
-            for (int result : grantResults) {
-                if (result != PackageManager.PERMISSION_GRANTED) {
-                    allGranted = false;
-                    break;
-                }
-            }
-
-            if (!allGranted) {
+        if (requestCode == SMS_PERMISSION_REQUEST_CODE) {
+            if (!hasSmsPermissions()) {
                 Toast.makeText(requireContext(),
-                        "Permissions required to send SMS",
+                        "SEND_SMS permission is required to send messages",
                         Toast.LENGTH_LONG).show();
+            }
+            if (!hasReadPhoneStatePermission()) {
+                Toast.makeText(requireContext(),
+                        "SIM 2 selection is unavailable without phone permission",
+                        Toast.LENGTH_SHORT).show();
+            }
+            updateSimSelectionAvailability();
+        } else if (requestCode == CONTACTS_PERMISSION_REQUEST_CODE) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                runPendingContactAction();
+            } else {
+                pendingContactAction = PendingContactAction.NONE;
+                Toast.makeText(requireContext(), "Contacts permission denied", Toast.LENGTH_SHORT).show();
             }
         }
     }
@@ -430,23 +439,62 @@ public class SingleSmsFragment extends Fragment {
                 Manifest.permission.SEND_SMS) == PackageManager.PERMISSION_GRANTED;
     }
 
+    private boolean hasReadPhoneStatePermission() {
+        return ContextCompat.checkSelfPermission(requireContext(),
+                Manifest.permission.READ_PHONE_STATE) == PackageManager.PERMISSION_GRANTED;
+    }
+
+    private void updateSimSelectionAvailability() {
+        if (binding == null) {
+            return;
+        }
+
+        boolean hasPhoneStatePermission = hasReadPhoneStatePermission();
+        boolean sim2Available = false;
+
+        if (hasPhoneStatePermission && Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP_MR1) {
+            try {
+                SubscriptionManager subscriptionManager = (SubscriptionManager) requireContext()
+                        .getSystemService(Context.TELEPHONY_SUBSCRIPTION_SERVICE);
+                List<SubscriptionInfo> activeSubscriptions = subscriptionManager != null
+                        ? subscriptionManager.getActiveSubscriptionInfoList()
+                        : null;
+                sim2Available = activeSubscriptions != null && activeSubscriptions.size() > 1;
+            } catch (Exception ignored) {
+                sim2Available = false;
+            }
+        }
+
+        boolean enableSim2 = hasPhoneStatePermission && sim2Available;
+        binding.radioSim2.setEnabled(enableSim2);
+        binding.radioSim2.setAlpha(enableSim2 ? 1.0f : 0.5f);
+        if (!enableSim2 && binding.radioSim2.isChecked()) {
+            binding.radioSim1.setChecked(true);
+        }
+    }
+
     private boolean hasPremiumAccess() {
-        return SubscriptionHelper.INSTANCE.hasActiveSubscription(requireContext());
+        Context context = getContext();
+        return context != null && SubscriptionHelper.INSTANCE.hasActiveSubscription(context);
     }
 
     private void showFreeLimitDialog(int limit) {
-        if (SubscriptionHelper.INSTANCE.isPaymentPending(requireContext())) {
+        if (!isAdded()) {
+            return;
+        }
+        Context context = requireContext();
+        if (SubscriptionHelper.INSTANCE.isPaymentPending(context)) {
             Toast.makeText(requireContext(),
                     "Payment processing. Please refresh status.",
                     Toast.LENGTH_LONG).show();
             return;
         }
 
-        new MaterialAlertDialogBuilder(requireContext())
+        new MaterialAlertDialogBuilder(context)
                 .setTitle("Premium required")
                 .setMessage("Free version allows up to " + limit + " recipients for multi-send.")
                 .setPositiveButton("Subscribe", (dialog, which) ->
-                        SubscriptionHelper.INSTANCE.launch(requireContext()))
+                        SubscriptionHelper.INSTANCE.launch(context))
                 .setNegativeButton("Cancel", null)
                 .show();
     }
@@ -460,7 +508,12 @@ public class SingleSmsFragment extends Fragment {
             binding.inputMessage.removeTextChangedListener(messageTextWatcher);
         }
 
+        pendingContactAction = PendingContactAction.NONE;
         // Clear binding reference
         binding = null;
+        if (subscriptionExecutor != null && !subscriptionExecutor.isShutdown()) {
+            subscriptionExecutor.shutdownNow();
+        }
+        subscriptionExecutor = null;
     }
 }

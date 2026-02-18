@@ -1,5 +1,6 @@
 package com.afriserve.smsmanager.data.dao;
 
+import androidx.lifecycle.LiveData;
 import androidx.paging.PagingSource;
 import androidx.room.Dao;
 import androidx.room.Insert;
@@ -48,9 +49,15 @@ public interface ConversationDao {
     
     @Query("SELECT * FROM conversations WHERE unreadCount > 0 ORDER BY isPinned DESC, lastMessageTime DESC")
     PagingSource<Integer, ConversationEntity> getUnreadConversationsPaged();
+
+    @Query("SELECT * FROM conversations WHERE isArchived = 0 AND lastMessageType = 'SENT' ORDER BY isPinned DESC, lastMessageTime DESC")
+    PagingSource<Integer, ConversationEntity> getSentConversationsPaged();
     
     @Query("SELECT * FROM conversations WHERE phoneNumber = :phoneNumber LIMIT 1")
     Single<ConversationEntity> getConversationByPhoneNumber(String phoneNumber);
+    
+    @Query("SELECT * FROM conversations WHERE phoneNumber = :phoneNumber")
+    LiveData<ConversationEntity> getConversationByPhoneNumberLive(String phoneNumber);
 
     @Query("SELECT * FROM conversations WHERE threadId = :threadId LIMIT 1")
     Single<ConversationEntity> getConversationByThreadId(long threadId);
@@ -60,9 +67,15 @@ public interface ConversationDao {
     
     @Query("SELECT COUNT(*) FROM conversations WHERE unreadCount > 0")
     Single<Integer> getUnreadConversationsCount();
+
+    @Query("SELECT COUNT(*) FROM conversations WHERE unreadCount > 0")
+    LiveData<Integer> getUnreadConversationsCountLive();
     
     @Query("SELECT COUNT(*) FROM conversations")
     Single<Integer> getTotalConversationsCount();
+
+    @Query("SELECT COUNT(*) FROM conversations")
+    LiveData<Integer> getTotalConversationsCountLive();
     
     @Query("SELECT SUM(messageCount) FROM conversations")
     Single<Integer> getTotalMessagesCount();
@@ -76,8 +89,14 @@ public interface ConversationDao {
     @Query("UPDATE conversations SET unreadCount = 0 WHERE phoneNumber = :phoneNumber")
     Completable markConversationAsRead(String phoneNumber);
 
+    @Query("UPDATE conversations SET unreadCount = 0 WHERE threadId = :threadId")
+    Completable markConversationAsReadByThreadId(long threadId);
+
     @Query("UPDATE conversations SET unreadCount = :count WHERE phoneNumber = :phoneNumber")
     Completable setConversationUnreadCount(String phoneNumber, int count);
+
+    @Query("UPDATE conversations SET unreadCount = :count WHERE threadId = :threadId")
+    Completable setConversationUnreadCountByThreadId(long threadId, int count);
     
     @Query("UPDATE conversations SET isPinned = :isPinned WHERE id = :conversationId")
     Completable updatePinStatus(long conversationId, boolean isPinned);

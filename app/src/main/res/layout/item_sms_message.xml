@@ -8,7 +8,10 @@
     android:layout_marginEnd="8dp"
     android:layout_marginBottom="4dp"
     app:cardCornerRadius="8dp"
-    app:cardElevation="2dp">
+    app:cardElevation="2dp"
+    app:cardBackgroundColor="@color/color_surface"
+    app:strokeColor="@color/color_outline_variant"
+    app:strokeWidth="1dp">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -23,10 +26,10 @@
             android:layout_height="40dp"
             android:layout_marginEnd="12dp"
             android:background="@drawable/circle_background"
-            android:backgroundTint="@color/design_default_color_primary"
+            android:backgroundTint="@color/color_primary"
             android:padding="8dp"
             android:src="@drawable/ic_person"
-            app:tint="@android:color/white" />
+            app:tint="@color/color_on_primary" />
 
         <!-- Message Content -->
         <LinearLayout
@@ -48,8 +51,8 @@
                     android:layout_weight="1"
                     android:ellipsize="end"
                     android:maxLines="1"
-                    android:text="Contact Name"
-                    android:textColor="@android:color/black"
+                    android:text="@string/placeholder_contact_name"
+                    android:textColor="@color/color_on_surface"
                     android:textSize="16sp"
                     android:textStyle="bold" />
 
@@ -57,8 +60,8 @@
                     android:id="@+id/tvMessageDate"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="10:30 AM"
-                    android:textColor="@android:color/darker_gray"
+                    android:text="@string/placeholder_time_1030_am"
+                    android:textColor="@color/color_on_surface_variant"
                     android:textSize="12sp" />
 
             </LinearLayout>
@@ -71,8 +74,8 @@
                 android:layout_marginTop="4dp"
                 android:ellipsize="end"
                 android:maxLines="2"
-                android:text="This is a preview of the message content..."
-                android:textColor="@android:color/secondary_text_dark"
+                android:text="@string/placeholder_message_preview_full"
+                android:textColor="@color/color_on_surface_variant"
                 android:textSize="14sp" />
 
         </LinearLayout>

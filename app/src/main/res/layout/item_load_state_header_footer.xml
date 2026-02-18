@@ -4,7 +4,7 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:padding="16dp"
+    android:padding="@dimen/spacing_medium"
     android:gravity="center">
 
     <ProgressBar
@@ -17,18 +17,18 @@
         android:id="@+id/errorMessage"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Error loading conversations"
-        android:textColor="@android:color/holo_red_dark"
+        android:text="@string/load_state_error_conversations"
+        android:textColor="@color/color_error"
         android:textAlignment="center"
         android:visibility="gone"
-        android:layout_marginTop="8dp"
-        android:layout_marginBottom="8dp" />
+        android:layout_marginTop="@dimen/spacing_small"
+        android:layout_marginBottom="@dimen/spacing_small" />
 
     <com.google.android.material.button.MaterialButton
         android:id="@+id/retryButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Retry"
+        android:text="@string/retry"
         android:visibility="gone"
         style="@style/Widget.Material3.Button.OutlinedButton"
         app:icon="@drawable/ic_refresh"

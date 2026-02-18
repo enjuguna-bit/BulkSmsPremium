@@ -16,7 +16,6 @@ import androidx.annotation.RequiresPermission;
 import android.view.ViewGroup;
 import android.text.TextUtils;
 import android.widget.CompoundButton;
-import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.Button;
@@ -30,6 +29,7 @@ import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
+import androidx.appcompat.app.AppCompatDelegate;
 import androidx.cardview.widget.CardView;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
@@ -45,6 +45,7 @@ import com.afriserve.smsmanager.ui.privacy.PrivacyPolicyActivity;
 import com.afriserve.smsmanager.utils.ToastUtils;
 import com.afriserve.smsmanager.utils.PermissionManager;
 import com.afriserve.smsmanager.utils.HapticsUtils;
+import com.google.android.material.materialswitch.MaterialSwitch;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 
@@ -58,7 +59,7 @@ public class SettingsFragment extends Fragment {
     
     private CardView themeCard, notificationsCard, defaultSmsCard, clearCacheCard, 
                      aboutCard, biometricCard, premiumCard, supportCard, privacyCard;
-    private Switch switchNotifications;
+    private MaterialSwitch switchNotifications;
     private TextView txtCurrentTheme, txtDefaultSmsStatus, txtBiometricStatus;
     private TextView txtSubscriptionStatus, txtSubscriptionPaidUntil;
     private TextView txtSubscriptionBadge, txtPremiumTitle, txtSubscriptionLastChecked;
@@ -71,6 +72,7 @@ public class SettingsFragment extends Fragment {
     private boolean isDefaultSms;
     private String appVersion = "1.0.0";
     private final ExecutorService subscriptionExecutor = Executors.newSingleThreadExecutor();
+    private boolean suppressNotificationChange;
     
     // Managers (simplified for pure Java implementation)
     private ToastUtils toastUtils;
@@ -124,15 +126,14 @@ public class SettingsFragment extends Fragment {
 
     private void openSubscription() {
         savePhoneFromInputIfValid();
-        if (SubscriptionHelper.INSTANCE.isPaymentPending(requireContext())) {
-            updateSubscriptionStatus(true);
-        } else {
-            SubscriptionHelper.INSTANCE.launch(requireContext());
-        }
+        SubscriptionHelper.INSTANCE.launch(requireContext());
     }
 
     private void updateSubscriptionStatus(boolean forceRefresh) {
         if (txtSubscriptionStatus == null) {
+            return;
+        }
+        if (subscriptionExecutor.isShutdown()) {
             return;
         }
         applySubscriptionStatus(SubscriptionHelper.INSTANCE.getCachedStatus(requireContext()));
@@ -146,6 +147,9 @@ public class SettingsFragment extends Fragment {
                         SubscriptionHelper.INSTANCE.refreshSubscriptionStatusBlocking(requireContext(), forceRefresh);
                 if (isAdded()) {
                     requireActivity().runOnUiThread(() -> {
+                        if (getView() == null) {
+                            return;
+                        }
                         applySubscriptionStatus(refreshed);
                         setRefreshInProgress(false);
                     });
@@ -154,6 +158,9 @@ public class SettingsFragment extends Fragment {
                 Log.w("SettingsFragment", "Failed to refresh subscription status", e);
                 if (isAdded()) {
                     requireActivity().runOnUiThread(() -> {
+                        if (getView() == null) {
+                            return;
+                        }
                         setRefreshInProgress(false);
                         applySubscriptionStatus(SubscriptionHelper.INSTANCE.getCachedStatus(requireContext()));
                         toastUtils.showError("Unable to reach server. Showing last known status.");
@@ -184,8 +191,8 @@ public class SettingsFragment extends Fragment {
             } else {
                 txtSubscriptionStatus.setText("Premium active");
             }
-            btnUpgradePremium.setText("Manage");
-            if (shouldShowPaidUntil(status.getPlan()) && txtSubscriptionPaidUntil != null) {
+            btnUpgradePremium.setText("Open Payment Page");
+            if (shouldShowPaidUntil(status.getPaidUntilMillis()) && txtSubscriptionPaidUntil != null) {
                 txtSubscriptionPaidUntil.setVisibility(View.VISIBLE);
                 txtSubscriptionPaidUntil.setText(formatPaidUntil(status.getPaidUntilMillis()));
             } else if (txtSubscriptionPaidUntil != null) {
@@ -203,7 +210,7 @@ public class SettingsFragment extends Fragment {
                 txtPremiumTitle.setText("Payment processing");
             }
             txtSubscriptionStatus.setText("Payment processing...");
-            btnUpgradePremium.setText("Check Status");
+            btnUpgradePremium.setText("Open Payment Page");
             if (txtSubscriptionPaidUntil != null) {
                 txtSubscriptionPaidUntil.setVisibility(View.GONE);
             }
@@ -218,25 +225,27 @@ public class SettingsFragment extends Fragment {
             txtPremiumTitle.setText("Free plan");
         }
         txtSubscriptionStatus.setText("Free plan - limited features");
-        btnUpgradePremium.setText("Upgrade Now");
+        btnUpgradePremium.setText("Open Payment Page");
         if (txtSubscriptionPaidUntil != null) {
             txtSubscriptionPaidUntil.setVisibility(View.GONE);
         }
         updateLastChecked(status.getLastCheckedMillis());
     }
 
-    private boolean shouldShowPaidUntil(String plan) {
-        if (plan == null) return false;
-        String normalized = plan.trim().toLowerCase(Locale.getDefault());
-        return "daily".equals(normalized) || "weekly".equals(normalized);
+    private boolean shouldShowPaidUntil(Long paidUntilMillis) {
+        return paidUntilMillis != null && paidUntilMillis > 0L;
     }
 
     private String formatPlanLabel(String plan) {
         if (plan == null) return null;
         String normalized = plan.trim().toLowerCase(Locale.getDefault());
         switch (normalized) {
+            case "one_hour":
+                return "1-Hour";
+            case "six_hour":
+                return "6-Hour";
             case "daily":
-                return "Daily";
+                return "24-Hour";
             case "weekly":
                 return "Weekly";
             case "monthly":
@@ -252,7 +261,7 @@ public class SettingsFragment extends Fragment {
         if (paidUntilMillis == null || paidUntilMillis <= 0L) {
             return "Paid until: --";
         }
-        SimpleDateFormat formatter = new SimpleDateFormat("MMM d, yyyy", Locale.getDefault());
+        SimpleDateFormat formatter = new SimpleDateFormat("MMM d, yyyy 'at' h:mm a", Locale.getDefault());
         return "Paid until: " + formatter.format(new Date(paidUntilMillis));
     }
 
@@ -355,6 +364,9 @@ public class SettingsFragment extends Fragment {
         }
         
         switchNotifications.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            if (suppressNotificationChange) {
+                return;
+            }
             saveBooleanSetting("notifications_enabled", isChecked);
             if (isChecked) {
                 toastUtils.showSuccess("Notifications enabled");
@@ -369,15 +381,17 @@ public class SettingsFragment extends Fragment {
         
         String themeText;
         if ("light".equals(themeMode)) {
-            themeText = "Light";
+            themeText = getString(R.string.settings_theme_light);
         } else if ("dark".equals(themeMode)) {
-            themeText = "Dark";
+            themeText = getString(R.string.settings_theme_dark);
         } else {
-            themeText = "System";
+            themeText = getString(R.string.settings_theme_system);
         }
         
         txtCurrentTheme.setText(themeText);
+        suppressNotificationChange = true;
         switchNotifications.setChecked(notificationsEnabled);
+        suppressNotificationChange = false;
         
         // Check default SMS status whenever settings are loaded
         checkDefaultSmsStatus();
@@ -582,20 +596,30 @@ public class SettingsFragment extends Fragment {
 
     @RequiresPermission(Manifest.permission.VIBRATE)
     private void setThemeMode(String themeMode) {
+        String previousThemeMode = prefs.getString("theme_mode", AppConfig.Defaults.THEME_MODE);
+        if (TextUtils.equals(previousThemeMode, themeMode)) {
+            return;
+        }
         saveStringSetting("theme_mode", themeMode);
         
         String themeText;
+        int nightMode;
         if ("light".equals(themeMode)) {
-            themeText = "Light";
+            themeText = getString(R.string.settings_theme_light);
+            nightMode = AppCompatDelegate.MODE_NIGHT_NO;
         } else if ("dark".equals(themeMode)) {
-            themeText = "Dark";
+            themeText = getString(R.string.settings_theme_dark);
+            nightMode = AppCompatDelegate.MODE_NIGHT_YES;
         } else {
-            themeText = "System";
+            themeText = getString(R.string.settings_theme_system);
+            nightMode = AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM;
         }
         
+        AppCompatDelegate.setDefaultNightMode(nightMode);
         txtCurrentTheme.setText(themeText);
         toastUtils.showSuccess("Theme changed to " + themeText);
         hapticsUtils.trigger(HapticsUtils.HapticType.SUCCESS);
+        requireActivity().recreate();
     }
 
     private void saveStringSetting(String key, String value) {
@@ -626,13 +650,17 @@ public class SettingsFragment extends Fragment {
         }
         
         this.isDefaultSms = isDefaultSms;
+
+        if (txtDefaultSmsStatus == null) {
+            return;
+        }
         
         // Update UI
         txtDefaultSmsStatus.setText(isDefaultSms ? 
-            "Current default SMS app" : "Tap to set as default");
+            getString(R.string.settings_status_default_sms_active) :
+            getString(R.string.settings_status_default_sms_inactive));
         
-        int colorRes = isDefaultSms ? 
-            android.R.color.holo_green_dark : android.R.color.holo_orange_dark;
+        int colorRes = isDefaultSms ? R.color.status_success : R.color.status_warning;
         txtDefaultSmsStatus.setTextColor(ContextCompat.getColor(requireContext(), colorRes));
         
         // Additional status info
@@ -775,6 +803,9 @@ public class SettingsFragment extends Fragment {
 
 
     private void updateBiometricStatus() {
+        if (txtBiometricStatus == null) {
+            return;
+        }
         try {
             BiometricStatus status = biometricManager.isBiometricAvailable();
             boolean isEnabled = biometricManager.isBiometricEnabled();
@@ -783,29 +814,59 @@ public class SettingsFragment extends Fragment {
             int colorRes;
             
             if (status != BiometricStatus.AVAILABLE) {
-                statusText = "Not available";
-                colorRes = android.R.color.darker_gray;
+                statusText = getString(R.string.settings_status_biometric_not_available);
+                colorRes = R.color.status_muted;
             } else if (isEnabled) {
-                statusText = "Enabled";
-                colorRes = android.R.color.holo_green_dark;
+                statusText = getString(R.string.settings_status_biometric_enabled);
+                colorRes = R.color.status_success;
             } else {
-                statusText = "Setup required";
-                colorRes = android.R.color.holo_blue_bright;
+                statusText = getString(R.string.settings_status_biometric_setup);
+                colorRes = R.color.status_info;
             }
             
             txtBiometricStatus.setText(statusText);
             txtBiometricStatus.setTextColor(ContextCompat.getColor(requireContext(), colorRes));
             
         } catch (Exception e) {
-            txtBiometricStatus.setText("Status unavailable");
-            txtBiometricStatus.setTextColor(ContextCompat.getColor(requireContext(), 
-                                                                 android.R.color.darker_gray));
+            txtBiometricStatus.setText(getString(R.string.settings_status_biometric_unavailable));
+            txtBiometricStatus.setTextColor(ContextCompat.getColor(requireContext(), R.color.status_muted));
         }
     }
 
     @Override
     public void onDestroyView() {
         super.onDestroyView();
+        if (switchNotifications != null) {
+            switchNotifications.setOnCheckedChangeListener(null);
+        }
+        themeCard = null;
+        notificationsCard = null;
+        defaultSmsCard = null;
+        clearCacheCard = null;
+        aboutCard = null;
+        biometricCard = null;
+        premiumCard = null;
+        supportCard = null;
+        privacyCard = null;
+        switchNotifications = null;
+        txtCurrentTheme = null;
+        txtDefaultSmsStatus = null;
+        txtBiometricStatus = null;
+        txtSubscriptionStatus = null;
+        txtSubscriptionPaidUntil = null;
+        txtSubscriptionBadge = null;
+        txtPremiumTitle = null;
+        txtSubscriptionLastChecked = null;
+        txtSupportEmail = null;
+        btnUpgradePremium = null;
+        btnRefreshStatus = null;
+        tilSubscriptionPhone = null;
+        etSubscriptionPhone = null;
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
         subscriptionExecutor.shutdown();
     }
 }

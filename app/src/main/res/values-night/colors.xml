@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Semantic UI tokens (dark) -->
+    <color name="color_primary">@color/md_theme_dark_primary</color>
+    <color name="color_on_primary">@color/md_theme_dark_onPrimary</color>
+    <color name="color_primary_container">@color/md_theme_dark_primaryContainer</color>
+    <color name="color_on_primary_container">@color/md_theme_dark_onPrimaryContainer</color>
+    <color name="color_secondary">@color/md_theme_dark_secondary</color>
+    <color name="color_on_secondary">@color/md_theme_dark_onSecondary</color>
+    <color name="color_secondary_container">@color/md_theme_dark_secondaryContainer</color>
+    <color name="color_on_secondary_container">@color/md_theme_dark_onSecondaryContainer</color>
+    <color name="color_tertiary">@color/md_theme_dark_tertiary</color>
+    <color name="color_on_tertiary">@color/md_theme_dark_onTertiary</color>
+    <color name="color_tertiary_container">@color/md_theme_dark_tertiaryContainer</color>
+    <color name="color_on_tertiary_container">@color/md_theme_dark_onTertiaryContainer</color>
+    <color name="color_surface">@color/md_theme_dark_surface</color>
+    <color name="color_on_surface">@color/md_theme_dark_onSurface</color>
+    <color name="color_surface_variant">@color/md_theme_dark_surfaceVariant</color>
+    <color name="color_on_surface_variant">@color/md_theme_dark_onSurfaceVariant</color>
+    <color name="color_outline">@color/md_theme_dark_outline</color>
+    <color name="color_outline_variant">@color/md_theme_dark_outlineVariant</color>
+    <color name="color_error">@color/md_theme_dark_error</color>
+    <color name="color_on_error">@color/md_theme_dark_onError</color>
+    <color name="color_error_container">@color/md_theme_dark_errorContainer</color>
+    <color name="color_on_error_container">@color/md_theme_dark_onErrorContainer</color>
+
+    <!-- Status semantic colors -->
+    <color name="status_success">#7DDFBF</color>
+    <color name="status_warning">#FFD680</color>
+    <color name="status_info">#9EC5FF</color>
+    <color name="status_muted">#B4C0D4</color>
+
+    <!-- Futuristic decorative colors (dark) -->
+    <color name="fx_atmosphere_start">#FF050B18</color>
+    <color name="fx_atmosphere_mid">#FF0A1326</color>
+    <color name="fx_atmosphere_end">#FF101A32</color>
+    <color name="fx_glow_primary">#663D7FFF</color>
+    <color name="fx_glow_secondary">#4D2FC7FF</color>
+    <color name="fx_glow_tertiary">#3349FFD6</color>
+    <color name="fx_glass_surface">#4014233F</color>
+    <color name="fx_glass_surface_alt">#331A3258</color>
+    <color name="fx_glass_stroke">#6697B4E0</color>
+    <color name="fx_panel_stroke">#6697B4E0</color>
+    <color name="fx_nav_surface_start">#CC0F1A33</color>
+    <color name="fx_nav_surface_end">#E61A2848</color>
+    <color name="fx_nav_active_indicator">#664FA8FF</color>
+    <color name="fx_badge_start">#FFFFE08A</color>
+    <color name="fx_badge_end">#FFFFA43A</color>
+    <color name="fx_badge_stroke">#33FFFFFF</color>
+    <color name="fx_badge_text">#FF3E2200</color>
+    <color name="fx_search_overlay">#40203657</color>
+</resources>

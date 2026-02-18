@@ -1,6 +1,5 @@
 package com.afriserve.smsmanager.ui.sms;
 
-import android.content.Context;
 import android.util.Log;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
@@ -10,7 +9,6 @@ import java.util.concurrent.CompletableFuture;
 import com.afriserve.smsmanager.data.entity.SmsEntity;
 import com.afriserve.smsmanager.data.repository.SmsRepository;
 import dagger.hilt.android.lifecycle.HiltViewModel;
-import dagger.hilt.android.qualifiers.ApplicationContext;
 import javax.inject.Inject;
 
 /**
@@ -30,7 +28,7 @@ public class SingleSmsViewModel extends ViewModel {
     private final MutableLiveData<String> error = new MutableLiveData<>();
 
     @Inject
-    public SingleSmsViewModel(@ApplicationContext Context context, SmsRepository smsRepository) {
+    public SingleSmsViewModel(SmsRepository smsRepository) {
         this.smsRepository = smsRepository;
     }
 
@@ -66,7 +64,7 @@ public class SingleSmsViewModel extends ViewModel {
                 smsRepository.sendSms(sms, simSlot).blockingAwait();
 
                 Log.d(TAG, "SMS sent to: " + phoneNumber);
-                status.postValue("SMS sent");
+                status.postValue("SMS queued. Waiting for network/delivery status");
 
             } catch (Exception e) {
                 Log.e(TAG, "Failed to send SMS", e);
@@ -94,7 +92,7 @@ public class SingleSmsViewModel extends ViewModel {
                 int failed = 0;
 
                 isLoading.postValue(true);
-                status.postValue("Sending SMS to " + total + " recipients...");
+                status.postValue("Queueing SMS for " + total + " recipients...");
                 error.postValue(null);
 
                 for (String phoneNumber : phoneNumbers) {
@@ -108,7 +106,7 @@ public class SingleSmsViewModel extends ViewModel {
                         smsRepository.sendSms(sms, simSlot).blockingAwait();
 
                         sent++;
-                        status.postValue("Sent " + sent + " of " + total);
+                        status.postValue("Queued " + sent + " of " + total);
                     } catch (Exception e) {
                         failed++;
                         Log.e(TAG, "Failed to send SMS to: " + phoneNumber, e);
@@ -119,9 +117,9 @@ public class SingleSmsViewModel extends ViewModel {
                 }
 
                 if (failed == 0) {
-                    status.postValue("SMS sent to " + sent + " recipients");
+                    status.postValue("Queued " + sent + " recipients");
                 } else {
-                    status.postValue("Sent " + sent + " of " + total + " (" + failed + " failed)");
+                    status.postValue("Queued " + sent + " of " + total + " (" + failed + " failed)");
                 }
             } catch (Exception e) {
                 Log.e(TAG, "Failed to send bulk SMS", e);

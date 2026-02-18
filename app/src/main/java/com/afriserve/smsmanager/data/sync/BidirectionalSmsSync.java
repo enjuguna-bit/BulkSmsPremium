@@ -1,13 +1,13 @@
 package com.afriserve.smsmanager.data.sync;
 
 import android.content.ContentResolver;
+import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Build;
 import android.provider.Telephony;
-import android.telephony.SmsManager;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
@@ -15,9 +15,9 @@ import androidx.annotation.Nullable;
 
 import com.afriserve.smsmanager.data.dao.SmsDao;
 import com.afriserve.smsmanager.data.entity.SmsEntity;
+import com.afriserve.smsmanager.data.utils.PhoneNumberUtils;
 import com.afriserve.smsmanager.sms.DefaultSmsAppManager;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import javax.inject.Inject;
@@ -37,6 +37,8 @@ import io.reactivex.rxjava3.schedulers.Schedulers;
 public class BidirectionalSmsSync {
 
     private static final String TAG = "BidirectionalSmsSync";
+    private static final long PROVIDER_MATCH_WINDOW_MS = 5 * 60 * 1000L;
+    private static final long PROVIDER_MATCH_DELTA_MS = 2 * 60 * 1000L;
 
     private final Context context;
     private final SmsDao smsDao;
@@ -70,34 +72,118 @@ public class BidirectionalSmsSync {
             if (!isBidirectionalSyncAvailable()) {
                 throw new IllegalStateException("Bidirectional sync not available - app must be default SMS app");
             }
-
-            Log.d(TAG, "Starting sync of sent messages to ContentProvider");
-
-            // Get all sent messages from Room that don't have deviceSmsId
-            List<SmsEntity> sentMessages = smsDao.getSentMessagesWithoutDeviceId().blockingGet();
-
-            int syncedCount = 0;
-            int errorCount = 0;
-
-            for (SmsEntity message : sentMessages) {
-                try {
-                    Long deviceSmsId = addMessageToContentProvider(message);
-                    if (deviceSmsId != null) {
-                        // Update Room entity with deviceSmsId
-                        message.deviceSmsId = deviceSmsId;
-                        smsDao.updateSms(message).blockingAwait();
-                        syncedCount++;
-                        Log.d(TAG, "Synced sent message to ContentProvider: " + deviceSmsId);
-                    }
-                } catch (Exception e) {
-                    errorCount++;
-                    Log.e(TAG, "Failed to sync sent message to ContentProvider", e);
-                }
-            }
-
-            Log.d(TAG, "Sync completed: " + syncedCount + " synced, " + errorCount + " errors");
-
+            syncSentMessagesToContentProviderInternal();
         }).subscribeOn(Schedulers.io());
+    }
+
+    /**
+     * Sync inbox messages from Room to Android SMS ContentProvider
+     * This is called when the app is the default SMS app
+     */
+    public Completable syncInboxMessagesToContentProvider() {
+        return Completable.fromAction(() -> {
+            if (!isBidirectionalSyncAvailable()) {
+                throw new IllegalStateException("Bidirectional sync not available - app must be default SMS app");
+            }
+            syncInboxMessagesToContentProviderInternal();
+        }).subscribeOn(Schedulers.io());
+    }
+
+    /**
+     * Sync any missing messages (inbox + sent) to the ContentProvider.
+     * Safe to call during startup; skips when not default SMS app.
+     */
+    public Completable syncMissingMessagesToContentProvider() {
+        return Completable.fromAction(() -> {
+            if (!isBidirectionalSyncAvailable()) {
+                Log.w(TAG, "Bidirectional sync not available - skipping missing message sync");
+                return;
+            }
+            syncInboxMessagesToContentProviderInternal();
+            syncSentMessagesToContentProviderInternal();
+        }).subscribeOn(Schedulers.io());
+    }
+
+    private void syncSentMessagesToContentProviderInternal() {
+        Log.d(TAG, "Starting sync of sent messages to ContentProvider");
+
+        List<SmsEntity> sentMessages = smsDao.getSentMessagesWithoutDeviceId().blockingGet();
+        int syncedCount = 0;
+        int matchedCount = 0;
+        int errorCount = 0;
+
+        for (SmsEntity message : sentMessages) {
+            try {
+                ProviderMatch match = findProviderMatch(message, Telephony.Sms.Sent.CONTENT_URI);
+                if (match != null) {
+                    message.deviceSmsId = match.deviceSmsId;
+                    if (match.threadId != null) {
+                        message.threadId = match.threadId;
+                    }
+                    smsDao.updateSms(message).blockingAwait();
+                    matchedCount++;
+                    continue;
+                }
+
+                Long deviceSmsId = addSentMessageToContentProvider(message);
+                if (deviceSmsId != null) {
+                    message.deviceSmsId = deviceSmsId;
+                    Long threadId = resolveThreadIdFromProvider(deviceSmsId);
+                    if (threadId != null) {
+                        message.threadId = threadId;
+                    }
+                    smsDao.updateSms(message).blockingAwait();
+                    syncedCount++;
+                    Log.d(TAG, "Synced sent message to ContentProvider: " + deviceSmsId);
+                }
+            } catch (Exception e) {
+                errorCount++;
+                Log.e(TAG, "Failed to sync sent message to ContentProvider", e);
+            }
+        }
+
+        Log.d(TAG, "Sent sync completed: " + syncedCount + " inserted, " + matchedCount + " matched, " + errorCount + " errors");
+    }
+
+    private void syncInboxMessagesToContentProviderInternal() {
+        Log.d(TAG, "Starting sync of inbox messages to ContentProvider");
+
+        List<SmsEntity> inboxMessages = smsDao.getInboxMessagesWithoutDeviceId().blockingGet();
+        int syncedCount = 0;
+        int matchedCount = 0;
+        int errorCount = 0;
+
+        for (SmsEntity message : inboxMessages) {
+            try {
+                ProviderMatch match = findProviderMatch(message, Telephony.Sms.Inbox.CONTENT_URI);
+                if (match != null) {
+                    message.deviceSmsId = match.deviceSmsId;
+                    if (match.threadId != null) {
+                        message.threadId = match.threadId;
+                    }
+                    smsDao.updateSms(message).blockingAwait();
+                    matchedCount++;
+                    continue;
+                }
+
+                Long deviceSmsId = addInboxMessageToContentProvider(message);
+                if (deviceSmsId != null) {
+                    message.deviceSmsId = deviceSmsId;
+                    Long threadId = resolveThreadIdFromProvider(deviceSmsId);
+                    if (threadId != null) {
+                        message.threadId = threadId;
+                    }
+                    smsDao.updateSms(message).blockingAwait();
+                    syncedCount++;
+                    Log.d(TAG, "Synced inbox message to ContentProvider: " + deviceSmsId);
+                }
+            } catch (Exception e) {
+                errorCount++;
+                Log.e(TAG, "Failed to sync inbox message to ContentProvider", e);
+            }
+        }
+
+        Log.d(TAG, "Inbox sync completed: " + syncedCount + " inserted, " + matchedCount + " matched, " + errorCount + " errors");
     }
 
     /**
@@ -118,28 +204,76 @@ public class BidirectionalSmsSync {
             }
 
             if (message.deviceSmsId != null) {
+                updateExistingSentMessageInContentProvider(message);
                 return;
             }
 
-            if (!"SENT".equals(message.status) && !"DELIVERED".equals(message.status)) {
+            if (!isOutgoingStatus(message.status)) {
                 return;
             }
 
-            Long deviceSmsId = addMessageToContentProvider(message);
+            ProviderMatch match = findProviderMatch(message, Telephony.Sms.Sent.CONTENT_URI);
+            if (match != null) {
+                message.deviceSmsId = match.deviceSmsId;
+                if (match.threadId != null) {
+                    message.threadId = match.threadId;
+                }
+                smsDao.updateSms(message).blockingAwait();
+                return;
+            }
+
+            Long deviceSmsId = addSentMessageToContentProvider(message);
             if (deviceSmsId != null) {
                 message.deviceSmsId = deviceSmsId;
+                Long threadId = resolveThreadIdFromProvider(deviceSmsId);
+                if (threadId != null) {
+                    message.threadId = threadId;
+                }
                 smsDao.updateSms(message).blockingAwait();
                 Log.d(TAG, "Synced single sent message to ContentProvider: " + deviceSmsId);
             }
         }).subscribeOn(Schedulers.io());
     }
 
+    private boolean isOutgoingStatus(@Nullable String status) {
+        return "PENDING".equals(status)
+                || "PENDING_RETRY".equals(status)
+                || "SENT".equals(status)
+                || "DELIVERED".equals(status)
+                || "FAILED".equals(status);
+    }
+
+    private void updateExistingSentMessageInContentProvider(@NonNull SmsEntity message) {
+        if (message.deviceSmsId == null) {
+            return;
+        }
+        try {
+            ContentValues values = new ContentValues();
+            values.put(Telephony.Sms.STATUS, mapStatusToProviderStatus(message.status));
+            values.put(Telephony.Sms.READ, message.isRead != null && message.isRead ? 1 : 0);
+            if (message.createdAt > 0) {
+                values.put(Telephony.Sms.DATE, message.createdAt);
+            }
+            if (message.sentAt > 0) {
+                values.put(Telephony.Sms.DATE_SENT, message.sentAt);
+            }
+
+            Uri uri = Uri.withAppendedPath(Telephony.Sms.CONTENT_URI, String.valueOf(message.deviceSmsId));
+            int rows = contentResolver.update(uri, values, null, null);
+            if (rows <= 0) {
+                Log.w(TAG, "No provider rows updated for existing sent message id=" + message.deviceSmsId);
+            }
+        } catch (Exception e) {
+            Log.w(TAG, "Failed updating existing sent message in provider: id=" + message.deviceSmsId, e);
+        }
+    }
+
     /**
-     * Add a message to the Android SMS ContentProvider
+     * Add a sent message to the Android SMS ContentProvider
      * Only works when app is default SMS app
      */
     @Nullable
-    private Long addMessageToContentProvider(@NonNull SmsEntity message) {
+    private Long addSentMessageToContentProvider(@NonNull SmsEntity message) {
         try {
             ContentValues values = new ContentValues();
 
@@ -171,6 +305,131 @@ public class BidirectionalSmsSync {
             Log.e(TAG, "Failed to add message to ContentProvider", e);
         }
 
+        return null;
+    }
+
+    /**
+     * Add an inbox message to the Android SMS ContentProvider
+     * Only works when app is default SMS app
+     */
+    @Nullable
+    private Long addInboxMessageToContentProvider(@NonNull SmsEntity message) {
+        try {
+            ContentValues values = new ContentValues();
+
+            boolean isRead = message.isRead != null && message.isRead;
+            long createdAt = message.createdAt > 0 ? message.createdAt : System.currentTimeMillis();
+
+            values.put(Telephony.Sms.ADDRESS, message.phoneNumber);
+            values.put(Telephony.Sms.BODY, message.message != null ? message.message : "");
+            values.put(Telephony.Sms.DATE, createdAt);
+            values.put(Telephony.Sms.TYPE, Telephony.Sms.MESSAGE_TYPE_INBOX);
+            values.put(Telephony.Sms.READ, isRead ? 1 : 0);
+            values.put(Telephony.Sms.SEEN, isRead ? 1 : 0);
+
+            Uri uri = contentResolver.insert(Telephony.Sms.Inbox.CONTENT_URI, values);
+            if (uri != null) {
+                long id = ContentUris.parseId(uri);
+                return id > 0 ? id : null;
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to add inbox message to ContentProvider", e);
+        }
+
+        return null;
+    }
+
+    @Nullable
+    private Long resolveThreadIdFromProvider(long deviceSmsId) {
+        Cursor cursor = null;
+        try {
+            Uri uri = ContentUris.withAppendedId(Telephony.Sms.CONTENT_URI, deviceSmsId);
+            cursor = contentResolver.query(uri, new String[] { Telephony.Sms.THREAD_ID }, null, null, null);
+            if (cursor != null && cursor.moveToFirst()) {
+                return cursor.getLong(cursor.getColumnIndexOrThrow(Telephony.Sms.THREAD_ID));
+            }
+        } catch (Exception e) {
+            Log.w(TAG, "Failed to resolve threadId for deviceSmsId=" + deviceSmsId, e);
+        } finally {
+            if (cursor != null) {
+                cursor.close();
+            }
+        }
+        return null;
+    }
+
+    @Nullable
+    private ProviderMatch findProviderMatch(@NonNull SmsEntity message, @NonNull Uri contentUri) {
+        String normalizedAddress = message.phoneNumber != null ? message.phoneNumber : "";
+        if (normalizedAddress.trim().isEmpty()) {
+            return null;
+        }
+
+        Cursor cursor = null;
+        try {
+            long timestamp = message.createdAt > 0 ? message.createdAt : System.currentTimeMillis();
+            String lastDigits = PhoneNumberUtils.getLastNDigits(normalizedAddress, 7);
+
+            String selection = Telephony.Sms.DATE + " >= ?";
+            String[] selectionArgs = new String[] { String.valueOf(timestamp - PROVIDER_MATCH_WINDOW_MS) };
+
+            if (lastDigits != null && !lastDigits.isEmpty()) {
+                selection = Telephony.Sms.DATE + " >= ? AND " + Telephony.Sms.ADDRESS + " LIKE ?";
+                selectionArgs = new String[] { String.valueOf(timestamp - PROVIDER_MATCH_WINDOW_MS), "%" + lastDigits };
+            }
+
+            String[] projection = new String[] {
+                Telephony.Sms._ID,
+                Telephony.Sms.ADDRESS,
+                Telephony.Sms.BODY,
+                Telephony.Sms.DATE,
+                Telephony.Sms.THREAD_ID
+            };
+
+            cursor = contentResolver.query(
+                contentUri,
+                projection,
+                selection,
+                selectionArgs,
+                Telephony.Sms.DATE + " DESC"
+            );
+
+            if (cursor == null) {
+                return null;
+            }
+
+            int checked = 0;
+            String expectedBody = message.message != null ? message.message : "";
+            while (cursor.moveToNext() && checked < 50) {
+                checked++;
+                String address = cursor.getString(cursor.getColumnIndexOrThrow(Telephony.Sms.ADDRESS));
+                String dbBody = cursor.getString(cursor.getColumnIndexOrThrow(Telephony.Sms.BODY));
+                long dbDate = cursor.getLong(cursor.getColumnIndexOrThrow(Telephony.Sms.DATE));
+
+                if (!PhoneNumberUtils.areSameNumber(address, normalizedAddress)) {
+                    continue;
+                }
+                if (dbBody == null) {
+                    dbBody = "";
+                }
+                if (!dbBody.equals(expectedBody)) {
+                    continue;
+                }
+                if (Math.abs(dbDate - timestamp) > PROVIDER_MATCH_DELTA_MS) {
+                    continue;
+                }
+
+                long id = cursor.getLong(cursor.getColumnIndexOrThrow(Telephony.Sms._ID));
+                long threadId = cursor.getLong(cursor.getColumnIndexOrThrow(Telephony.Sms.THREAD_ID));
+                return new ProviderMatch(id, threadId);
+            }
+        } catch (Exception e) {
+            Log.w(TAG, "Failed to resolve provider match", e);
+        } finally {
+            if (cursor != null) {
+                cursor.close();
+            }
+        }
         return null;
     }
 
@@ -279,6 +538,7 @@ public class BidirectionalSmsSync {
             // Count messages needing sync
             try {
                 stats.sentMessagesNeedingSync = smsDao.getSentMessagesWithoutDeviceId().blockingGet().size();
+                stats.inboxMessagesNeedingSync = smsDao.getInboxMessagesWithoutDeviceId().blockingGet().size();
                 stats.totalMessagesInRoom = smsDao.getTotalCountSingle().blockingGet();
 
                 // Count messages in ContentProvider
@@ -303,6 +563,16 @@ public class BidirectionalSmsSync {
 
             return stats;
         }).subscribeOn(Schedulers.io());
+    }
+
+    private static final class ProviderMatch {
+        private final long deviceSmsId;
+        private final Long threadId;
+
+        private ProviderMatch(long deviceSmsId, Long threadId) {
+            this.deviceSmsId = deviceSmsId;
+            this.threadId = threadId;
+        }
     }
 
     /**
@@ -330,6 +600,7 @@ public class BidirectionalSmsSync {
         public boolean bidirectionalSyncAvailable = false;
         public boolean isDefaultSmsApp = false;
         public int sentMessagesNeedingSync = 0;
+        public int inboxMessagesNeedingSync = 0;
         public int totalMessagesInRoom = 0;
         public int totalMessagesInContentProvider = 0;
 
@@ -339,6 +610,7 @@ public class BidirectionalSmsSync {
                     "bidirectionalSyncAvailable=" + bidirectionalSyncAvailable +
                     ", isDefaultSmsApp=" + isDefaultSmsApp +
                     ", sentMessagesNeedingSync=" + sentMessagesNeedingSync +
+                    ", inboxMessagesNeedingSync=" + inboxMessagesNeedingSync +
                     ", totalMessagesInRoom=" + totalMessagesInRoom +
                     ", totalMessagesInContentProvider=" + totalMessagesInContentProvider +
                     '}';

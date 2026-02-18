@@ -29,7 +29,7 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="1. Select CSV File"
+                    android:text="@string/csv_step_1_title"
                     android:textSize="16sp"
                     android:textStyle="bold"
                     android:layout_marginBottom="12dp" />
@@ -37,7 +37,7 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Supports CSV, XLSX, XLS, TXT files"
+                    android:text="@string/csv_step_1_formats"
                     android:textSize="12sp"
                     android:textColor="@android:color/darker_gray"
                     android:layout_marginBottom="12dp" />
@@ -46,8 +46,8 @@
                     android:id="@+id/btn_select_csv"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="📁 Select CSV File"
-                    style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
+                    android:text="@string/csv_select_file_action"
+                    style="@style/Widget.Material3.Button.OutlinedButton" />
 
             </LinearLayout>
 
@@ -78,7 +78,7 @@
                     android:id="@+id/tv_summary"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="No file selected"
+                    android:text="@string/csv_no_file_selected"
                     android:textSize="12sp"
                     android:fontFamily="monospace" />
 
@@ -102,7 +102,7 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Phone Number Validation"
+                    android:text="@string/csv_phone_validation_title"
                     android:textSize="14sp"
                     android:textStyle="bold"
                     android:layout_marginBottom="8dp" />
@@ -111,7 +111,7 @@
                     android:id="@+id/tv_phone_validation"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="No data"
+                    android:text="@string/csv_phone_validation_empty"
                     android:textSize="12sp" />
 
             </LinearLayout>
@@ -134,7 +134,7 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="2. Compose Message"
+                    android:text="@string/csv_step_2_title"
                     android:textSize="16sp"
                     android:textStyle="bold"
                     android:layout_marginBottom="12dp" />
@@ -144,7 +144,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="12dp"
                     app:hintEnabled="true"
-                    android:hint="Message Template">
+                    android:hint="@string/csv_message_template_hint">
 
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/et_message_template"
@@ -159,14 +159,14 @@
                     android:id="@+id/btn_insert_placeholder"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="+ Insert Placeholder"
-                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    android:text="@string/csv_insert_placeholder"
+                    style="@style/Widget.Material3.Button.OutlinedButton"
                     android:layout_marginBottom="12dp" />
 
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Example: Hello {firstName}, your order {orderNumber} is ready!"
+                    android:text="@string/csv_template_example"
                     android:textSize="12sp"
                     android:textColor="@android:color/darker_gray" />
 
@@ -190,7 +190,7 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="3. Preview Messages"
+                    android:text="@string/csv_step_3_title"
                     android:textSize="16sp"
                     android:textStyle="bold"
                     android:layout_marginBottom="12dp" />
@@ -199,8 +199,8 @@
                     android:id="@+id/btn_preview"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="👁️ Generate Preview"
-                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    android:text="@string/csv_generate_preview"
+                    style="@style/Widget.Material3.Button.OutlinedButton"
                     android:layout_marginBottom="12dp" />
 
                 <LinearLayout
@@ -228,7 +228,7 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="4. Send Bulk SMS"
+                    android:text="@string/csv_step_4_title"
                     android:textSize="16sp"
                     android:textStyle="bold"
                     android:layout_marginBottom="12dp" />
@@ -237,9 +237,9 @@
                     android:id="@+id/btn_send"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="✉️ Send to All Recipients"
-                    style="@style/Widget.MaterialComponents.Button"
-                    android:backgroundTint="@color/design_default_color_primary" />
+                    android:text="@string/csv_send_all_recipients"
+                    style="@style/Widget.Material3.Button"
+                    android:backgroundTint="@color/color_primary" />
 
             </LinearLayout>
 
@@ -248,3 +248,5 @@
     </LinearLayout>
 
 </androidx.core.widget.NestedScrollView>
+
+

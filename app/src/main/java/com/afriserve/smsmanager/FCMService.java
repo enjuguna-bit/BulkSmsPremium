@@ -8,6 +8,7 @@ import android.content.SharedPreferences;
 import android.content.Intent;
 import android.os.Build;
 import androidx.core.app.NotificationCompat;
+import java.util.Map;
 
 import com.google.firebase.messaging.FirebaseMessagingService;
 import com.google.firebase.messaging.RemoteMessage;
@@ -18,16 +19,18 @@ public class FCMService extends FirebaseMessagingService {
     @Override
     public void onMessageReceived(RemoteMessage remoteMessage) {
         super.onMessageReceived(remoteMessage);
-        
-        // Handle data payload for important notifications
-        if (remoteMessage.getData().size() > 0) {
-            showNotification(remoteMessage);
+
+        if (remoteMessage == null) {
+            return;
         }
-        
-        // Handle notification payload
-        if (remoteMessage.getNotification() != null) {
-            showNotification(remoteMessage);
+
+        boolean hasDataPayload = remoteMessage.getData() != null && !remoteMessage.getData().isEmpty();
+        boolean hasNotificationPayload = remoteMessage.getNotification() != null;
+        if (!hasDataPayload && !hasNotificationPayload) {
+            return;
         }
+
+        showNotification(remoteMessage);
     }
     
     private void showNotification(RemoteMessage remoteMessage) {
@@ -43,17 +46,43 @@ public class FCMService extends FirebaseMessagingService {
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
         PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, intent, 
             PendingIntent.FLAG_ONE_SHOT | PendingIntent.FLAG_IMMUTABLE);
+
+        RemoteMessage.Notification notification = remoteMessage.getNotification();
+        Map<String, String> data = remoteMessage.getData();
+
+        String title = notification != null ? notification.getTitle() : null;
+        String body = notification != null ? notification.getBody() : null;
+
+        if ((title == null || title.trim().isEmpty()) && data != null) {
+            title = data.get("title");
+        }
+        if ((body == null || body.trim().isEmpty()) && data != null) {
+            body = data.get("body");
+            if (body == null || body.trim().isEmpty()) {
+                body = data.get("message");
+            }
+        }
+
+        if (title == null || title.trim().isEmpty()) {
+            title = "Bulk SMS Manager";
+        }
+        if (body == null || body.trim().isEmpty()) {
+            body = "You have a new notification.";
+        }
         
         NotificationCompat.Builder notificationBuilder =
             new NotificationCompat.Builder(this, CHANNEL_ID)
                 .setSmallIcon(android.R.drawable.ic_dialog_info)
-                .setContentTitle(remoteMessage.getNotification().getTitle())
-                .setContentText(remoteMessage.getNotification().getBody())
+                .setContentTitle(title)
+                .setContentText(body)
                 .setAutoCancel(true)
                 .setContentIntent(pendingIntent);
         
         NotificationManager notificationManager =
             (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+        if (notificationManager == null) {
+            return;
+        }
         
         // Create channel for Android O and above
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -62,7 +91,7 @@ public class FCMService extends FirebaseMessagingService {
             notificationManager.createNotificationChannel(channel);
         }
         
-        notificationManager.notify(0, notificationBuilder.build());
+        notificationManager.notify((int) System.currentTimeMillis(), notificationBuilder.build());
     }
     
     @Override

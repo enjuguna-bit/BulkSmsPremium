@@ -17,7 +17,7 @@
             android:layout_height="?attr/actionBarSize"
             android:background="?attr/colorPrimary"
             app:navigationIcon="?attr/homeAsUpIndicator"
-            app:title="Conversation" />
+            app:title="@string/conversation_title" />
 
     </com.google.android.material.appbar.AppBarLayout>
 
@@ -59,7 +59,7 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:background="@null"
-                android:hint="Type a message..."
+                android:hint="@string/conversation_message_hint"
                 android:inputType="textMultiLine|textCapSentences"
                 android:maxLines="4"
                 android:padding="8dp" />
@@ -69,7 +69,7 @@
                 android:layout_width="48dp"
                 android:layout_height="48dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
-                android:contentDescription="Send message"
+                android:contentDescription="@string/conversation_send_message"
                 android:src="@android:drawable/ic_menu_send"
                 app:tint="?attr/colorPrimary" />
 
@@ -89,7 +89,7 @@
             android:id="@+id/textEmpty"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="No messages yet"
+            android:text="@string/inbox_empty_title"
             android:textSize="16sp"
             android:visibility="gone"
             app:layout_constraintBottom_toBottomOf="parent"

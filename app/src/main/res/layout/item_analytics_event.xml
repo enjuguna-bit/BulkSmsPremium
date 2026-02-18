@@ -25,18 +25,18 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="Event Name"
+                android:text="@string/placeholder_event_name"
                 android:textSize="14sp"
                 android:textStyle="bold"
-                android:textColor="@android:color/black" />
+                android:textColor="@color/color_on_surface" />
 
             <TextView
                 android:id="@+id/tvEventTimestamp"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Jan 25, 10:30"
+                android:text="@string/placeholder_event_timestamp"
                 android:textSize="12sp"
-                android:textColor="@android:color/darker_gray" />
+                android:textColor="@color/color_on_surface_variant" />
 
         </LinearLayout>
 
@@ -44,9 +44,9 @@
             android:id="@+id/tvEventParameters"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Parameters..."
+            android:text="@string/placeholder_event_parameters"
             android:textSize="12sp"
-            android:textColor="@android:color/white"
+            android:textColor="@color/color_on_surface"
             android:padding="8dp"
             android:maxLines="4"
             android:ellipsize="end" />

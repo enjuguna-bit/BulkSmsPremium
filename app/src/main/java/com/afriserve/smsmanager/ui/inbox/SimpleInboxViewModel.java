@@ -18,13 +18,12 @@ import com.afriserve.smsmanager.data.repository.ConversationRepository;
 import com.afriserve.smsmanager.data.repository.SmsSearchRepository;
 import com.afriserve.smsmanager.data.sync.SmsSyncManager;
 import com.afriserve.smsmanager.data.sync.OfflineFirstSyncManager;
+import com.afriserve.smsmanager.data.sync.ConversationSyncManager;
 import com.afriserve.smsmanager.data.repository.SyncResult;
 import dagger.hilt.android.lifecycle.HiltViewModel;
 import io.reactivex.rxjava3.disposables.CompositeDisposable;
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import javax.inject.Inject;
 
 @HiltViewModel
@@ -35,7 +34,7 @@ public class SimpleInboxViewModel extends ViewModel {
     private final SmsSearchRepository searchRepository;
     private final SmsSyncManager syncManager;
     private final OfflineFirstSyncManager offlineFirstSyncManager;
-    private final ExecutorService executor = Executors.newSingleThreadExecutor();
+    private final ConversationSyncManager conversationSyncManager;
     private final CompositeDisposable disposables = new CompositeDisposable();
     
     // UI State
@@ -84,8 +83,10 @@ public class SimpleInboxViewModel extends ViewModel {
         ConversationRepository conversationRepository,
         SmsSearchRepository searchRepository,
         SmsSyncManager syncManager,
-        OfflineFirstSyncManager offlineFirstSyncManager
+        OfflineFirstSyncManager offlineFirstSyncManager,
+        ConversationSyncManager conversationSyncManager
     ) {
+        this.conversationSyncManager = conversationSyncManager;
         this.repository = repository;
         this.conversationRepository = conversationRepository;
         this.searchRepository = searchRepository;
@@ -149,25 +150,23 @@ public class SimpleInboxViewModel extends ViewModel {
         initializeOfflineFirstSync();
         
         // Perform initial incremental sync in background for faster startup
-        executor.execute(() -> {
-            try {
-                Log.d("SimpleInboxViewModel", "Performing incremental conversation sync");
-                // Use incremental sync for faster startup
+        try {
+            Log.d("SimpleInboxViewModel", "Performing incremental conversation sync");
+            disposables.add(
                 conversationRepository.syncConversationsFromMessages()
                     .observeOn(AndroidSchedulers.mainThread())
                     .subscribe(
                         () -> Log.d("SimpleInboxViewModel", "Incremental conversation sync completed"),
                         error -> {
                             Log.e("SimpleInboxViewModel", "Incremental conversation sync failed, falling back to full sync", error);
-                            // Fallback to full sync if incremental fails
                             performFullSync();
                         }
-                    );
-            } catch (Exception e) {
-                Log.e("SimpleInboxViewModel", "Failed to start incremental conversation sync", e);
-                performFullSync();
-            }
-        });
+                    )
+            );
+        } catch (Exception e) {
+            Log.e("SimpleInboxViewModel", "Failed to start incremental conversation sync", e);
+            performFullSync();
+        }
         
         // Load cached conversations immediately for instant UI display
         loadCachedConversations();
@@ -327,7 +326,7 @@ public class SimpleInboxViewModel extends ViewModel {
     }
     
     public void setFilter(FilterType filter) {
-        currentFilter = filter;
+        currentFilter = filter != null ? filter : FilterType.ALL;
         updateMessagesSource();
     }
     
@@ -353,7 +352,7 @@ public class SimpleInboxViewModel extends ViewModel {
                 // Use conversation repository based on filter
                 return switch (currentFilter) {
                     case INBOX -> conversationRepository.getActiveConversationsPaged();
-                    case SENT -> conversationRepository.getActiveConversationsPaged(); // Sent messages are part of active conversations
+                    case SENT -> conversationRepository.getSentConversationsPaged();
                     case UNREAD -> conversationRepository.getUnreadConversationsPaged();
                     default -> conversationRepository.getAllConversationsPaged();
                 };
@@ -418,9 +417,6 @@ public class SimpleInboxViewModel extends ViewModel {
         
         // Dispose RxJava subscriptions
         disposables.clear();
-        
-        // Shutdown executor
-        executor.shutdown();
     }
     
     /**
@@ -472,19 +468,14 @@ public class SimpleInboxViewModel extends ViewModel {
      * Load cached conversations immediately for instant UI display
      */
     private void loadCachedConversations() {
-        executor.execute(() -> {
-            try {
-                Log.d("SimpleInboxViewModel", "Loading cached conversations for instant display");
-                // This will trigger immediate display of cached data
-                updateMessagesSource();
-                
-                // Then perform background sync
+        try {
+            Log.d("SimpleInboxViewModel", "Loading cached conversations for instant display");
+            if (syncManager != null) {
                 syncManager.performInitialSync();
-                
-            } catch (Exception e) {
-                Log.e("SimpleInboxViewModel", "Failed to load cached conversations", e);
             }
-        });
+        } catch (Exception e) {
+            Log.e("SimpleInboxViewModel", "Failed to load cached conversations", e);
+        }
     }
     
     /**

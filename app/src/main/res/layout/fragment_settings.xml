@@ -5,7 +5,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:fillViewport="true"
-    android:background="#F5F7FB">
+    android:background="@drawable/bg_dashboard_gradient">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -22,7 +22,8 @@
             app:cardCornerRadius="16dp"
             app:cardElevation="8dp"
             app:cardUseCompatPadding="true"
-            app:strokeColor="#90CAF9"
+            app:cardBackgroundColor="@android:color/transparent"
+            app:strokeColor="@color/fx_panel_stroke"
             app:strokeWidth="1dp"
             android:clickable="true"
             android:focusable="true"
@@ -32,7 +33,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:background="#1E88E5"
+                android:background="@drawable/subscription_background"
                 android:padding="20dp">
 
                 <LinearLayout
@@ -46,10 +47,15 @@
                         android:id="@+id/txtSubscriptionBadge"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="FREE"
+                        android:text="@string/settings_subscription_badge_free"
                         android:textSize="16sp"
                         android:textStyle="bold"
-                        android:textColor="#FFFFFF"
+                        android:textColor="@color/fx_badge_text"
+                        android:background="@drawable/bg_premium_badge"
+                        android:paddingStart="8dp"
+                        android:paddingEnd="8dp"
+                        android:paddingTop="4dp"
+                        android:paddingBottom="4dp"
                         android:layout_marginEnd="12dp"/>
 
                     <LinearLayout
@@ -62,27 +68,27 @@
                             android:id="@+id/txtPremiumTitle"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Free plan"
+                            android:text="@string/settings_subscription_title_free"
                             android:textSize="20sp"
                             android:textStyle="bold"
-                            android:textColor="#FFFFFF"/>
+                            android:textColor="@color/color_on_surface"/>
 
                         <TextView
                             android:id="@+id/txtSubscriptionStatus"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Free plan - limited features"
+                            android:text="@string/settings_subscription_status_free"
                             android:textSize="13sp"
-                            android:textColor="#E0E0E0"
+                            android:textColor="@color/color_on_surface_variant"
                             android:layout_marginTop="4dp"/>
 
                         <TextView
                             android:id="@+id/txtSubscriptionPaidUntil"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Paid until: --"
+                            android:text="@string/settings_subscription_paid_until_placeholder"
                             android:textSize="12sp"
-                            android:textColor="#BBDEFB"
+                            android:textColor="@color/color_on_surface_variant"
                             android:layout_marginTop="4dp"
                             android:visibility="gone"/>
 
@@ -90,9 +96,9 @@
                             android:id="@+id/txtSubscriptionLastChecked"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Last checked: --"
+                            android:text="@string/settings_subscription_last_checked_placeholder"
                             android:textSize="11sp"
-                            android:textColor="#BBDEFB"
+                            android:textColor="@color/color_on_surface_variant"
                             android:layout_marginTop="4dp"/>
                     </LinearLayout>
 
@@ -101,9 +107,9 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Unlimited SMS | Priority support | No ads"
+                    android:text="@string/settings_subscription_benefits"
                     android:textSize="13sp"
-                    android:textColor="#FFFFFF"
+                    android:textColor="@color/color_on_surface_variant"
                     android:layout_marginBottom="16dp"/>
 
                 <LinearLayout
@@ -122,36 +128,36 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="KSH "
+                            android:text="@string/settings_subscription_currency"
                             android:textSize="16sp"
-                            android:textColor="#FFFFFF"/>
+                            android:textColor="@color/color_on_surface_variant"/>
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="200"
+                            android:text="@string/settings_subscription_price_daily"
                             android:textSize="32sp"
                             android:textStyle="bold"
-                            android:textColor="#FFFFFF"/>
+                            android:textColor="@color/color_on_surface"/>
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="/day"
+                            android:text="@string/settings_subscription_period_daily"
                             android:textSize="16sp"
-                            android:textColor="#E0E0E0"
+                            android:textColor="@color/color_on_surface_variant"
                             android:layout_marginStart="4dp"
                             android:layout_marginBottom="4dp"/>
                     </LinearLayout>
 
-                    <Button
+                    <com.google.android.material.button.MaterialButton
                         android:id="@+id/btnUpgradePremium"
                         android:layout_width="wrap_content"
                         android:layout_height="48dp"
-                        android:text="Upgrade Now"
+                        android:text="@string/settings_subscription_open_payment"
                         android:textStyle="bold"
-                        android:textColor="#1E88E5"
-                        android:backgroundTint="#FFFFFF"
+                        android:textColor="@color/color_primary"
+                        android:backgroundTint="@color/color_surface"
                         android:paddingStart="24dp"
                         android:paddingEnd="24dp"
                         app:cornerRadius="24dp"/>
@@ -162,39 +168,42 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="12dp"
+                    android:hint="@string/settings_subscription_phone_hint"
                     app:boxBackgroundMode="filled"
-                    app:boxBackgroundColor="#FFFFFF"
+                    app:boxBackgroundColor="@color/color_surface"
                     app:boxCornerRadiusBottomEnd="12dp"
                     app:boxCornerRadiusBottomStart="12dp"
                     app:boxCornerRadiusTopEnd="12dp"
                     app:boxCornerRadiusTopStart="12dp"
-                    app:boxStrokeColor="#BBDEFB"
+                    app:boxStrokeColor="@color/color_outline_variant"
                     app:helperText="@string/settings_premium_phone_helper"
-                    app:helperTextTextColor="#BBDEFB"
-                    app:hintTextColor="#1E88E5"
+                    app:helperTextTextColor="@color/color_on_surface_variant"
+                    app:hintTextColor="@color/color_primary"
+                    app:placeholderText="@string/settings_subscription_phone_placeholder"
+                    app:placeholderTextColor="@color/color_on_surface_variant"
                     app:startIconDrawable="@android:drawable/ic_menu_call"
-                    app:startIconTint="#1E88E5">
+                    app:startIconTint="@color/color_primary">
 
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/etSubscriptionPhone"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:hint="M-Pesa phone number for status check"
                         android:inputType="phone"
-                        android:textColor="#000000"
-                        android:textColorHint="#9E9E9E" />
+                        android:textColor="@color/color_on_surface"
+                        android:textColorHint="@color/color_on_surface_variant"
+                        android:textSize="16sp" />
                 </com.google.android.material.textfield.TextInputLayout>
 
-                <Button
+                <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnRefreshStatus"
                     android:layout_width="match_parent"
                     android:layout_height="40dp"
                     android:layout_marginTop="12dp"
-                    android:text="Refresh Status"
+                    android:text="@string/settings_subscription_check_active"
                     android:textAllCaps="false"
                     android:textStyle="bold"
-                    android:textColor="#1E88E5"
-                    android:backgroundTint="#E3F2FD"
+                    android:textColor="@color/color_primary"
+                    android:backgroundTint="@color/color_primary_container"
                     app:cornerRadius="20dp"/>
 
                 <TextView
@@ -203,7 +212,7 @@
                     android:layout_marginTop="8dp"
                     android:text="@string/settings_premium_refresh_tip"
                     android:textSize="11sp"
-                    android:textColor="#BBDEFB"/>
+                    android:textColor="@color/color_on_surface_variant"/>
 
             </LinearLayout>
 
@@ -217,6 +226,9 @@
             android:layout_marginBottom="12dp"
             app:cardCornerRadius="12dp"
             app:cardElevation="4dp"
+            app:cardBackgroundColor="@color/fx_glass_surface"
+            app:strokeColor="@color/color_outline_variant"
+            app:strokeWidth="1dp"
             android:clickable="true"
             android:focusable="true"
             android:foreground="?android:attr/selectableItemBackground">
@@ -246,7 +258,7 @@
                         android:layout_height="wrap_content"
                         android:text="@string/settings_theme_helper"
                         android:textSize="12sp"
-                        android:textColor="#607D8B"
+                        android:textColor="@color/color_on_surface_variant"
                         android:layout_marginTop="4dp" />
 
                 </LinearLayout>
@@ -255,9 +267,9 @@
                     android:id="@+id/txtCurrentTheme"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="System"
+                    android:text="@string/settings_theme_system"
                     android:textSize="14sp"
-                    android:textColor="@android:color/darker_gray" />
+                    android:textColor="@color/color_on_surface_variant" />
 
             </LinearLayout>
 
@@ -270,7 +282,10 @@
             android:layout_height="wrap_content"
             android:layout_marginBottom="12dp"
             app:cardCornerRadius="12dp"
-            app:cardElevation="4dp">
+            app:cardElevation="4dp"
+            app:cardBackgroundColor="@color/fx_glass_surface"
+            app:strokeColor="@color/color_outline_variant"
+            app:strokeWidth="1dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -297,12 +312,12 @@
                         android:layout_height="wrap_content"
                         android:text="@string/settings_notifications_helper"
                         android:textSize="12sp"
-                        android:textColor="#607D8B"
+                        android:textColor="@color/color_on_surface_variant"
                         android:layout_marginTop="4dp" />
 
                 </LinearLayout>
 
-                <Switch
+                <com.google.android.material.materialswitch.MaterialSwitch
                     android:id="@+id/switchNotifications"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -320,6 +335,9 @@
             android:layout_marginBottom="12dp"
             app:cardCornerRadius="12dp"
             app:cardElevation="4dp"
+            app:cardBackgroundColor="@color/fx_glass_surface"
+            app:strokeColor="@color/color_outline_variant"
+            app:strokeWidth="1dp"
             android:clickable="true"
             android:focusable="true"
             android:foreground="?android:attr/selectableItemBackground">
@@ -349,7 +367,7 @@
                         android:layout_height="wrap_content"
                         android:text="@string/settings_default_sms_helper"
                         android:textSize="12sp"
-                        android:textColor="#607D8B"
+                        android:textColor="@color/color_on_surface_variant"
                         android:layout_marginTop="4dp" />
 
                 </LinearLayout>
@@ -358,9 +376,9 @@
                     android:id="@+id/txtDefaultSmsStatus"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Tap to set as default"
+                    android:text="@string/settings_status_default_sms_inactive"
                     android:textSize="14sp"
-                    android:textColor="@android:color/holo_orange_dark" />
+                    android:textColor="@color/status_warning" />
 
             </LinearLayout>
 
@@ -374,6 +392,9 @@
             android:layout_marginBottom="12dp"
             app:cardCornerRadius="12dp"
             app:cardElevation="4dp"
+            app:cardBackgroundColor="@color/fx_glass_surface"
+            app:strokeColor="@color/color_outline_variant"
+            app:strokeWidth="1dp"
             android:clickable="true"
             android:focusable="true"
             android:foreground="?android:attr/selectableItemBackground">
@@ -403,7 +424,7 @@
                         android:layout_height="wrap_content"
                         android:text="@string/settings_biometric_helper"
                         android:textSize="12sp"
-                        android:textColor="#607D8B"
+                        android:textColor="@color/color_on_surface_variant"
                         android:layout_marginTop="4dp" />
 
                 </LinearLayout>
@@ -412,9 +433,9 @@
                     android:id="@+id/txtBiometricStatus"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Setup required"
+                    android:text="@string/settings_status_biometric_setup"
                     android:textSize="14sp"
-                    android:textColor="@android:color/holo_blue_bright" />
+                    android:textColor="@color/status_info" />
 
             </LinearLayout>
 
@@ -428,6 +449,9 @@
             android:layout_marginBottom="12dp"
             app:cardCornerRadius="12dp"
             app:cardElevation="4dp"
+            app:cardBackgroundColor="@color/fx_glass_surface"
+            app:strokeColor="@color/color_outline_variant"
+            app:strokeWidth="1dp"
             android:clickable="true"
             android:focusable="true"
             android:foreground="?android:attr/selectableItemBackground">
@@ -457,7 +481,7 @@
                         android:layout_height="wrap_content"
                         android:text="@string/settings_support_helper"
                         android:textSize="12sp"
-                        android:textColor="#607D8B"
+                        android:textColor="@color/color_on_surface_variant"
                         android:layout_marginTop="4dp" />
 
                 </LinearLayout>
@@ -468,7 +492,7 @@
                     android:layout_height="wrap_content"
                     android:text="@string/settings_support_email"
                     android:textSize="13sp"
-                    android:textColor="#1E88E5" />
+                    android:textColor="@color/color_primary" />
 
             </LinearLayout>
 
@@ -482,6 +506,9 @@
             android:layout_marginBottom="12dp"
             app:cardCornerRadius="12dp"
             app:cardElevation="4dp"
+            app:cardBackgroundColor="@color/fx_glass_surface"
+            app:strokeColor="@color/color_outline_variant"
+            app:strokeWidth="1dp"
             android:clickable="true"
             android:focusable="true"
             android:foreground="?android:attr/selectableItemBackground">
@@ -511,7 +538,7 @@
                         android:layout_height="wrap_content"
                         android:text="@string/settings_privacy_helper"
                         android:textSize="12sp"
-                        android:textColor="#607D8B"
+                        android:textColor="@color/color_on_surface_variant"
                         android:layout_marginTop="4dp" />
 
                 </LinearLayout>
@@ -521,7 +548,7 @@
                     android:layout_height="wrap_content"
                     android:text="@string/settings_arrow"
                     android:textSize="16sp"
-                    android:textColor="@android:color/darker_gray" />
+                    android:textColor="@color/color_on_surface_variant" />
 
             </LinearLayout>
 
@@ -535,6 +562,9 @@
             android:layout_marginBottom="12dp"
             app:cardCornerRadius="12dp"
             app:cardElevation="4dp"
+            app:cardBackgroundColor="@color/fx_glass_surface"
+            app:strokeColor="@color/color_outline_variant"
+            app:strokeWidth="1dp"
             android:clickable="true"
             android:focusable="true"
             android:foreground="?android:attr/selectableItemBackground">
@@ -564,7 +594,7 @@
                         android:layout_height="wrap_content"
                         android:text="@string/settings_clear_cache_helper"
                         android:textSize="12sp"
-                        android:textColor="#607D8B"
+                        android:textColor="@color/color_on_surface_variant"
                         android:layout_marginTop="4dp" />
 
                 </LinearLayout>
@@ -574,7 +604,7 @@
                     android:layout_height="wrap_content"
                     android:text="@string/settings_arrow"
                     android:textSize="16sp"
-                    android:textColor="@android:color/darker_gray" />
+                    android:textColor="@color/color_on_surface_variant" />
 
             </LinearLayout>
 
@@ -588,6 +618,9 @@
             android:layout_marginBottom="12dp"
             app:cardCornerRadius="12dp"
             app:cardElevation="4dp"
+            app:cardBackgroundColor="@color/fx_glass_surface"
+            app:strokeColor="@color/color_outline_variant"
+            app:strokeWidth="1dp"
             android:clickable="true"
             android:focusable="true"
             android:foreground="?android:attr/selectableItemBackground">
@@ -617,7 +650,7 @@
                         android:layout_height="wrap_content"
                         android:text="@string/settings_about_helper"
                         android:textSize="12sp"
-                        android:textColor="#607D8B"
+                        android:textColor="@color/color_on_surface_variant"
                         android:layout_marginTop="4dp" />
 
                 </LinearLayout>
@@ -627,7 +660,7 @@
                     android:layout_height="wrap_content"
                     android:text="@string/settings_arrow"
                     android:textSize="16sp"
-                    android:textColor="@android:color/darker_gray" />
+                    android:textColor="@color/color_on_surface_variant" />
 
             </LinearLayout>
 
@@ -636,3 +669,4 @@
     </LinearLayout>
 
 </androidx.core.widget.NestedScrollView>
+

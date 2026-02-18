@@ -4,8 +4,6 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
-import android.widget.CompoundButton;
-import android.widget.Switch;
 import android.widget.TextView;
 
 import androidx.annotation.Nullable;
@@ -13,6 +11,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.afriserve.smsmanager.R;
 import com.afriserve.smsmanager.utils.ToastUtils;
+import com.google.android.material.materialswitch.MaterialSwitch;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -22,7 +21,7 @@ import java.util.concurrent.Executors;
  */
 public class BiometricSettingsActivity extends AppCompatActivity {
     private BiometricAuthManager biometricManager;
-    private Switch switchBiometric;
+    private MaterialSwitch switchBiometric;
     private TextView textStatus;
     private Button btnTestAuth, btnSetupFingerprint;
     
@@ -159,7 +158,7 @@ public class BiometricSettingsActivity extends AppCompatActivity {
             case NOT_ENROLLED:
                 btnTestAuth.setVisibility(View.GONE);
                 btnSetupFingerprint.setVisibility(View.VISIBLE);
-                btnSetupFingerprint.setText("Setup Fingerprint");
+                btnSetupFingerprint.setText(R.string.biometric_setup_fingerprint);
                 break;
             case NO_HARDWARE:
             case HW_UNAVAILABLE:
@@ -169,7 +168,7 @@ public class BiometricSettingsActivity extends AppCompatActivity {
             default:
                 btnTestAuth.setVisibility(View.GONE);
                 btnSetupFingerprint.setVisibility(View.VISIBLE);
-                btnSetupFingerprint.setText("Open Security Settings");
+                btnSetupFingerprint.setText(R.string.biometric_open_security_settings);
                 break;
         }
     }
