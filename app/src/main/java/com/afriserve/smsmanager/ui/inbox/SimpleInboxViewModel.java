@@ -60,6 +60,7 @@ public class SimpleInboxViewModel extends ViewModel {
     
     // Current filter and search
     private FilterType currentFilter = FilterType.ALL;
+    private SortType currentSort = SortType.NEWEST;
     private String currentSearchQuery = "";
     
     // Current messages LiveData observer (to prevent memory leaks)
@@ -329,9 +330,14 @@ public class SimpleInboxViewModel extends ViewModel {
         currentFilter = filter != null ? filter : FilterType.ALL;
         updateMessagesSource();
     }
+
+    public void setSort(SortType sort) {
+        currentSort = sort != null ? sort : SortType.NEWEST;
+        updateMessagesSource();
+    }
     
     private void updateMessagesSource() {
-        Log.d("SimpleInboxViewModel", "Updating messages source - filter: " + currentFilter + ", search: '" + currentSearchQuery + "'");
+        Log.d("SimpleInboxViewModel", "Updating messages source - filter: " + currentFilter + ", sort: " + currentSort + ", search: '" + currentSearchQuery + "'");
         
         // Remove previous observer to prevent memory leaks
         if (currentMessagesLiveData != null && messagesObserver != null) {
@@ -344,19 +350,11 @@ public class SimpleInboxViewModel extends ViewModel {
         PagingConfig pagingConfig = new PagingConfig(20, 5, false);
         Pager<Integer, ConversationEntity> pager = new Pager<>(pagingConfig, () -> {
             Log.d("SimpleInboxViewModel", "Creating new PagingSource...");
-            // Create a fresh PagingSource instance each time this is called
-            if (currentSearchQuery != null && !currentSearchQuery.isEmpty()) {
-                // Use conversation search
-                return conversationRepository.searchConversations(currentSearchQuery);
-            } else {
-                // Use conversation repository based on filter
-                return switch (currentFilter) {
-                    case INBOX -> conversationRepository.getActiveConversationsPaged();
-                    case SENT -> conversationRepository.getSentConversationsPaged();
-                    case UNREAD -> conversationRepository.getUnreadConversationsPaged();
-                    default -> conversationRepository.getAllConversationsPaged();
-                };
-            }
+            return conversationRepository.getConversationsPaged(
+                currentFilter.name(),
+                currentSearchQuery,
+                currentSort.name()
+            );
         });
         
         // Use PagingLiveData to convert Pager to LiveData for Java compatibility
@@ -553,5 +551,11 @@ public class SimpleInboxViewModel extends ViewModel {
         INBOX,
         SENT,
         UNREAD
+    }
+
+    public enum SortType {
+        NEWEST,
+        OLDEST,
+        UNREAD_FIRST
     }
 }

@@ -1,6 +1,7 @@
 package com.afriserve.smsmanager.ui.inbox;
 
 import android.Manifest;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.util.Log;
@@ -38,8 +39,11 @@ import java.util.HashMap;
 import java.util.Map;
 import javax.inject.Inject;
 import android.os.Build;
+import android.os.Handler;
+import android.os.Looper;
 import android.provider.Telephony;
 import android.app.role.RoleManager;
+import android.view.inputmethod.InputMethodManager;
 
 /**
  * Premium Inbox Fragment with advanced features
@@ -49,6 +53,8 @@ public class InboxFragment extends Fragment {
     
     private static final String TAG = "InboxFragment";
     private static final int SMS_PERMISSION_REQUEST_CODE = 1001;
+    private static final String INBOX_PREFS = "inbox_preferences";
+    private static final String PREF_KEY_SORT_TYPE = "inbox_sort_type";
     
     private FragmentInboxBinding binding;
     private SimpleInboxViewModel viewModel;
@@ -65,6 +71,11 @@ public class InboxFragment extends Fragment {
     private Map<String, Long> lastAccessTimes = new HashMap<>();
     private BlockListManager blockListManager;
     private boolean inboxInitialized = false;
+    
+    // Search debounce handler
+    private final Handler searchHandler = new Handler(Looper.getMainLooper());
+    private Runnable searchRunnable;
+    private static final long SEARCH_DEBOUNCE_MS = 400;
     
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -100,6 +111,8 @@ public class InboxFragment extends Fragment {
         setupRecyclerView();
         setupSearch();
         setupFilters();
+        setupSortOptions();
+        restoreSortPreference();
         setupSwipeRefresh();
         observeData();
         observeState();
@@ -207,7 +220,13 @@ public class InboxFragment extends Fragment {
 
                     @Override
                     public void onTextChanged(CharSequence s, int start, int before, int count) {
-                        applySearchQuery(s != null ? s.toString() : "");
+                        // Debounce search to prevent excessive queries
+                        if (searchRunnable != null) {
+                            searchHandler.removeCallbacks(searchRunnable);
+                        }
+                        final String query = s != null ? s.toString() : "";
+                        searchRunnable = () -> applySearchQuery(query);
+                        searchHandler.postDelayed(searchRunnable, SEARCH_DEBOUNCE_MS);
                     }
 
                     @Override
@@ -217,16 +236,47 @@ public class InboxFragment extends Fragment {
 
                 binding.searchInput.setOnEditorActionListener((v, actionId, event) -> {
                     if (actionId == EditorInfo.IME_ACTION_SEARCH || actionId == EditorInfo.IME_ACTION_DONE) {
+                        // Cancel pending debounce and search immediately
+                        if (searchRunnable != null) {
+                            searchHandler.removeCallbacks(searchRunnable);
+                        }
                         applySearchQuery(v.getText() != null ? v.getText().toString() : "");
+                        hideKeyboard();
                         return true;
                     }
                     return false;
                 });
+                
+                // Dismiss keyboard when scrolling the list
+                if (binding.recyclerView != null) {
+                    binding.recyclerView.addOnScrollListener(new androidx.recyclerview.widget.RecyclerView.OnScrollListener() {
+                        @Override
+                        public void onScrollStateChanged(androidx.recyclerview.widget.RecyclerView recyclerView, int newState) {
+                            if (newState == androidx.recyclerview.widget.RecyclerView.SCROLL_STATE_DRAGGING) {
+                                hideKeyboard();
+                            }
+                        }
+                    });
+                }
             } else {
                 Log.w("InboxFragment", "Search input or binding is null");
             }
         } catch (Exception e) {
             Log.e("InboxFragment", "Error setting up search", e);
+        }
+    }
+    
+    private void hideKeyboard() {
+        try {
+            if (binding != null && binding.searchInput != null) {
+                InputMethodManager imm = (InputMethodManager) requireContext().getSystemService(android.content.Context.INPUT_METHOD_SERVICE);
+                if (imm != null) {
+                    imm.hideSoftInputFromWindow(binding.searchInput.getWindowToken(), 0);
+                }
+                binding.searchInput.clearFocus();
+            }
+        } catch (Exception e) {
+            Log.w(TAG, "Error hiding keyboard", e);
         }
     }
 
@@ -313,6 +363,123 @@ public class InboxFragment extends Fragment {
             }
         } catch (Exception e) {
             Log.e("InboxFragment", "Error setting up filters", e);
+        }
+    }
+
+    private void setupSortOptions() {
+        try {
+            if (binding == null) {
+                Log.w("InboxFragment", "Binding is null in setupSortOptions");
+                return;
+            }
+
+            if (binding.chipSortNewest != null) {
+                binding.chipSortNewest.setOnClickListener(v -> {
+                    try {
+                        if (viewModel != null) {
+                            viewModel.setSort(SimpleInboxViewModel.SortType.NEWEST);
+                            persistSortPreference(SimpleInboxViewModel.SortType.NEWEST);
+                            updateSortChips(binding.chipSortNewest);
+                        }
+                    } catch (Exception e) {
+                        Log.e("InboxFragment", "Error in chipSortNewest click", e);
+                    }
+                });
+            }
+
+            if (binding.chipSortOldest != null) {
+                binding.chipSortOldest.setOnClickListener(v -> {
+                    try {
+                        if (viewModel != null) {
+                            viewModel.setSort(SimpleInboxViewModel.SortType.OLDEST);
+                            persistSortPreference(SimpleInboxViewModel.SortType.OLDEST);
+                            updateSortChips(binding.chipSortOldest);
+                        }
+                    } catch (Exception e) {
+                        Log.e("InboxFragment", "Error in chipSortOldest click", e);
+                    }
+                });
+            }
+
+            if (binding.chipSortUnreadFirst != null) {
+                binding.chipSortUnreadFirst.setOnClickListener(v -> {
+                    try {
+                        if (viewModel != null) {
+                            viewModel.setSort(SimpleInboxViewModel.SortType.UNREAD_FIRST);
+                            persistSortPreference(SimpleInboxViewModel.SortType.UNREAD_FIRST);
+                            updateSortChips(binding.chipSortUnreadFirst);
+                        }
+                    } catch (Exception e) {
+                        Log.e("InboxFragment", "Error in chipSortUnreadFirst click", e);
+                    }
+                });
+            }
+        } catch (Exception e) {
+            Log.e("InboxFragment", "Error setting up sort options", e);
+        }
+    }
+
+    private void restoreSortPreference() {
+        try {
+            if (!isAdded() || viewModel == null || binding == null) {
+                return;
+            }
+
+            SharedPreferences prefs = requireContext().getSharedPreferences(INBOX_PREFS, android.content.Context.MODE_PRIVATE);
+            String savedValue = prefs.getString(PREF_KEY_SORT_TYPE, SimpleInboxViewModel.SortType.NEWEST.name());
+
+            SimpleInboxViewModel.SortType sortType;
+            try {
+                sortType = SimpleInboxViewModel.SortType.valueOf(savedValue);
+            } catch (Exception ignored) {
+                sortType = SimpleInboxViewModel.SortType.NEWEST;
+            }
+
+            viewModel.setSort(sortType);
+            switch (sortType) {
+                case OLDEST:
+                    if (binding.chipSortOldest != null) {
+                        updateSortChips(binding.chipSortOldest);
+                    }
+                    break;
+                case UNREAD_FIRST:
+                    if (binding.chipSortUnreadFirst != null) {
+                        updateSortChips(binding.chipSortUnreadFirst);
+                    }
+                    break;
+                case NEWEST:
+                default:
+                    if (binding.chipSortNewest != null) {
+                        updateSortChips(binding.chipSortNewest);
+                    }
+                    break;
+            }
+        } catch (Exception e) {
+            Log.w(TAG, "Failed to restore sort preference", e);
+        }
+    }
+
+    private void persistSortPreference(SimpleInboxViewModel.SortType sortType) {
+        try {
+            if (!isAdded() || sortType == null) {
+                return;
+            }
+            SharedPreferences prefs = requireContext().getSharedPreferences(INBOX_PREFS, android.content.Context.MODE_PRIVATE);
+            prefs.edit().putString(PREF_KEY_SORT_TYPE, sortType.name()).apply();
+        } catch (Exception e) {
+            Log.w(TAG, "Failed to persist sort preference", e);
+        }
+    }
+
+    private void updateSortChips(Chip selectedChip) {
+        try {
+            if (binding != null) {
+                if (binding.chipSortNewest != null) binding.chipSortNewest.setChecked(selectedChip == binding.chipSortNewest);
+                if (binding.chipSortOldest != null) binding.chipSortOldest.setChecked(selectedChip == binding.chipSortOldest);
+                if (binding.chipSortUnreadFirst != null) binding.chipSortUnreadFirst.setChecked(selectedChip == binding.chipSortUnreadFirst);
+            }
+        } catch (Exception e) {
+            Log.e("InboxFragment", "Error updating sort chips", e);
         }
     }
     
@@ -1139,6 +1306,13 @@ public class InboxFragment extends Fragment {
                 }
             }
             
+            // Cancel pending search debounce
+            if (searchRunnable != null) {
+                searchHandler.removeCallbacks(searchRunnable);
+                searchRunnable = null;
+            }
+            searchHandler.removeCallbacksAndMessages(null);
+            
             // Clear chip click listeners
             if (binding != null) {
                 try {
@@ -1146,6 +1320,9 @@ public class InboxFragment extends Fragment {
                     if (binding.chipInbox != null) binding.chipInbox.setOnClickListener(null);
                     if (binding.chipSent != null) binding.chipSent.setOnClickListener(null);
                     if (binding.chipUnread != null) binding.chipUnread.setOnClickListener(null);
+                    if (binding.chipSortNewest != null) binding.chipSortNewest.setOnClickListener(null);
+                    if (binding.chipSortOldest != null) binding.chipSortOldest.setOnClickListener(null);
+                    if (binding.chipSortUnreadFirst != null) binding.chipSortUnreadFirst.setOnClickListener(null);
                 } catch (Exception e) {
                     Log.w("InboxFragment", "Error clearing chip listeners", e);
                 }

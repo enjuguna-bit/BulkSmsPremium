@@ -2,12 +2,16 @@ package com.afriserve.smsmanager.ui.inbox;
 
 import android.content.res.ColorStateList;
 import android.graphics.Typeface;
+import android.net.Uri;
 import android.view.LayoutInflater;
+import android.view.View;
 import android.view.ViewGroup;
 import androidx.paging.PagingDataAdapter;
 import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.core.content.ContextCompat;
+import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.resource.bitmap.CircleCrop;
 import com.google.android.material.color.MaterialColors;
 import android.text.SpannableString;
 import android.text.Spanned;
@@ -178,13 +182,8 @@ public class ConversationPagingAdapter extends PagingDataAdapter<ConversationEnt
                     binding.tvTimestamp.setText(timeText);
                 }
                 
-                // Set contact photo with null guard
-                if (binding.ivContactPhoto != null) {
-                    String firstLetter = displayName.length() > 0 ? displayName.substring(0, 1).toUpperCase() : "?";
-                    binding.ivContactPhoto.setText(firstLetter);
-                    int color = getAvatarColor(displayName);
-                    binding.ivContactPhoto.setBackgroundTintList(ColorStateList.valueOf(color));
-                }
+                // Set contact photo - load actual photo or show letter fallback
+                loadContactPhoto(conversation, displayName);
                 
                 // Set click listeners with null guards
                 if (binding.getRoot() != null) {
@@ -215,13 +214,18 @@ public class ConversationPagingAdapter extends PagingDataAdapter<ConversationEnt
                 // Set pinned/archived status with null guards
                 if (binding.ivPinned != null) {
                     binding.ivPinned.setVisibility(conversation.isPinned ? android.view.View.VISIBLE : android.view.View.GONE);
+                    binding.ivPinned.setContentDescription("Pinned conversation");
                 }
                 
                 if (binding.ivArchived != null) {
                     binding.ivArchived.setVisibility(conversation.isArchived ? android.view.View.VISIBLE : android.view.View.GONE);
+                    binding.ivArchived.setContentDescription("Archived conversation");
                 }
 
                 applyUnreadStyling(conversation.unreadCount > 0);
+                
+                // Accessibility: set meaningful content description for TalkBack
+                setAccessibilityDescription(conversation, displayName);
                 
             } catch (Exception e) {
                 // Catch any unexpected errors to prevent crashes
@@ -233,15 +237,16 @@ public class ConversationPagingAdapter extends PagingDataAdapter<ConversationEnt
         private void hideAllViews() {
             if (binding != null) {
                 if (binding.tvContactName != null) binding.tvContactName.setText("Loading...");
-                if (binding.tvPhoneNumber != null) binding.tvPhoneNumber.setVisibility(android.view.View.GONE);
+                if (binding.tvPhoneNumber != null) binding.tvPhoneNumber.setVisibility(View.GONE);
                 if (binding.tvLastMessage != null) binding.tvLastMessage.setText("");
-                if (binding.tvMessageCount != null) binding.tvMessageCount.setVisibility(android.view.View.GONE);
-                if (binding.tvUnreadCount != null) binding.tvUnreadCount.setVisibility(android.view.View.GONE);
-                if (binding.tvUnreadBadge != null) binding.tvUnreadBadge.setVisibility(android.view.View.GONE);
+                if (binding.tvMessageCount != null) binding.tvMessageCount.setVisibility(View.GONE);
+                if (binding.tvUnreadCount != null) binding.tvUnreadCount.setVisibility(View.GONE);
+                if (binding.tvUnreadBadge != null) binding.tvUnreadBadge.setVisibility(View.GONE);
                 if (binding.tvTimestamp != null) binding.tvTimestamp.setText("");
-                if (binding.ivPinned != null) binding.ivPinned.setVisibility(android.view.View.GONE);
-                if (binding.ivArchived != null) binding.ivArchived.setVisibility(android.view.View.GONE);
+                if (binding.ivPinned != null) binding.ivPinned.setVisibility(View.GONE);
+                if (binding.ivArchived != null) binding.ivArchived.setVisibility(View.GONE);
                 if (binding.ivContactPhoto != null) binding.ivContactPhoto.setText("?");
+                if (binding.ivContactImage != null) binding.ivContactImage.setVisibility(View.GONE);
             }
         }
         
@@ -320,6 +325,70 @@ public class ConversationPagingAdapter extends PagingDataAdapter<ConversationEnt
                     ((com.google.android.material.card.MaterialCardView) binding.getRoot()).setCardBackgroundColor(color);
                 }
             } catch (Exception ignored) {
+            }
+        }
+        
+        private void setAccessibilityDescription(ConversationEntity conversation, String displayName) {
+            if (binding == null || binding.getRoot() == null) return;
+            
+            StringBuilder description = new StringBuilder();
+            description.append("Conversation with ").append(displayName).append(". ");
+            
+            if (conversation.unreadCount > 0) {
+                description.append(conversation.unreadCount)
+                    .append(conversation.unreadCount == 1 ? " unread message. " : " unread messages. ");
+            }
+            
+            if (conversation.lastMessagePreview != null && !conversation.lastMessagePreview.isEmpty()) {
+                String preview = conversation.lastMessagePreview;
+                if (preview.length() > 50) {
+                    preview = preview.substring(0, 50) + "...";
+                }
+                description.append("Last message: ").append(preview).append(". ");
+            }
+            
+            if (conversation.isPinned) {
+                description.append("Pinned. ");
+            }
+            
+            if (conversation.isArchived) {
+                description.append("Archived. ");
+            }
+            
+            description.append("Double tap to open, long press for options.");
+            
+            binding.getRoot().setContentDescription(description.toString());
+        }
+        
+        private void loadContactPhoto(ConversationEntity conversation, String displayName) {
+            String firstLetter = displayName.length() > 0 ? displayName.substring(0, 1).toUpperCase() : "?";
+            int color = getAvatarColor(displayName);
+            
+            // Always setup the letter fallback
+            if (binding.ivContactPhoto != null) {
+                binding.ivContactPhoto.setText(firstLetter);
+                binding.ivContactPhoto.setBackgroundTintList(ColorStateList.valueOf(color));
+            }
+            
+            // Try to load actual contact photo if available
+            if (binding.ivContactImage != null) {
+                String photoUri = conversation.contactPhotoUri;
+                
+                if (photoUri != null && !photoUri.trim().isEmpty()) {
+                    // Keep letter avatar visible underneath as fallback, overlay photo on top
+                    binding.ivContactImage.setVisibility(View.VISIBLE);
+                    
+                    Glide.with(binding.getRoot().getContext())
+                        .load(Uri.parse(photoUri))
+                        .transform(new CircleCrop())
+                        .into(binding.ivContactImage);
+                } else {
+                    // No photo URI - show letter fallback
+                    binding.ivContactImage.setVisibility(View.GONE);
+                    if (binding.ivContactPhoto != null) {
+                        binding.ivContactPhoto.setVisibility(View.VISIBLE);
+                    }
+                }
             }
         }
 

@@ -1,0 +1,204 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Analytics dashboard shimmer loading placeholder -->
+<com.facebook.shimmer.ShimmerFrameLayout 
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/shimmerAnalytics"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    app:shimmer_auto_start="true"
+    app:shimmer_duration="1200"
+    app:shimmer_base_alpha="0.7"
+    app:shimmer_highlight_alpha="1.0">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <!-- Header shimmer -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginBottom="24dp">
+
+            <View
+                android:layout_width="200dp"
+                android:layout_height="28dp"
+                android:background="@drawable/shimmer_placeholder_rounded" />
+
+            <View
+                android:layout_width="280dp"
+                android:layout_height="14dp"
+                android:layout_marginTop="8dp"
+                android:background="@drawable/shimmer_placeholder_rounded" />
+
+        </LinearLayout>
+
+        <!-- Usage chart card shimmer -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="200dp"
+            android:layout_marginBottom="16dp"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="2dp"
+            app:cardBackgroundColor="@color/shimmer_bg">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <View
+                    android:layout_width="120dp"
+                    android:layout_height="20dp"
+                    android:background="@drawable/shimmer_placeholder_rounded" />
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:layout_weight="1"
+                    android:layout_marginTop="16dp"
+                    android:background="@drawable/shimmer_placeholder_rounded" />
+
+            </LinearLayout>
+
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Stats row shimmer -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="16dp">
+
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="0dp"
+                android:layout_height="80dp"
+                android:layout_weight="1"
+                android:layout_marginEnd="8dp"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="2dp"
+                app:cardBackgroundColor="@color/shimmer_bg">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:orientation="vertical"
+                    android:gravity="center"
+                    android:padding="12dp">
+
+                    <View
+                        android:layout_width="48dp"
+                        android:layout_height="24dp"
+                        android:background="@drawable/shimmer_placeholder_rounded" />
+
+                    <View
+                        android:layout_width="64dp"
+                        android:layout_height="14dp"
+                        android:layout_marginTop="8dp"
+                        android:background="@drawable/shimmer_placeholder_rounded" />
+
+                </LinearLayout>
+
+            </com.google.android.material.card.MaterialCardView>
+
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="0dp"
+                android:layout_height="80dp"
+                android:layout_weight="1"
+                android:layout_marginStart="4dp"
+                android:layout_marginEnd="4dp"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="2dp"
+                app:cardBackgroundColor="@color/shimmer_bg">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:orientation="vertical"
+                    android:gravity="center"
+                    android:padding="12dp">
+
+                    <View
+                        android:layout_width="48dp"
+                        android:layout_height="24dp"
+                        android:background="@drawable/shimmer_placeholder_rounded" />
+
+                    <View
+                        android:layout_width="64dp"
+                        android:layout_height="14dp"
+                        android:layout_marginTop="8dp"
+                        android:background="@drawable/shimmer_placeholder_rounded" />
+
+                </LinearLayout>
+
+            </com.google.android.material.card.MaterialCardView>
+
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="0dp"
+                android:layout_height="80dp"
+                android:layout_weight="1"
+                android:layout_marginStart="8dp"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="2dp"
+                app:cardBackgroundColor="@color/shimmer_bg">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:orientation="vertical"
+                    android:gravity="center"
+                    android:padding="12dp">
+
+                    <View
+                        android:layout_width="48dp"
+                        android:layout_height="24dp"
+                        android:background="@drawable/shimmer_placeholder_rounded" />
+
+                    <View
+                        android:layout_width="64dp"
+                        android:layout_height="14dp"
+                        android:layout_marginTop="8dp"
+                        android:background="@drawable/shimmer_placeholder_rounded" />
+
+                </LinearLayout>
+
+            </com.google.android.material.card.MaterialCardView>
+
+        </LinearLayout>
+
+        <!-- Events list shimmer -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="2dp"
+            app:cardBackgroundColor="@color/shimmer_bg">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <View
+                    android:layout_width="140dp"
+                    android:layout_height="20dp"
+                    android:layout_marginBottom="16dp"
+                    android:background="@drawable/shimmer_placeholder_rounded" />
+
+                <include layout="@layout/item_activity_shimmer" />
+                <include layout="@layout/item_activity_shimmer" />
+                <include layout="@layout/item_activity_shimmer" />
+
+            </LinearLayout>
+
+        </com.google.android.material.card.MaterialCardView>
+
+    </LinearLayout>
+
+</com.facebook.shimmer.ShimmerFrameLayout>

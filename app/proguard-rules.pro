@@ -5,87 +5,177 @@
 # For more details, see
 #   http://developer.android.com/guide/developing/tools/proguard.html
 
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
+# Preserve line number information for debugging stack traces
+-keepattributes SourceFile,LineNumberTable
 
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
+# Hide the original source file name
+-renamesourcefileattribute SourceFile
 
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
+# Keep application entities and models
+-keep class com.afriserve.smsmanager.data.entity.** { *; }
+-keep class com.afriserve.smsmanager.models.** { *; }
 
 # Keep R classes
-# -keep class com.bulksms.smsmanager.R { *; }
-# -keep class com.bulksms.smsmanager.R$* { *; }
+-keep class com.afriserve.smsmanager.R { *; }
+-keep class com.afriserve.smsmanager.R$* { *; }
 
-# Keep Firebase classes
+# ============== Firebase ==============
 -keep class com.google.firebase.** { *; }
 -dontwarn com.google.firebase.**
+-keep class com.google.android.gms.** { *; }
+-dontwarn com.google.android.gms.**
 
-# Keep Retrofit classes
+# Firebase Crashlytics
+-keepattributes *Annotation*
+-keep public class * extends java.lang.Exception
+-keep class com.google.firebase.crashlytics.** { *; }
+
+# ============== Retrofit ==============
 -keep class retrofit2.** { *; }
 -dontwarn retrofit2.**
+-keepattributes Signature
+-keepattributes Exceptions
+-keepclasseswithmembers class * {
+    @retrofit2.http.* <methods>;
+}
 
-# Keep OkHttp classes
+# ============== OkHttp ==============
 -keep class okhttp3.** { *; }
+-keep interface okhttp3.** { *; }
 -dontwarn okhttp3.**
+-dontwarn okio.**
 
-# Keep Gson classes
+# ============== Gson ==============
 -keep class com.google.gson.** { *; }
 -keepattributes Signature
 -keepattributes *Annotation*
 -dontwarn sun.misc.**
+-keep class * implements com.google.gson.TypeAdapterFactory
+-keep class * implements com.google.gson.JsonSerializer
+-keep class * implements com.google.gson.JsonDeserializer
+# Keep fields annotated with @SerializedName
+-keepclassmembers,allowobfuscation class * {
+    @com.google.gson.annotations.SerializedName <fields>;
+}
 
-# Keep Room database classes
+# ============== Room ==============
 -keep class * extends androidx.room.RoomDatabase
+-keep @androidx.room.Entity class *
 -dontwarn androidx.room.paging.**
+-keep class * extends androidx.room.RoomDatabase { *; }
+-keepclassmembers class * extends androidx.room.RoomDatabase {
+    abstract <methods>;
+}
 
-# Keep Hilt classes
+# ============== Hilt / Dagger ==============
+-keep class dagger.** { *; }
 -keep class dagger.hilt.** { *; }
 -keep class javax.inject.** { *; }
 -dontwarn dagger.hilt.**
+-dontwarn dagger.internal.codegen.**
+-keepclassmembers,allowobfuscation class * {
+    @javax.inject.Inject <fields>;
+    @javax.inject.Inject <init>(...);
+}
+-keep class * extends dagger.hilt.android.internal.managers.ComponentSupplier { *; }
+-keep class * extends dagger.hilt.android.internal.managers.ViewComponentManager$FragmentContextWrapper { *; }
 
-# Keep Kotlin coroutines
+# ============== Kotlin Coroutines ==============
 -keepnames class kotlinx.coroutines.internal.MainDispatcherFactory {}
 -keepnames class kotlinx.coroutines.CoroutineExceptionHandler {}
 -keepnames class kotlinx.coroutines.android.AndroidExceptionPreHandler {}
 -keepnames class kotlinx.coroutines.android.AndroidDispatcherFactory {}
+-keepclassmembernames class kotlinx.** {
+    volatile <fields>;
+}
 
+# ============== AndroidX / Jetpack ==============
+# Navigation
+-keepnames class androidx.navigation.fragment.NavHostFragment
+-keep class * extends androidx.fragment.app.Fragment{}
 
+# WorkManager
+-keep class * extends androidx.work.Worker
+-keep class * extends androidx.work.ListenableWorker {
+    public <init>(android.content.Context, androidx.work.WorkerParameters);
+}
 
-# Keep biometric classes
+# Lifecycle
+-keep class * extends androidx.lifecycle.ViewModel { *; }
+-keep class * extends androidx.lifecycle.AndroidViewModel { *; }
+
+# Biometric
 -keep class androidx.biometric.** { *; }
 -dontwarn androidx.biometric.**
 
-# Keep security classes
+# Security
 -keep class androidx.security.crypto.** { *; }
 -dontwarn androidx.security.crypto.**
 
-# Keep Glide classes
+# Paging
+-keep class androidx.paging.** { *; }
+-dontwarn androidx.paging.**
+
+# ============== Glide ==============
 -keep public class * implements com.bumptech.glide.module.GlideModule
--keep class * extends com.bumptech.glide.module.AppGlideModule
+-keep class * extends com.bumptech.glide.module.AppGlideModule {
+    <init>(...);
+}
 -keep public enum com.bumptech.glide.load.ImageHeaderParser$** {
-  **[] $VALUES;
-  public *;
+    **[] $VALUES;
+    public *;
+}
+-keep class com.bumptech.glide.load.data.ParcelFileDescriptorRewinder$InternalRewinder {
+    *** rewind();
 }
 
-# Keep Apache POI classes
+# ============== Apache POI ==============
 -keep class org.apache.poi.** { *; }
 -dontwarn org.apache.poi.**
+-dontwarn org.apache.xmlbeans.**
+-dontwarn org.apache.commons.compress.**
 
-# Keep PDFBox classes
+# ============== PDFBox ==============
 -keep class org.apache.pdfbox.** { *; }
+-keep class com.tom_roush.pdfbox.** { *; }
 -dontwarn org.apache.pdfbox.**
+-dontwarn com.tom_roush.pdfbox.**
 
-# Keep OpenCSV classes
+# ============== OpenCSV ==============
 -keep class com.opencsv.** { *; }
 -dontwarn com.opencsv.**
 
+# ============== RxJava ==============
+-dontwarn io.reactivex.**
+-keep class io.reactivex.** { *; }
+-keepclassmembers class io.reactivex.** { *; }
+
+# ============== Shimmer ==============
+-keep class com.facebook.shimmer.** { *; }
+
+# ============== Misc ==============
 # Keep AWT classes (for PDFBox/graphbuilder)
--dontwarn java.awt.Shape
+-dontwarn java.awt.**
+-dontwarn javax.swing.**
+
+# Keep enum classes
+-keepclassmembers enum * {
+    public static **[] values();
+    public static ** valueOf(java.lang.String);
+}
+
+# Keep Parcelable
+-keepclassmembers class * implements android.os.Parcelable {
+    public static final ** CREATOR;
+}
+
+# Keep Serializable
+-keepclassmembers class * implements java.io.Serializable {
+    static final long serialVersionUID;
+    private static final java.io.ObjectStreamField[] serialPersistentFields;
+    !static !transient <fields>;
+    private void writeObject(java.io.ObjectOutputStream);
+    private void readObject(java.io.ObjectInputStream);
+    java.lang.Object writeReplace();
+    java.lang.Object readResolve();
+}

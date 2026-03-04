@@ -4,6 +4,7 @@ import androidx.room.Entity;
 import androidx.room.PrimaryKey;
 import androidx.room.ColumnInfo;
 import androidx.room.Index;
+import androidx.room.Ignore;
 
 /**
  * Entity for tracking opted-out phone numbers
@@ -54,6 +55,7 @@ public class OptOutEntity {
         this.updatedAt = now;
     }
     
+    @Ignore
     public OptOutEntity(String phoneNumber, String reason, String source) {
         this();
         this.phoneNumber = phoneNumber;

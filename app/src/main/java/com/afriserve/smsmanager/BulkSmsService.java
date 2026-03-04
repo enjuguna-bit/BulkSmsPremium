@@ -68,6 +68,8 @@ public class BulkSmsService {
     public static final String RESULT_STOPPED = "STOPPED";
     public static final String RESULT_FAILED = "FAILED";
     private static final long SESSION_PERSIST_INTERVAL_MS = 1500L;
+    private static final long SESSION_FLAG_REFRESH_INTERVAL_MS = 1000L;
+    private static final long CONTROL_CHECK_INTERVAL_MS = 250L;
     private static final int CSV_FREE_LIMIT = 15;
     private final Context context;
     private final SmsDao smsDao;
@@ -500,13 +502,16 @@ public class BulkSmsService {
 
         SmsManager smsManager = getSmsManagerForSlot(session.simSlot);
         String campaignType = session.campaignType != null ? session.campaignType : "MARKETING";
-        long speedDelayMs = getSendSpeedDelayMs(session.sendSpeed);
-
         String resultStatus = RESULT_COMPLETED;
         long lastPersistAt = System.currentTimeMillis();
+        long lastFlagRefreshAt = 0L;
 
         for (int i = startIndex; i < total; i++) {
-            session = refreshSessionFlags(session);
+            long nowLoop = System.currentTimeMillis();
+            if (lastFlagRefreshAt == 0L || nowLoop - lastFlagRefreshAt >= SESSION_FLAG_REFRESH_INTERVAL_MS) {
+                session = refreshSessionFlags(session);
+                lastFlagRefreshAt = nowLoop;
+            }
 
             if (session.isStopped) {
                 resultStatus = RESULT_STOPPED;
@@ -533,9 +538,18 @@ public class BulkSmsService {
                 }
 
                 long rateDelay = rateLimitManager.getDelayBeforeNextSend(recipient.getPhone());
+                long speedDelayMs = getSendSpeedDelayMs(session.sendSpeed);
                 long delay = Math.max(rateDelay, speedDelayMs);
                 if (delay > 0) {
-                    Thread.sleep(delay);
+                    session = waitWithControl(session, delay);
+                    if (session.isStopped) {
+                        resultStatus = RESULT_STOPPED;
+                        break;
+                    }
+                    if (session.isPaused) {
+                        resultStatus = RESULT_PAUSED;
+                        break;
+                    }
                 }
 
                 message = formatMessage(template, recipient);
@@ -646,7 +660,7 @@ public class BulkSmsService {
 
             updateProgressState(session, i + 1, sent, failed, skipped, progressCallback, total);
 
-            long nowLoop = System.currentTimeMillis();
+            nowLoop = System.currentTimeMillis();
             if (nowLoop - lastPersistAt >= SESSION_PERSIST_INTERVAL_MS || i == total - 1) {
                 persistSession(session);
                 lastPersistAt = nowLoop;
@@ -718,6 +732,27 @@ public class BulkSmsService {
             }
         } catch (Exception e) {
             Log.w(TAG, "Failed to refresh session flags", e);
+        }
+        return session;
+    }
+
+    private UploadSession waitWithControl(@NonNull UploadSession session, long delayMs) {
+        long remaining = delayMs;
+        while (remaining > 0) {
+            long chunk = Math.min(CONTROL_CHECK_INTERVAL_MS, remaining);
+            try {
+                Thread.sleep(chunk);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                session.isStopped = true;
+                break;
+            }
+            remaining -= chunk;
+
+            session = refreshSessionFlags(session);
+            if (session.isStopped || session.isPaused) {
+                break;
+            }
         }
         return session;
     }

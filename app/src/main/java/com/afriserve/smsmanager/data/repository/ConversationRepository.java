@@ -99,6 +99,28 @@ public class ConversationRepository {
         }
         return conversationDao.searchConversations(query);
     }
+
+    /**
+     * Get conversations with filter + search + sort in one paged query.
+     */
+    public PagingSource<Integer, ConversationEntity> getConversationsPaged(String filter, String query, String sort) {
+        String safeFilter;
+        if ("INBOX".equals(filter) || "SENT".equals(filter) || "UNREAD".equals(filter)) {
+            safeFilter = filter;
+        } else {
+            safeFilter = "ALL";
+        }
+
+        String safeSort;
+        if ("OLDEST".equals(sort) || "UNREAD_FIRST".equals(sort)) {
+            safeSort = sort;
+        } else {
+            safeSort = "NEWEST";
+        }
+
+        String safeQuery = query != null ? query.trim() : "";
+        return conversationDao.getConversationsPaged(safeFilter, safeQuery, safeSort);
+    }
     
     /**
      * Get conversation statistics

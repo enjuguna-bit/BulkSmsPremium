@@ -53,38 +53,9 @@ public class CsvFileHandler {
                 List<Map<String, String>> dataRows = new ArrayList<>();
                 List<String> headerNames = new ArrayList<>();
 
-                switch (fileType) {
-                    case CSV:
-                    case TXT:
-                    case TSV:
-                        try (InputStream inputStream = contentResolver.openInputStream(fileUri)) {
-                            if (inputStream == null) {
-                                throw new IOException("Unable to open input stream for uri: " + fileUri);
-                            }
-                            CsvParser.ParsedData parsed = CsvParser.parseCsvStreamWithHeaders(inputStream);
-                            dataRows = parsed.rows;
-                            headerNames = parsed.headers;
-                        }
-                        break;
-                    case XLSX:
-                    case XLS:
-                    case XLSM:
-                    case XLT:
-                    case XLTX:
-                    case XLTM:
-                        try (InputStream inputStream = contentResolver.openInputStream(fileUri)) {
-                            if (inputStream == null) {
-                                throw new IOException("Unable to open input stream for uri: " + fileUri);
-                            }
-                            ExcelParser.ParsedSheet parsed = ExcelParser.parseExcelStreamWithHeaders(inputStream);
-                            dataRows = parsed.rows;
-                            headerNames = parsed.headers;
-                        }
-                        break;
-                    default:
-                        throw new IOException("Unsupported file type: " + resolvedFileName +
-                            ". Please use CSV, Excel (.xlsx, .xls, .xlsm), or text files (.txt, .tsv).");
-                }
+                ParseEnvelope parsedEnvelope = parseRowsWithFallback(fileUri, fileType, resolvedFileName);
+                dataRows = parsedEnvelope.rows;
+                headerNames = parsedEnvelope.headers;
 
                 if ((headerNames == null || headerNames.isEmpty()) && !dataRows.isEmpty()) {
                     headerNames = new ArrayList<>(dataRows.get(0).keySet());
@@ -222,6 +193,83 @@ public class CsvFileHandler {
             .replace("\uFEFF", "")
             .replaceAll("[\\u200B\\u00A0]", "")
             .trim();
+    }
+
+    private ParseEnvelope parseRowsWithFallback(Uri fileUri,
+                                                ExcelParser.ImportFileType fileType,
+                                                String fileName) throws IOException {
+        Exception csvError = null;
+        Exception excelError = null;
+
+        if (isTextLike(fileType)) {
+            try {
+                return parseAsCsv(fileUri);
+            } catch (Exception e) {
+                csvError = e;
+                try {
+                    return parseAsExcel(fileUri);
+                } catch (Exception excelException) {
+                    excelError = excelException;
+                    throw new IOException(buildParseFailureMessage(fileName, csvError, excelError), excelException);
+                }
+            }
+        }
+
+        try {
+            return parseAsExcel(fileUri);
+        } catch (Exception e) {
+            excelError = e;
+            try {
+                return parseAsCsv(fileUri);
+            } catch (Exception csvException) {
+                csvError = csvException;
+                throw new IOException(buildParseFailureMessage(fileName, csvError, excelError), e);
+            }
+        }
+    }
+
+    private ParseEnvelope parseAsCsv(Uri fileUri) throws IOException {
+        try (InputStream inputStream = contentResolver.openInputStream(fileUri)) {
+            if (inputStream == null) {
+                throw new IOException("Unable to open input stream for uri: " + fileUri);
+            }
+            CsvParser.ParsedData parsed = CsvParser.parseCsvStreamWithHeaders(inputStream);
+            return new ParseEnvelope(parsed.rows, parsed.headers);
+        }
+    }
+
+    private ParseEnvelope parseAsExcel(Uri fileUri) throws IOException {
+        try (InputStream inputStream = contentResolver.openInputStream(fileUri)) {
+            if (inputStream == null) {
+                throw new IOException("Unable to open input stream for uri: " + fileUri);
+            }
+            ExcelParser.ParsedSheet parsed = ExcelParser.parseExcelStreamWithHeaders(inputStream);
+            return new ParseEnvelope(parsed.rows, parsed.headers);
+        }
+    }
+
+    private boolean isTextLike(ExcelParser.ImportFileType fileType) {
+        return fileType == ExcelParser.ImportFileType.CSV
+            || fileType == ExcelParser.ImportFileType.TXT
+            || fileType == ExcelParser.ImportFileType.TSV;
+    }
+
+    private String buildParseFailureMessage(String fileName, Exception csvError, Exception excelError) {
+        String displayName = (fileName == null || fileName.trim().isEmpty()) ? "selected file" : fileName;
+        String csvReason = csvError != null && csvError.getMessage() != null ? csvError.getMessage() : "text parsing failed";
+        String excelReason = excelError != null && excelError.getMessage() != null ? excelError.getMessage() : "spreadsheet parsing failed";
+        return "Unable to parse " + displayName + ". Tried spreadsheet and text parsers. Spreadsheet: "
+            + excelReason + " | Text: " + csvReason;
+    }
+
+    private static class ParseEnvelope {
+        final List<Map<String, String>> rows;
+        final List<String> headers;
+
+        ParseEnvelope(List<Map<String, String>> rows, List<String> headers) {
+            this.rows = rows;
+            this.headers = headers;
+        }
     }
 
     private boolean isRowEmpty(Map<String, String> rowData) {

@@ -4,6 +4,7 @@ import androidx.room.Entity;
 import androidx.room.PrimaryKey;
 import androidx.room.ColumnInfo;
 import androidx.room.Index;
+import androidx.room.Ignore;
 
 /**
  * Entity for storing KPI (Key Performance Indicator) data
@@ -86,6 +87,7 @@ public class KpiEntity {
         this.updatedAt = now;
     }
     
+    @Ignore
     public KpiEntity(String kpiType, String kpiName, double kpiValue, double targetValue) {
         this();
         this.kpiType = kpiType;

@@ -82,6 +82,7 @@
     
     <!-- Shimmer loading colors -->
     <color name="shimmer_placeholder">#FFE0E0E0</color>
+    <color name="shimmer_bg">#FFF5F5F5</color>
     <color name="switch_track_color">#4CAF50</color>
 
     <!-- Semantic UI tokens (light) -->

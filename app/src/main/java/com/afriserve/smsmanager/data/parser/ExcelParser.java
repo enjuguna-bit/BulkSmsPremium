@@ -52,9 +52,13 @@ public class ExcelParser {
         XLSX("xlsx"),
         XLS("xls"),
         XLSM("xlsm"),
+        XLSB("xlsb"),
+        XLA("xla"),
+        XLAM("xlam"),
         XLT("xlt"),
         XLTX("xltx"),
         XLTM("xltm"),
+        XML("xml"),
         ODS("ods"),
         ODT("odt"),
         TXT("txt"),
@@ -96,12 +100,20 @@ public class ExcelParser {
                 return ImportFileType.XLS;
             case "xlsm":
                 return ImportFileType.XLSM;
+            case "xlsb":
+                return ImportFileType.XLSB;
+            case "xla":
+                return ImportFileType.XLA;
+            case "xlam":
+                return ImportFileType.XLAM;
             case "xlt":
                 return ImportFileType.XLT;
             case "xltx":
                 return ImportFileType.XLTX;
             case "xltm":
                 return ImportFileType.XLTM;
+            case "xml":
+                return ImportFileType.XML;
             case "ods":
                 return ImportFileType.ODS;
             case "odt":
@@ -315,38 +327,50 @@ public class ExcelParser {
      */
     public static ParseResult parseImportFile(String filePath, String fileName) throws IOException {
         ImportFileType fileType = detectFileType(fileName);
-        
+
         List<Map<String, String>> data;
-        
-        switch (fileType) {
-            case CSV:
-            case TXT:
-            case TSV:
+        Exception excelError = null;
+        Exception csvError = null;
+
+        if (isTextLike(fileType)) {
+            try {
                 data = CsvParser.parseCsvFile(filePath);
-                break;
-            case XLSX:
-            case XLS:
-            case XLSM:
-            case XLT:
-            case XLTX:
-            case XLTM:
-                data = parseExcelFile(filePath);
-                break;
-            case ODS:
-            case ODT:
-                // Try to parse as Excel (Apache POI has limited ODS support)
+            } catch (Exception csvException) {
+                csvError = csvException;
                 try {
                     data = parseExcelFile(filePath);
-                } catch (Exception e) {
-                    throw new IOException("ODS/ODT files are not fully supported. Please save as Excel (.xlsx) or CSV format.");
+                } catch (Exception excelException) {
+                    excelError = excelException;
+                    throw new IOException(buildParseFailureMessage(fileName, csvError, excelError), excelException);
                 }
-                break;
-            default:
-                throw new IOException("Unsupported file type: " + fileName + 
-                    ". Please use CSV, Excel (.xlsx, .xls, .xlsm), or text files (.txt, .tsv).");
+            }
+        } else {
+            try {
+                data = parseExcelFile(filePath);
+            } catch (Exception excelException) {
+                excelError = excelException;
+                try {
+                    data = CsvParser.parseCsvFile(filePath);
+                } catch (Exception csvException) {
+                    csvError = csvException;
+                    throw new IOException(buildParseFailureMessage(fileName, csvError, excelError), excelException);
+                }
+            }
         }
         
         return parseWithSmartMapping(data);
+    }
+
+    private static boolean isTextLike(ImportFileType fileType) {
+        return fileType == ImportFileType.CSV || fileType == ImportFileType.TXT || fileType == ImportFileType.TSV;
+    }
+
+    private static String buildParseFailureMessage(String fileName, Exception csvError, Exception excelError) {
+        String displayName = fileName == null || fileName.trim().isEmpty() ? "selected file" : fileName;
+        String csvReason = csvError != null && csvError.getMessage() != null ? csvError.getMessage() : "text parsing failed";
+        String excelReason = excelError != null && excelError.getMessage() != null ? excelError.getMessage() : "spreadsheet parsing failed";
+        return "Unable to parse " + displayName + ". Tried spreadsheet and text parsers. Spreadsheet: "
+            + excelReason + " | Text: " + csvReason;
     }
     
     /**
@@ -491,12 +515,20 @@ public class ExcelParser {
                 return "Excel (XLS)";
             case XLSM:
                 return "Excel Macro-Enabled (XLSM)";
+            case XLSB:
+                return "Excel Binary Workbook (XLSB)";
+            case XLA:
+                return "Excel Add-in (XLA)";
+            case XLAM:
+                return "Excel Macro Add-in (XLAM)";
             case XLT:
                 return "Excel Template (XLT)";
             case XLTX:
                 return "Excel Template (XLTX)";
             case XLTM:
                 return "Excel Macro Template (XLTM)";
+            case XML:
+                return "Spreadsheet XML (XML)";
             case ODS:
                 return "OpenDocument Spreadsheet (ODS)";
             case ODT:

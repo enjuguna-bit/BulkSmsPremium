@@ -4,6 +4,7 @@ import androidx.room.Entity;
 import androidx.room.PrimaryKey;
 import androidx.room.ColumnInfo;
 import androidx.room.Index;
+import androidx.room.Ignore;
 
 /**
  * Entity for storing daily dashboard metrics
@@ -94,6 +95,7 @@ public class DashboardMetricsEntity {
         this.updatedAt = now;
     }
     
+    @Ignore
     public DashboardMetricsEntity(long metricDate, String metricType) {
         this();
         this.metricDate = metricDate;

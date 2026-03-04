@@ -109,7 +109,7 @@ public interface ScheduledCampaignDao {
            "GROUP BY DATE(nextExecutionTime/1000, 'unixepoch') ORDER BY date ASC")
     Single<List<ScheduledCampaignDailyStats>> getScheduledCampaignsDailyStats();
     
-    @Query("SELECT recurrencePattern, COUNT(*) as count FROM scheduled_campaigns WHERE isRecurring = 1 AND isActive = 1 GROUP BY recurrencePattern ORDER BY count DESC")
+    @Query("SELECT recurrencePattern AS pattern, COUNT(*) as count FROM scheduled_campaigns WHERE isRecurring = 1 AND isActive = 1 GROUP BY recurrencePattern ORDER BY count DESC")
     Single<List<ScheduledCampaignPatternStats>> getScheduledCampaignsPatternStats();
     
     /**

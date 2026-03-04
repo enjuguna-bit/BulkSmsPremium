@@ -19,19 +19,33 @@
         android:orientation="horizontal"
         android:padding="16dp">
 
-        <!-- Contact Avatar -->
-        <TextView
-            android:id="@+id/ivContactPhoto"
+        <!-- Contact Avatar - Overlay for photo and letter fallback -->
+        <FrameLayout
             android:layout_width="48dp"
             android:layout_height="48dp"
-            android:layout_marginEnd="12dp"
-            android:background="@drawable/circle_background"
-            android:backgroundTint="@color/color_primary"
-            android:gravity="center"
-            android:text="@string/placeholder_avatar_initial"
-            android:textColor="@color/color_on_primary"
-            android:textSize="20sp"
-            android:textStyle="bold" />
+            android:layout_marginEnd="12dp">
+            
+            <ImageView
+                android:id="@+id/ivContactImage"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:scaleType="centerCrop"
+                android:visibility="gone"
+                android:importantForAccessibility="no" />
+
+            <TextView
+                android:id="@+id/ivContactPhoto"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:background="@drawable/circle_background"
+                android:backgroundTint="@color/color_primary"
+                android:gravity="center"
+                android:text="@string/placeholder_avatar_initial"
+                android:textColor="@color/color_on_primary"
+                android:textSize="20sp"
+                android:textStyle="bold"
+                android:importantForAccessibility="no" />
+        </FrameLayout>
 
         <!-- Conversation Content -->
         <LinearLayout

@@ -3,6 +3,7 @@ package com.afriserve.smsmanager.billing
 import android.net.Uri
 import android.os.Bundle
 import android.view.View
+import androidx.browser.customtabs.CustomTabColorSchemeParams
 import androidx.appcompat.app.AppCompatActivity
 import androidx.browser.customtabs.CustomTabsIntent
 import androidx.core.content.ContextCompat
@@ -145,7 +146,10 @@ class SubscriptionActivity : AppCompatActivity() {
 
             val builder = CustomTabsIntent.Builder()
             builder.setShowTitle(true)
-            builder.setToolbarColor(ContextCompat.getColor(this, R.color.color_primary))
+            val colorParams = CustomTabColorSchemeParams.Builder()
+                .setToolbarColor(ContextCompat.getColor(this, R.color.color_primary))
+                .build()
+            builder.setDefaultColorSchemeParams(colorParams)
             val customTabsIntent = builder.build()
             customTabsIntent.launchUrl(this, Uri.parse(paymentUrl))
             showSnackbar(getString(R.string.subscription_payment_opened))

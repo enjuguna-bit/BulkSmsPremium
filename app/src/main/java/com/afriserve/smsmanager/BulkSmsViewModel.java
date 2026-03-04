@@ -537,14 +537,41 @@ public class BulkSmsViewModel extends ViewModel {
                 }
             }
 
-            ScheduledCampaignEntity scheduled = new ScheduledCampaignEntity(
-                session.campaignId,
-                scheduledAtMillis,
-                TimeZone.getDefault().getID()
-            );
-            scheduled.status = "SCHEDULED";
-            scheduled.isActive = true;
-            scheduledCampaignDao.insertScheduledCampaign(scheduled).blockingAwait();
+            List<ScheduledCampaignEntity> existingSchedules =
+                scheduledCampaignDao.getScheduledCampaignsForCampaign(session.campaignId).blockingGet();
+
+            ScheduledCampaignEntity scheduledToSave = null;
+            if (existingSchedules != null && !existingSchedules.isEmpty()) {
+                for (ScheduledCampaignEntity item : existingSchedules) {
+                    if (item != null && item.isActive) {
+                        scheduledToSave = item;
+                        break;
+                    }
+                }
+                if (scheduledToSave == null) {
+                    scheduledToSave = existingSchedules.get(0);
+                }
+            }
+
+            if (scheduledToSave == null) {
+                scheduledToSave = new ScheduledCampaignEntity(
+                    session.campaignId,
+                    scheduledAtMillis,
+                    TimeZone.getDefault().getID()
+                );
+                scheduledToSave.status = "SCHEDULED";
+                scheduledToSave.isActive = true;
+                scheduledCampaignDao.insertScheduledCampaign(scheduledToSave).blockingAwait();
+            } else {
+                scheduledToSave.campaignId = session.campaignId;
+                scheduledToSave.scheduledTime = scheduledAtMillis;
+                scheduledToSave.nextExecutionTime = scheduledAtMillis;
+                scheduledToSave.timezone = TimeZone.getDefault().getID();
+                scheduledToSave.status = "SCHEDULED";
+                scheduledToSave.isActive = true;
+                scheduledToSave.updatedAt = now;
+                scheduledCampaignDao.updateScheduledCampaign(scheduledToSave).blockingAwait();
+            }
         } catch (Exception e) {
             Log.e(TAG, "Failed to schedule campaign", e);
             errorLiveData.postValue("Failed to schedule campaign: " + e.getMessage());
@@ -704,6 +731,7 @@ public class BulkSmsViewModel extends ViewModel {
             uploadPersistence.saveCurrentUploadSync(currentSession);
         }
         isPausedLiveData.postValue(true);
+        isSendingLiveData.postValue(false);
         statusLiveData.postValue("Sending paused");
     }
 

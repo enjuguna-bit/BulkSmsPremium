@@ -3,6 +3,8 @@ package com.afriserve.smsmanager.billing
 import android.content.Context
 import android.content.Intent
 import android.provider.Settings
+import android.util.Log
+import android.widget.Toast
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
@@ -10,9 +12,14 @@ import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.OkHttpClient
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.Request
+import okhttp3.Response
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
 import java.time.Instant
+import com.afriserve.smsmanager.data.network.NetworkSecurityConfig
+import com.afriserve.smsmanager.BuildConfig
+import javax.net.ssl.SSLHandshakeException
+import javax.net.ssl.SSLPeerUnverifiedException
 
 /**
  * Helper object to launch subscription from anywhere in the app
@@ -20,11 +27,14 @@ import java.time.Instant
  */
 object SubscriptionHelper {
 
+    private const val TAG = "SubscriptionHelper"
+
     private const val PREFS = "subscriptions"
-    private const val BASE_URL = "https://bulksmsbilling.enjuguna794.workers.dev"
-    private const val STATUS_BASE_URL = "$BASE_URL/status"
-    private const val INIT_URL = "$BASE_URL/init"
-    private const val CLAIM_URL = "$BASE_URL/claim"
+    // Use BuildConfig for configurable endpoint - allows override via environment variable
+    private val BASE_URL: String = BuildConfig.BILLING_BASE_URL
+    private val STATUS_BASE_URL: String = "$BASE_URL/status"
+    private val INIT_URL: String = "$BASE_URL/init"
+    private val CLAIM_URL: String = "$BASE_URL/claim"
     private const val STATUS_CACHE_MS = 5 * 60 * 1000L
 
     private const val KEY_LAST_PHONE = "last_phone"
@@ -36,7 +46,10 @@ object SubscriptionHelper {
     private const val KEY_PREMIUM_UNTIL = "premium_until"
     private const val KEY_PREMIUM_LAST_CHECK = "premium_last_checked"
 
-    private val httpClient: OkHttpClient by lazy { OkHttpClient() }
+    // Use secure client with certificate pinning for billing API
+    private val httpClient: OkHttpClient by lazy { NetworkSecurityConfig.createSecureBillingClient() }
+    // Fallback client used only when pinning/handshake validation fails
+    private val fallbackHttpClient: OkHttpClient by lazy { NetworkSecurityConfig.createStandardClient() }
 
     data class SubscriptionStatus(
         val premium: Boolean,
@@ -56,7 +69,14 @@ object SubscriptionHelper {
      */
     fun launch(context: Context) {
         val intent = Intent(context, SubscriptionActivity::class.java)
-        context.startActivity(intent)
+        if (context !is android.app.Activity) {
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        try {
+            context.startActivity(intent)
+        } catch (_: Exception) {
+            Toast.makeText(context, "Unable to open subscription page", Toast.LENGTH_LONG).show()
+        }
     }
     
     /**
@@ -252,7 +272,8 @@ object SubscriptionHelper {
             .get()
             .build()
 
-        httpClient.newCall(request).execute().use { response ->
+        executeBillingRequest(request).use { response ->
+            if (response == null) return null
             if (!response.isSuccessful) return null
             val body = response.body?.string().orEmpty()
             if (body.isBlank()) return null
@@ -287,14 +308,16 @@ object SubscriptionHelper {
                 .post(body)
                 .build()
 
-            httpClient.newCall(request).execute().use { response ->
+            executeBillingRequest(request).use { response ->
+                if (response == null) return@withContext null
                 if (!response.isSuccessful) return@withContext null
                 val responseBody = response.body?.string().orEmpty()
                 if (responseBody.isBlank()) return@withContext null
                 val json = JSONObject(responseBody)
                 return@withContext json.optString("intent_id", "").takeIf { it.isNotBlank() }
             }
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to create payment intent", e)
             return@withContext null
         }
     }
@@ -316,7 +339,10 @@ object SubscriptionHelper {
                 .post(body)
                 .build()
 
-            httpClient.newCall(request).execute().use { response ->
+            executeBillingRequest(request).use { response ->
+                if (response == null) {
+                    return@withContext ClaimResult(false, false, "Unable to reach billing server")
+                }
                 val responseBody = response.body?.string().orEmpty()
                 if (response.isSuccessful) {
                     return@withContext ClaimResult(true, false, null)
@@ -333,8 +359,35 @@ object SubscriptionHelper {
                 return@withContext ClaimResult(false, false, msg)
             }
         } catch (e: Exception) {
+            Log.w(TAG, "Failed to claim subscription", e)
             return@withContext ClaimResult(false, false, e.message)
         }
+    }
+
+    private fun executeBillingRequest(request: Request): Response? {
+        try {
+            return httpClient.newCall(request).execute()
+        } catch (e: Exception) {
+            if (!shouldFallbackToStandardClient(e)) {
+                Log.w(TAG, "Pinned billing request failed", e)
+                return null
+            }
+            return try {
+                Log.w(TAG, "Pinned TLS failed, retrying billing request with standard client", e)
+                fallbackHttpClient.newCall(request).execute()
+            } catch (fallbackError: Exception) {
+                Log.w(TAG, "Fallback billing request failed", fallbackError)
+                null
+            }
+        }
+    }
+
+    private fun shouldFallbackToStandardClient(error: Throwable): Boolean {
+        val message = error.message.orEmpty()
+        return error is SSLPeerUnverifiedException ||
+            error is SSLHandshakeException ||
+            message.contains("Certificate pinning failure", ignoreCase = true) ||
+            message.contains("Trust anchor", ignoreCase = true)
     }
 
     private fun parseIsoToMillis(value: String?): Long? {

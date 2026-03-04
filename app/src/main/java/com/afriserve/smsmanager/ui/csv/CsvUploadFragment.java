@@ -160,7 +160,17 @@ public class CsvUploadFragment extends Fragment {
     private void openFilePicker() {
         Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
         intent.setType("*/*");
-        intent.putExtra(Intent.EXTRA_MIME_TYPES, new String[]{"text/csv", "application/vnd.ms-excel", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "text/plain"});
+        intent.putExtra(Intent.EXTRA_MIME_TYPES, new String[]{
+            "text/csv",
+            "text/plain",
+            "application/vnd.ms-excel",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "application/vnd.ms-excel.sheet.binary.macroEnabled.12",
+            "application/vnd.ms-excel.sheet.macroEnabled.12",
+            "application/vnd.ms-excel.template.macroEnabled.12",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.template",
+            "application/vnd.oasis.opendocument.spreadsheet"
+        });
         intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, false);
         filePickerLauncher.launch(Intent.createChooser(intent, "Select CSV or Excel file"));
     }

@@ -4,6 +4,7 @@ import androidx.room.Entity;
 import androidx.room.PrimaryKey;
 import androidx.room.ColumnInfo;
 import androidx.room.Index;
+import androidx.room.Ignore;
 import androidx.annotation.NonNull;
 
 /**
@@ -104,6 +105,7 @@ public class DashboardStatsEntity {
         this.createdAt = now;
     }
     
+    @Ignore
     public DashboardStatsEntity(String statType) {
         this();
         this.statType = statType;

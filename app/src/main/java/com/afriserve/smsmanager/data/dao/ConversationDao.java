@@ -133,4 +133,23 @@ public interface ConversationDao {
            "lastMessagePreview LIKE '%' || :query || '%' " +
            "ORDER BY lastMessageTime DESC")
     PagingSource<Integer, ConversationEntity> searchConversations(String query);
+
+        @Query("SELECT * FROM conversations " +
+            "WHERE (" +
+            "  :filter = 'ALL' OR " +
+            "  (:filter = 'INBOX' AND isArchived = 0) OR " +
+            "  (:filter = 'SENT' AND isArchived = 0 AND lastMessageType = 'SENT') OR " +
+            "  (:filter = 'UNREAD' AND unreadCount > 0)" +
+            ") AND (" +
+            "  COALESCE(:query, '') = '' OR " +
+            "  contactName LIKE '%' || :query || '%' OR " +
+            "  phoneNumber LIKE '%' || :query || '%' OR " +
+            "  lastMessagePreview LIKE '%' || :query || '%'" +
+            ") " +
+            "ORDER BY " +
+            "  CASE WHEN :sort = 'UNREAD_FIRST' THEN CASE WHEN unreadCount > 0 THEN 0 ELSE 1 END ELSE 0 END ASC, " +
+            "  isPinned DESC, " +
+            "  CASE WHEN :sort = 'OLDEST' THEN lastMessageTime END ASC, " +
+            "  CASE WHEN :sort != 'OLDEST' THEN lastMessageTime END DESC")
+        PagingSource<Integer, ConversationEntity> getConversationsPaged(String filter, String query, String sort);
 }

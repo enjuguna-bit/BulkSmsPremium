@@ -30,6 +30,9 @@ android {
         // Multi-dex support
         multiDexEnabled true
         
+        // API endpoint configuration - read from environment or use defaults
+        buildConfigField "String", "BILLING_BASE_URL", "\"${System.getenv('BILLING_BASE_URL') ?: 'https://bulksmsbilling.enjuguna794.workers.dev'}\""
+        buildConfigField "String", "WEBHOOK_SECRET", "\"${System.getenv('WEBHOOK_SECRET') ?: ''}\""
 
         multiDexKeepProguard = file('multidex-config.pro')
         
@@ -52,8 +55,9 @@ android {
 
     buildTypes {
         release {
-            minifyEnabled false
-            shrinkResources false
+            // Enable code shrinking and obfuscation for release builds
+            minifyEnabled true
+            shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             signingConfig signingConfigs.release
             
@@ -66,9 +70,6 @@ android {
             
             // R8 configuration
             crunchPngs = true
-            
-            // Disable PNG crunching for debug builds to improve build speed
-            crunchPngs = false
         }
         debug {
             minifyEnabled false
@@ -145,6 +146,8 @@ android {
         includeCompileClasspath = false
         arguments {
             arg("dagger.fastInit", "disabled")
+            // Room schema export location for migration safety
+            arg("room.schemaLocation", "$projectDir/schemas")
         }
     }
     

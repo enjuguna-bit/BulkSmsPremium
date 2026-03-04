@@ -6,6 +6,9 @@
     <string name="filter_inbox">Inbox</string>
     <string name="filter_sent">Sent</string>
     <string name="filter_unread">Unread</string>
+    <string name="sort_newest">Sort: Newest</string>
+    <string name="sort_oldest">Sort: Oldest</string>
+    <string name="sort_unread_first">Sort: Unread first</string>
     <string name="total_messages">Total: %d</string>
     <string name="unread_messages">Unread: %d</string>
     <string name="no_messages_found">No messages found</string>

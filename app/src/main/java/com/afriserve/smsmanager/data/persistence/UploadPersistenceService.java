@@ -5,8 +5,6 @@ import android.content.SharedPreferences;
 import android.util.Log;
 import com.afriserve.smsmanager.models.Recipient;
 import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
-import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -164,6 +162,7 @@ public class UploadPersistenceService {
         if (session == null) {
             return null;
         }
+        normalizeSession(session);
         if (isSessionExpired(session)) {
             preferences.edit().remove(key).apply();
             if (KEY_CURRENT_UPLOAD.equals(key)) {
@@ -329,9 +328,9 @@ public class UploadPersistenceService {
             entry.completed = false;
             entry.archived = false;
 
-            // Add to front, keeping max entries
+            // Remove duplicate first, then add the latest entry to front
+            history.removeIf(e -> e != null && session.fileId != null && session.fileId.equals(e.fileId));
             history.add(0, entry);
-            history.removeIf(e -> e.fileId.equals(session.fileId)); // Remove duplicate
 
             while (history.size() > uploadPreferences.maxHistoryEntries) {
                 history.remove(history.size() - 1);
@@ -357,9 +356,16 @@ public class UploadPersistenceService {
                 return new ArrayList<>();
             }
 
-            Type listType = new TypeToken<List<UploadHistoryEntry>>() {
-            }.getType();
-            return gson.fromJson(json, listType);
+            UploadHistoryEntry[] entries = gson.fromJson(json, UploadHistoryEntry[].class);
+            List<UploadHistoryEntry> history = new ArrayList<>();
+            if (entries != null) {
+                for (UploadHistoryEntry entry : entries) {
+                    if (entry != null) {
+                        history.add(entry);
+                    }
+                }
+            }
+            return history;
 
         } catch (Exception e) {
             Log.e(TAG, "Failed to get upload history", e);
@@ -494,6 +500,40 @@ public class UploadPersistenceService {
             Log.e(TAG, "Failed to load preferences", e);
         }
         return new UploadPreferences();
+    }
+
+    private void normalizeSession(UploadSession session) {
+        if (session.recipients == null) {
+            session.recipients = new ArrayList<>();
+            return;
+        }
+
+        List<Recipient> normalized = new ArrayList<>();
+        for (Object item : session.recipients) {
+            if (item == null) {
+                continue;
+            }
+            if (item instanceof Recipient) {
+                normalized.add((Recipient) item);
+                continue;
+            }
+            try {
+                Recipient recipient = gson.fromJson(gson.toJson(item), Recipient.class);
+                if (recipient != null && recipient.getPhone() != null && !recipient.getPhone().trim().isEmpty()) {
+                    normalized.add(recipient);
+                }
+            } catch (Exception e) {
+                Log.w(TAG, "Skipping invalid recipient during session normalization", e);
+            }
+        }
+
+        session.recipients = normalized;
+        if (session.totalRecords < normalized.size()) {
+            session.totalRecords = normalized.size();
+        }
+        if (session.validRecords < normalized.size()) {
+            session.validRecords = normalized.size();
+        }
     }
 
     /**

@@ -27,7 +27,7 @@ import java.util.concurrent.Executors;
         com.afriserve.smsmanager.data.entity.DashboardStatsEntity.class,
         com.afriserve.smsmanager.data.entity.DashboardMetricsEntity.class,
         com.afriserve.smsmanager.data.entity.SyncStatusEntity.class
-}, version = 8, exportSchema = false)
+}, version = 8, exportSchema = true)
 @TypeConverters({ AppDatabase.Converters.class })
 public abstract class AppDatabase extends RoomDatabase {
 
