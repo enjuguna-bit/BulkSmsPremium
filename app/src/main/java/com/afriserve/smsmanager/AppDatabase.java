@@ -2,6 +2,7 @@ package com.afriserve.smsmanager;
 
 import android.content.Context;
 import android.database.Cursor;
+import androidx.annotation.NonNull;
 import androidx.room.Database;
 import androidx.room.Room;
 import androidx.room.RoomDatabase;
@@ -26,8 +27,9 @@ import java.util.concurrent.Executors;
         com.afriserve.smsmanager.data.entity.KpiEntity.class,
         com.afriserve.smsmanager.data.entity.DashboardStatsEntity.class,
         com.afriserve.smsmanager.data.entity.DashboardMetricsEntity.class,
+
         com.afriserve.smsmanager.data.entity.SyncStatusEntity.class
-}, version = 8, exportSchema = true)
+}, version = 11, exportSchema = true)
 @TypeConverters({ AppDatabase.Converters.class })
 public abstract class AppDatabase extends RoomDatabase {
 
@@ -52,6 +54,32 @@ public abstract class AppDatabase extends RoomDatabase {
     public abstract com.afriserve.smsmanager.data.dao.SmsQueueDao smsQueueDao();
 
     public abstract com.afriserve.smsmanager.data.dao.SyncStatusDao syncStatusDao();
+
+    /**
+     * v8 -> v9: keep dashboard/KPI tables in AppDatabase because DashboardDao
+     * also queries campaign data and is provided from this database.
+     */
+    private static final Migration MIGRATION_8_9 = new Migration(8, 9) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase database) {
+            // Drop the dashboard tables — they now live in DashboardDatabase.
+            migrateSchema(database);
+        }
+    };
+
+    private static final Migration MIGRATION_9_10 = new Migration(9, 10) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase database) {
+            migrateSchema(database);
+        }
+    };
+
+    private static final Migration MIGRATION_10_11 = new Migration(10, 11) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase database) {
+            migrateSchema(database);
+        }
+    };
 
     private static volatile AppDatabase INSTANCE;
     private static final String DB_NAME = "bulksms_database_v2";
@@ -142,7 +170,7 @@ public abstract class AppDatabase extends RoomDatabase {
                 DB_NAME)
                 .setJournalMode(RoomDatabase.JournalMode.WRITE_AHEAD_LOGGING)
                 .setQueryExecutor(Executors.newFixedThreadPool(4))
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11)
                 .addCallback(new DatabaseCallback())
                 .addCallback(new RoomDatabase.Callback() {
                     @Override
@@ -171,6 +199,7 @@ public abstract class AppDatabase extends RoomDatabase {
                         "`isRead` INTEGER, " +
                         "`phoneNumber` TEXT, " +
                         "`message` TEXT, " +
+                        "`amount` REAL, " +
                         "`isMms` INTEGER, " +
                         "`mediaUri` TEXT, " +
                         "`attachmentCount` INTEGER, " +
@@ -179,6 +208,10 @@ public abstract class AppDatabase extends RoomDatabase {
                         "`sentAt` INTEGER, " +
                         "`deliveredAt` INTEGER, " +
                         "`campaignId` INTEGER, " +
+                        "`customerName` TEXT, " +
+                        "`officerName` TEXT, " +
+                        "`arrearsDays` INTEGER, " +
+                        "`sourceRowIndex` INTEGER, " +
                         "`retryCount` INTEGER NOT NULL DEFAULT 0, " +
                         "`nextRetryAt` INTEGER, " +
                         "`errorCode` TEXT, " +
@@ -193,6 +226,7 @@ public abstract class AppDatabase extends RoomDatabase {
                 { "isRead", "INTEGER" },
                 { "phoneNumber", "TEXT" },
                 { "message", "TEXT" },
+                { "amount", "REAL" },
                 { "isMms", "INTEGER" },
                 { "mediaUri", "TEXT" },
                 { "attachmentCount", "INTEGER" },
@@ -201,6 +235,10 @@ public abstract class AppDatabase extends RoomDatabase {
                 { "sentAt", "INTEGER" },
                 { "deliveredAt", "INTEGER" },
                 { "campaignId", "INTEGER" },
+                { "customerName", "TEXT" },
+                { "officerName", "TEXT" },
+                { "arrearsDays", "INTEGER" },
+                { "sourceRowIndex", "INTEGER" },
                 { "retryCount", "INTEGER NOT NULL DEFAULT 0" },
                 { "nextRetryAt", "INTEGER" },
                 { "errorCode", "TEXT" },
@@ -224,6 +262,7 @@ public abstract class AppDatabase extends RoomDatabase {
                 { "isRead", "isRead" },
                 { "phoneNumber", "phoneNumber" },
                 { "message", "message" },
+                { "amount", "amount" },
                 { "isMms", "isMms" },
                 { "mediaUri", "mediaUri" },
                 { "attachmentCount", "attachmentCount" },
@@ -232,6 +271,10 @@ public abstract class AppDatabase extends RoomDatabase {
                 { "sentAt", "sentAt" },
                 { "deliveredAt", "deliveredAt" },
                 { "campaignId", "campaignId" },
+                { "customerName", "customerName" },
+                { "officerName", "officerName" },
+                { "arrearsDays", "arrearsDays" },
+                { "sourceRowIndex", "sourceRowIndex" },
                 { "retryCount", "retryCount" },
                 { "nextRetryAt", "nextRetryAt" },
                 { "errorCode", "errorCode" },
@@ -278,7 +321,14 @@ public abstract class AppDatabase extends RoomDatabase {
                 "CREATE TABLE IF NOT EXISTS `campaign_entities` (" +
                         "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
                         "`name` TEXT, " +
+                        "`campaignUuid` TEXT, " +
+                        "`campaignDate` TEXT, " +
+                        "`campaignType` TEXT, " +
+                        "`sourceFileName` TEXT, " +
+                        "`arrearsFilter` TEXT, " +
+                        "`timezone` TEXT, " +
                         "`description` TEXT, " +
+                        "`messageTemplate` TEXT, " +
                         "`status` TEXT, " +
                         "`templateId` INTEGER, " +
                         "`recipientCount` INTEGER NOT NULL DEFAULT 0, " +
@@ -289,6 +339,8 @@ public abstract class AppDatabase extends RoomDatabase {
                         "`scheduledAt` INTEGER, " +
                         "`startedAt` INTEGER, " +
                         "`completedAt` INTEGER, " +
+                        "`closedAt` INTEGER, " +
+                        "`lastSnapshotAt` INTEGER, " +
                         "`createdAt` INTEGER NOT NULL DEFAULT 0, " +
                         "`updatedAt` INTEGER NOT NULL DEFAULT 0, " +
                         "`settings` TEXT" +
@@ -296,7 +348,14 @@ public abstract class AppDatabase extends RoomDatabase {
 
         ensureColumns(db, "campaign_entities", new String[][] {
                 { "name", "TEXT" },
+                { "campaignUuid", "TEXT" },
+                { "campaignDate", "TEXT" },
+                { "campaignType", "TEXT" },
+                { "sourceFileName", "TEXT" },
+                { "arrearsFilter", "TEXT" },
+                { "timezone", "TEXT" },
                 { "description", "TEXT" },
+                { "messageTemplate", "TEXT" },
                 { "status", "TEXT" },
                 { "templateId", "INTEGER" },
                 { "recipientCount", "INTEGER NOT NULL DEFAULT 0" },
@@ -307,6 +366,8 @@ public abstract class AppDatabase extends RoomDatabase {
                 { "scheduledAt", "INTEGER" },
                 { "startedAt", "INTEGER" },
                 { "completedAt", "INTEGER" },
+                { "closedAt", "INTEGER" },
+                { "lastSnapshotAt", "INTEGER" },
                 { "createdAt", "INTEGER NOT NULL DEFAULT 0" },
                 { "updatedAt", "INTEGER NOT NULL DEFAULT 0" },
                 { "settings", "TEXT" }
@@ -744,6 +805,8 @@ public abstract class AppDatabase extends RoomDatabase {
 
         db.execSQL("CREATE INDEX IF NOT EXISTS `index_campaign_entities_status` ON `campaign_entities` (`status`)");
         db.execSQL("CREATE INDEX IF NOT EXISTS `index_campaign_entities_createdAt` ON `campaign_entities` (`createdAt`)");
+        db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_campaign_entities_campaignUuid` ON `campaign_entities` (`campaignUuid`)");
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_campaign_entities_campaignDate` ON `campaign_entities` (`campaignDate`)");
 
         db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_customers_phone` ON `customers` (`phone`)");
         db.execSQL("CREATE INDEX IF NOT EXISTS `index_customers_lastSeen` ON `customers` (`lastSeen`)");

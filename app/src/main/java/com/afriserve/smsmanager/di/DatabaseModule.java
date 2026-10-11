@@ -5,6 +5,7 @@ import android.content.Context;
 import androidx.room.Room;
 
 import com.afriserve.smsmanager.AppDatabase;
+import com.afriserve.smsmanager.utils.MemoryManager;
 import com.afriserve.smsmanager.data.dao.CampaignDao;
 import com.afriserve.smsmanager.data.dao.ConversationDao;
 import com.afriserve.smsmanager.data.dao.CustomerDao;
@@ -88,4 +89,12 @@ public class DatabaseModule {
     public static com.afriserve.smsmanager.data.dao.SyncStatusDao provideSyncStatusDao(AppDatabase database) {
         return database.syncStatusDao();
     }
+
+    @dagger.Provides
+    @javax.inject.Singleton
+    public static com.afriserve.smsmanager.utils.MemoryManager provideMemoryManager(
+            @dagger.hilt.android.qualifiers.ApplicationContext android.content.Context context) {
+        return new com.afriserve.smsmanager.utils.MemoryManager(context);
+    }
+
 }

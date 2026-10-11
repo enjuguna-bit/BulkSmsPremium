@@ -149,7 +149,9 @@
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/et_message_template"
                         android:layout_width="match_parent"
-                        android:layout_height="120dp"
+                        android:layout_height="wrap_content"
+                        android:minLines="5"
+                        android:maxLines="15"
                         android:gravity="top|start"
                         android:inputType="textMultiLine" />
 

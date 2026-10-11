@@ -18,7 +18,9 @@ import com.afriserve.smsmanager.data.entity.SmsEntity;
 import com.afriserve.smsmanager.data.queue.SmsQueueManager;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.Collections;
 import java.util.Map;
+import java.util.Set;
 import javax.inject.Inject;
 import javax.inject.Provider;
 import javax.inject.Singleton;
@@ -52,6 +54,14 @@ public class EnhancedDeliveryTracker {
     // Tracking maps for pending intents
     private final Map<Integer, Long> pendingSentIntents = new ConcurrentHashMap<>();
     private final Map<Integer, Long> pendingDeliveredIntents = new ConcurrentHashMap<>();
+    private final Map<Long, Integer> pendingSimSlots = new ConcurrentHashMap<>();
+    private final Map<Long, String> pendingRecipientNames = new ConcurrentHashMap<>();
+
+    // Android may emit one callback per multipart segment. These sets make the
+    // UI statistics recipient/message based rather than segment/callback based.
+    private final Set<Long> pendingSmsIds = Collections.newSetFromMap(new ConcurrentHashMap<>());
+    private final Set<Long> handledSentSmsIds = Collections.newSetFromMap(new ConcurrentHashMap<>());
+    private final Set<Long> handledDeliveredSmsIds = Collections.newSetFromMap(new ConcurrentHashMap<>());
 
     // Delivery statistics
     private final AtomicInteger sentCount = new AtomicInteger(0);
@@ -63,18 +73,27 @@ public class EnhancedDeliveryTracker {
     private final BroadcastReceiver sentReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            handleSmsSent(intent);
+            handleSmsSent(intent, getResultCode());
         }
     };
 
     private final BroadcastReceiver deliveredReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            handleSmsDelivered(intent);
+            handleSmsDelivered(intent, getResultCode());
         }
     };
 
     private boolean isRegistered = false;
+    private volatile DeliveryEventListener deliveryEventListener;
+
+    public interface DeliveryEventListener {
+        void onDelivered(long smsId, @Nullable String recipientName);
+    }
+
+    public void setDeliveryEventListener(@Nullable DeliveryEventListener listener) {
+        this.deliveryEventListener = listener;
+    }
 
     @Inject
     public EnhancedDeliveryTracker(@dagger.hilt.android.qualifiers.ApplicationContext Context context, SmsDao smsDao,
@@ -94,12 +113,39 @@ public class EnhancedDeliveryTracker {
      */
     @NonNull
     public DeliveryIntents createDeliveryIntents(@NonNull String smsId) {
+        return createDeliveryIntents(smsId, 0);
+    }
+
+    /** Create callbacks while retaining the SIM slot for an in-process retry. */
+    @NonNull
+    public DeliveryIntents createDeliveryIntents(@NonNull String smsId, int simSlot) {
+        return createDeliveryIntents(smsId, simSlot, null);
+    }
+
+    /** Create callbacks and retain the display name for delivery notifications. */
+    @NonNull
+    public DeliveryIntents createDeliveryIntents(@NonNull String smsId, int simSlot,
+            @Nullable String recipientName) {
         int requestCode = requestCodeGenerator.incrementAndGet();
+        long numericSmsId = Long.parseLong(smsId);
+        pendingSimSlots.put(numericSmsId, simSlot);
+        if (recipientName != null && !recipientName.trim().isEmpty()) {
+            pendingRecipientNames.put(numericSmsId, recipientName.trim());
+        } else {
+            pendingRecipientNames.remove(numericSmsId);
+        }
+
+        // A retry starts a new logical attempt for this SMS record.
+        pendingSmsIds.add(numericSmsId);
+        handledSentSmsIds.remove(numericSmsId);
+        handledDeliveredSmsIds.remove(numericSmsId);
 
         // Create sent intent
         Intent sentIntent = new Intent(SMS_SENT_ACTION);
         sentIntent.setPackage(context.getPackageName());
-        sentIntent.putExtra(EXTRA_SMS_ID, smsId);
+        // Keep the callback contract numeric. The manifest receiver reads this
+        // extra with getLongExtra(), and Android does not coerce String extras.
+        sentIntent.putExtra(EXTRA_SMS_ID, numericSmsId);
         sentIntent.putExtra(EXTRA_TIMESTAMP, System.currentTimeMillis());
 
         PendingIntent sentPendingIntent = PendingIntent.getBroadcast(
@@ -109,7 +155,7 @@ public class EnhancedDeliveryTracker {
         // Create delivered intent
         Intent deliveredIntent = new Intent(SMS_DELIVERED_ACTION);
         deliveredIntent.setPackage(context.getPackageName());
-        deliveredIntent.putExtra(EXTRA_SMS_ID, smsId);
+        deliveredIntent.putExtra(EXTRA_SMS_ID, numericSmsId);
         deliveredIntent.putExtra(EXTRA_TIMESTAMP, System.currentTimeMillis());
 
         int deliveredRequestCode = requestCodeGenerator.incrementAndGet();
@@ -118,10 +164,10 @@ public class EnhancedDeliveryTracker {
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
 
         // Track pending intents
-        pendingSentIntents.put(requestCode, Long.parseLong(smsId));
-        pendingDeliveredIntents.put(deliveredRequestCode, Long.parseLong(smsId));
+        pendingSentIntents.put(requestCode, numericSmsId);
+        pendingDeliveredIntents.put(deliveredRequestCode, numericSmsId);
 
-        pendingCount.incrementAndGet();
+        pendingCount.set(pendingSmsIds.size());
 
         Log.d(TAG, "Created delivery intents for SMS ID: " + smsId);
 
@@ -131,19 +177,22 @@ public class EnhancedDeliveryTracker {
     /**
      * Handle SMS sent event
      */
-    private void handleSmsSent(@NonNull Intent intent) {
+    private void handleSmsSent(@NonNull Intent intent, int resultCode) {
         try {
-            String smsIdStr = intent.getStringExtra(EXTRA_SMS_ID);
+            long smsId = getSmsId(intent);
             long timestamp = intent.getLongExtra(EXTRA_TIMESTAMP, 0);
 
-            if (smsIdStr == null) {
+            if (smsId <= 0) {
                 Log.w(TAG, "Received sent intent without SMS ID");
                 return;
             }
 
-            long smsId = Long.parseLong(smsIdStr);
-            // Result code from SmsManager callback - assume success if intent received
-            int resultCode = android.app.Activity.RESULT_OK;
+            // Multipart sends reuse the same PendingIntent for every segment.
+            // Only the first callback represents the recipient-level send.
+            if (!handledSentSmsIds.add(smsId)) {
+                Log.d(TAG, "Ignoring duplicate/multipart sent callback for SMS ID: " + smsId);
+                return;
+            }
 
             Log.d(TAG, "SMS sent event - ID: " + smsId + ", Result: " + getResultCodeString(resultCode));
 
@@ -159,10 +208,13 @@ public class EnhancedDeliveryTracker {
                 enqueueForRetry(smsId, "Send failed: " + getResultCodeString(resultCode));
             }
 
-            pendingCount.decrementAndGet();
+            pendingSmsIds.remove(smsId);
+            pendingCount.set(pendingSmsIds.size());
 
             // Clean up tracking
             cleanupPendingIntents(smsId);
+
+            maybeCompleteCampaign(smsId);
 
         } catch (Exception e) {
             Log.e(TAG, "Error handling SMS sent event", e);
@@ -172,19 +224,22 @@ public class EnhancedDeliveryTracker {
     /**
      * Handle SMS delivered event
      */
-    private void handleSmsDelivered(@NonNull Intent intent) {
+    private void handleSmsDelivered(@NonNull Intent intent, int resultCode) {
         try {
-            String smsIdStr = intent.getStringExtra(EXTRA_SMS_ID);
+            long smsId = getSmsId(intent);
             long timestamp = intent.getLongExtra(EXTRA_TIMESTAMP, 0);
 
-            if (smsIdStr == null) {
+            if (smsId <= 0) {
                 Log.w(TAG, "Received delivered intent without SMS ID");
                 return;
             }
 
-            long smsId = Long.parseLong(smsIdStr);
-            // Result code from delivery callback - assume success if intent received
-            int resultCode = android.app.Activity.RESULT_OK;
+            // Delivery callbacks can be repeated for multipart segments or by
+            // the carrier. Count delivery once per logical SMS record.
+            if (!handledDeliveredSmsIds.add(smsId)) {
+                Log.d(TAG, "Ignoring duplicate/multipart delivered callback for SMS ID: " + smsId);
+                return;
+            }
 
             Log.d(TAG, "SMS delivered event - ID: " + smsId + ", Result: " + getResultCodeString(resultCode));
 
@@ -194,6 +249,11 @@ public class EnhancedDeliveryTracker {
             // Update statistics
             if (resultCode == android.app.Activity.RESULT_OK) {
                 deliveredCount.incrementAndGet();
+                DeliveryEventListener listener = deliveryEventListener;
+                String recipientName = pendingRecipientNames.remove(smsId);
+                if (listener != null) {
+                    mainHandler.post(() -> listener.onDelivered(smsId, recipientName));
+                }
             } else {
                 // Delivery failed but SMS was sent - no retry needed for delivery failure
                 Log.w(TAG, "SMS delivery failed for ID: " + smsId);
@@ -201,10 +261,46 @@ public class EnhancedDeliveryTracker {
 
             // Clean up tracking
             pendingDeliveredIntents.entrySet().removeIf(entry -> entry.getValue().equals(smsId));
+            pendingSimSlots.remove(smsId);
+
+            maybeCompleteCampaign(smsId);
 
         } catch (Exception e) {
             Log.e(TAG, "Error handling SMS delivered event", e);
         }
+    }
+
+    /** Complete a campaign only after all SMS rows have received a terminal send result. */
+    private void maybeCompleteCampaign(long smsId) {
+        Completable.fromAction(() -> {
+            SmsEntity sms = smsDao.getSmsById(smsId).blockingGet();
+            if (sms == null || sms.campaignId == null || sms.campaignId <= 0) return;
+            int pending = smsDao.getNonTerminalCountByCampaign(sms.campaignId).blockingGet();
+            if (pending == 0) {
+                campaignDao.completeCampaign(sms.campaignId, System.currentTimeMillis()).blockingAwait();
+                Log.d(TAG, "Campaign completed after delivery callbacks: " + sms.campaignId);
+            }
+        }).subscribeOn(Schedulers.io()).subscribe(
+                () -> { }, error -> Log.w(TAG, "Failed to finalize campaign callback state", error));
+    }
+
+    /**
+     * Read both the current long form and the string form emitted by older
+     * builds, so an in-flight campaign can finish after an app upgrade.
+     */
+    private long getSmsId(@NonNull Intent intent) {
+        Object value = intent.getExtras() != null ? intent.getExtras().get(EXTRA_SMS_ID) : null;
+        if (value instanceof Number) {
+            return ((Number) value).longValue();
+        }
+        if (value instanceof String) {
+            try {
+                return Long.parseLong((String) value);
+            } catch (NumberFormatException ignored) {
+                // Fall through to the invalid-ID result.
+            }
+        }
+        return -1L;
     }
 
     /**
@@ -230,7 +326,15 @@ public class EnhancedDeliveryTracker {
                     }
 
                     smsDao.updateSms(smsEntity).blockingAwait();
-                    if (campaignId != null && campaignId > 0 && resultCode != android.app.Activity.RESULT_OK
+                    if (campaignId != null && campaignId > 0 && resultCode == android.app.Activity.RESULT_OK
+                            && (previousStatus == null || (!"SENT".equals(previousStatus)
+                            && !"DELIVERED".equals(previousStatus)))) {
+                        try {
+                            campaignDao.incrementSentCount(campaignId).blockingAwait();
+                        } catch (Exception e) {
+                            Log.w(TAG, "Failed to update campaign sent count", e);
+                        }
+                    } else if (campaignId != null && campaignId > 0 && resultCode != android.app.Activity.RESULT_OK
                             && (previousStatus == null || !"FAILED".equals(previousStatus))) {
                         try {
                             campaignDao.incrementFailedCount(campaignId).blockingAwait();
@@ -300,7 +404,8 @@ public class EnhancedDeliveryTracker {
                 SmsEntity smsEntity = smsDao.getSmsById(smsId).blockingGet();
                 if (smsEntity != null) {
                     // Enqueue for retry using queue manager
-                    queueManagerProvider.get().enqueueSms(smsEntity.phoneNumber, smsEntity.message, 0, smsId)
+                    int retrySimSlot = pendingSimSlots.getOrDefault(smsId, smsEntity.simSlot);
+                    queueManagerProvider.get().enqueueSms(smsEntity.phoneNumber, smsEntity.message, retrySimSlot, smsId)
                             .subscribe(
                                     () -> Log.d(TAG, "Enqueued SMS for retry: " + smsId),
                                     error -> Log.e(TAG, "Failed to enqueue SMS for retry", error));
@@ -379,6 +484,13 @@ public class EnhancedDeliveryTracker {
         deliveredCount.set(0);
         failedCount.set(0);
         pendingCount.set(0);
+        pendingSmsIds.clear();
+        handledSentSmsIds.clear();
+        handledDeliveredSmsIds.clear();
+        pendingSentIntents.clear();
+        pendingDeliveredIntents.clear();
+        pendingSimSlots.clear();
+        pendingRecipientNames.clear();
         Log.d(TAG, "Delivery statistics reset");
     }
 

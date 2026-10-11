@@ -56,7 +56,15 @@ public class TemplateVariableAdapter extends ListAdapter<TemplateVariableExtract
         }
 
         public void bind(TemplateVariableExtractor.TemplateVariable variable) {
-            btnVariable.setText(variable.variableName);
+            // Keep the friendly label, but show the source column/calculation beside it so
+            // users do not have to memorize what a placeholder represents.
+            String detail = variable.columnName;
+            if (detail == null || detail.trim().isEmpty()
+                    || detail.trim().equalsIgnoreCase(variable.displayName.trim())) {
+                btnVariable.setText(variable.displayName);
+            } else {
+                btnVariable.setText(variable.displayName + " (" + detail + ")");
+            }
             
             btnVariable.setOnClickListener(v -> {
                 if (listener != null) {

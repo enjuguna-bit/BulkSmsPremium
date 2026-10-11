@@ -45,7 +45,10 @@ public interface CampaignDao {
     
     @Query("SELECT COUNT(*) FROM campaign_entities")
     Single<Integer> getTotalCampaignsCount();
-    
+
+    @Query("SELECT COUNT(*) FROM campaign_entities")
+    Single<Integer> getCampaignCount();
+
     @Query("SELECT COUNT(*) FROM campaign_entities WHERE status = :status")
     Single<Integer> getCampaignsCountByStatus(String status);
     
@@ -108,6 +111,18 @@ public interface CampaignDao {
     
     @Query("UPDATE campaign_entities SET status = 'COMPLETED', completedAt = :completedAt WHERE id = :id")
     Completable completeCampaign(long id, long completedAt);
+
+    @Query("UPDATE campaign_entities SET status = 'CLOSED', closedAt = :closedAt, updatedAt = :closedAt WHERE id = :id AND status IN ('DRAFT', 'ACTIVE', 'PAUSED')")
+    Completable closeCampaign(long id, long closedAt);
+
+    @Query("SELECT * FROM campaign_entities WHERE campaignDate < :today AND status IN ('DRAFT', 'ACTIVE', 'PAUSED')")
+    Single<List<CampaignEntity>> getOpenCampaignsBefore(String today);
+
+    @Query("UPDATE campaign_entities SET lastSnapshotAt = :snapshotAt, updatedAt = :snapshotAt WHERE id = :id")
+    Completable markSnapshot(long id, long snapshotAt);
+
+    @Query("SELECT * FROM campaign_entities WHERE campaignUuid = :uuid LIMIT 1")
+    Single<CampaignEntity> getCampaignByUuid(String uuid);
     
     @Query("UPDATE campaign_entities SET deliveredCount = deliveredCount + 1 WHERE id = :id")
     Completable incrementDeliveredCount(long id);
@@ -141,6 +156,9 @@ public interface CampaignDao {
     
     @Query("SELECT * FROM campaign_entities ORDER BY createdAt DESC LIMIT :limit")
     Single<List<CampaignEntity>> getRecentCampaigns(int limit);
+
+    @Query("SELECT * FROM campaign_entities WHERE campaignDate = :campaignDate ORDER BY createdAt DESC")
+    Single<List<CampaignEntity>> getCampaignsByDate(String campaignDate);
     
     @Query("SELECT * FROM campaign_entities WHERE status = 'COMPLETED' ORDER BY completedAt DESC LIMIT :limit")
     Single<List<CampaignEntity>> getRecentlyCompletedCampaigns(int limit);

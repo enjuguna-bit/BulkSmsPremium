@@ -102,7 +102,7 @@ Thumbs.db
 ehthumbs.db
 Desktop.ini
 
-# Logs
+# Logs — ALL log files
 *.log
 logs/
 
@@ -120,13 +120,31 @@ logs/
 .Spotlight-V100
 .Trashes
 
-# Backup files
+# Backup files (never commit .bak / .backup)
 *.bak
 *.backup
 
-# Build output logs
-build_output*.txt
-build_error_log.txt
+# JVM crash and replay dumps (hs_err_pid*.log, replay_pid*.log)
+hs_err_pid*.log
+replay_pid*.log
+
+# Build / CI output text files
+build_error*.log
+build_output*.log
+build_release*.log
+test_build*.log
+test_results*.txt
+errors.txt
+bom_files.txt
+
+# Crash diagnostic text files
+crash_log*.txt
+window_dump*.xml
+
+# Root-level PowerShell patch / helper scripts
+# Apply them once then keep them out of history.
+*.ps1
+*.bat
 
 # Temporary JAR files
 temp_jar.jar
@@ -148,7 +166,18 @@ obj/
 gradle-*/
 *.zip
 
-# Build logs and temporary files
-*.txt
-!gradle.properties
-!README.md
+# Local JavaScript dependencies and deployment diagnostics
+**/node_modules/
+cloudflare-worker/.wrangler/
+cloudflare-worker/*logs*.json
+cloudflare-worker/*deploy*.txt
+cloudflare-worker/*help*.txt
+cloudflare-worker/*kv_*.txt
+
+# Local inspection/build artifacts
+docx_render/
+device-*.png
+usb-*.png
+installed-current.apk
+new_config.json
+firebase-webhook/New Text Document.txt

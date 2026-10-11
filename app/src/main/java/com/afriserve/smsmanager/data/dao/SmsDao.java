@@ -10,6 +10,7 @@ import androidx.room.Query;
 import androidx.room.OnConflictStrategy;
 
 import com.afriserve.smsmanager.data.entity.SmsEntity;
+import com.afriserve.smsmanager.data.export.CampaignSmsRecord;
 
 import java.util.List;
 
@@ -68,6 +69,21 @@ public interface SmsDao {
     @Query("SELECT COUNT(*) FROM sms_entities WHERE campaignId = :campaignId")
     Single<Integer> getCountByCampaign(long campaignId);
 
+    @Query("SELECT COUNT(*) FROM sms_entities WHERE campaignId = :campaignId AND status IN ('PENDING', 'SENT', 'PENDING_RETRY')")
+    Single<Integer> getNonTerminalCountByCampaign(long campaignId);
+
+    @Query("SELECT COUNT(*) FROM sms_entities WHERE campaignId = :campaignId AND status IN ('SENT', 'DELIVERED')")
+    Single<Integer> getSentCountByCampaign(long campaignId);
+
+    @Query("SELECT COUNT(*) FROM sms_entities WHERE campaignId = :campaignId AND status = 'DELIVERED'")
+    Single<Integer> getDeliveredCountByCampaign(long campaignId);
+
+    @Query("SELECT COUNT(*) FROM sms_entities WHERE campaignId = :campaignId AND status = 'FAILED'")
+    Single<Integer> getFailedCountByCampaign(long campaignId);
+
+    @Query("SELECT * FROM sms_entities WHERE campaignId = :campaignId ORDER BY id ASC")
+    Single<List<SmsEntity>> getSmsByCampaign(long campaignId);
+
     @Query("SELECT COUNT(*) FROM sms_entities WHERE createdAt >= :startTime AND createdAt <= :endTime")
     Single<Integer> getCountByTimeRange(long startTime, long endTime);
 
@@ -112,6 +128,36 @@ public interface SmsDao {
 
     @Query("SELECT * FROM sms_entities ORDER BY createdAt DESC")
     Single<List<SmsEntity>> getAllSms();
+
+    @Query("SELECT s.id AS smsId, s.campaignId AS campaignId, s.customerName AS customerName, " +
+            "s.phoneNumber AS phoneNumber, s.amount AS amount, s.officerName AS officerName, " +
+            "s.arrearsDays AS arrearsDays, s.sourceRowIndex AS sourceRowIndex, " +
+            "c.name AS campaignName, c.campaignDate AS campaignDate, s.message AS message, " +
+            "s.status AS smsStatus, s.errorMessage AS errorMessage, s.sentAt AS sentAt, " +
+            "s.deliveredAt AS deliveredAt " +
+            "FROM sms_entities s INNER JOIN campaign_entities c ON c.id = s.campaignId " +
+            "WHERE (:query = '' OR lower(coalesce(s.customerName, '')) LIKE '%' || lower(:query) || '%' " +
+            "OR s.phoneNumber LIKE '%' || :query || '%') " +
+            // Queue retries can leave more than one physical SMS row for the same
+            // campaign recipient. Show the newest logical record in history; the
+            // detail screen still exposes the campaign's aggregate sent/delivered
+            // counts and the retry state is not changed by this read-only query.
+            "AND NOT EXISTS (SELECT 1 FROM sms_entities retry " +
+            "WHERE retry.campaignId = s.campaignId " +
+            "AND retry.phoneNumber = s.phoneNumber " +
+            "AND retry.createdAt > s.createdAt) " +
+            "ORDER BY s.createdAt DESC LIMIT 200")
+    Single<List<CampaignSmsRecord>> searchCampaignHistory(String query);
+
+    @Query("SELECT s.id AS smsId, s.campaignId AS campaignId, s.customerName AS customerName, " +
+            "s.phoneNumber AS phoneNumber, s.amount AS amount, s.officerName AS officerName, " +
+            "s.arrearsDays AS arrearsDays, s.sourceRowIndex AS sourceRowIndex, " +
+            "c.name AS campaignName, c.campaignDate AS campaignDate, s.message AS message, " +
+            "s.status AS smsStatus, s.errorMessage AS errorMessage, s.sentAt AS sentAt, " +
+            "s.deliveredAt AS deliveredAt " +
+            "FROM sms_entities s INNER JOIN campaign_entities c ON c.id = s.campaignId " +
+            "WHERE s.status IS NULL OR s.status != 'DELIVERED' ORDER BY s.createdAt DESC")
+    Single<List<CampaignSmsRecord>> getUndeliveredCampaignHistory();
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     Single<Long> insertSms(SmsEntity sms);
@@ -182,6 +228,15 @@ public interface SmsDao {
 
     @Query("SELECT COUNT(*) FROM sms_entities")
     Single<Integer> getTotalCountSingle();
+
+    @Query("SELECT COUNT(*) FROM sms_entities WHERE status IN ('SENT', 'DELIVERED')")
+    Single<Integer> getTotalSentCount();
+
+    @Query("SELECT COUNT(*) FROM sms_entities WHERE status = 'DELIVERED'")
+    Single<Integer> getTotalDeliveredCount();
+
+    @Query("SELECT COUNT(*) FROM sms_entities WHERE status = 'FAILED'")
+    Single<Integer> getTotalFailedCount();
 
     @Query("SELECT COUNT(*) FROM sms_entities WHERE (isRead = 0 OR (isRead IS NULL AND (status = 'PENDING' OR status = 'SENT')))")
     LiveData<Integer> getUnreadCount();

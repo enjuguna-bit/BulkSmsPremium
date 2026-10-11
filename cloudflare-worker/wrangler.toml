@@ -1,0 +1,17 @@
+name = "bulksms-webhook"
+main = "src/index.js"
+compatibility_date = "2024-03-27"
+
+# KV Namespace bindings
+# You will need to replace the ID values with your actual KV namespace IDs once created
+[[kv_namespaces]]
+binding = "TRANSACTIONS"
+id = "3f691e6f4dae43af9df98b81c4eb3e81"
+
+[[kv_namespaces]]
+binding = "SUBSCRIPTIONS"
+id = "0c7e588ac35f4fb2999fa12af9e2b3df"
+
+[[kv_namespaces]]
+binding = "LOGS"
+id = "847ab5cc29a142c18eacb69c3b1f1dc1"

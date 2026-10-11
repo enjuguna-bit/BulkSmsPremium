@@ -1,6 +1,9 @@
 package com.afriserve.smsmanager;
 
 import android.Manifest;
+import android.app.DownloadManager;
+import android.database.Cursor;
+import android.os.Environment;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -19,6 +22,11 @@ import android.widget.CompoundButton;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.Button;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
@@ -32,6 +40,7 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatDelegate;
 import androidx.cardview.widget.CardView;
 import androidx.core.content.ContextCompat;
+import androidx.core.content.FileProvider;
 import androidx.fragment.app.Fragment;
 import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
@@ -58,7 +67,7 @@ public class SettingsFragment extends Fragment {
     private static final String KEY_LAST_PHONE = "last_phone";
     
     private CardView themeCard, notificationsCard, defaultSmsCard, clearCacheCard, 
-                     aboutCard, biometricCard, premiumCard, supportCard, privacyCard;
+                     aboutCard, biometricCard, premiumCard, supportCard, privacyCard, userGuideCard;
     private MaterialSwitch switchNotifications;
     private TextView txtCurrentTheme, txtDefaultSmsStatus, txtBiometricStatus;
     private TextView txtSubscriptionStatus, txtSubscriptionPaidUntil;
@@ -240,10 +249,10 @@ public class SettingsFragment extends Fragment {
         if (plan == null) return null;
         String normalized = plan.trim().toLowerCase(Locale.getDefault());
         switch (normalized) {
-            case "one_hour":
-                return "1-Hour";
             case "six_hour":
                 return "6-Hour";
+            case "twelve_hour":
+                return "12-Hour";
             case "daily":
                 return "24-Hour";
             case "weekly":
@@ -322,6 +331,7 @@ public class SettingsFragment extends Fragment {
         tilSubscriptionPhone = view.findViewById(R.id.tilSubscriptionPhone);
         etSubscriptionPhone = view.findViewById(R.id.etSubscriptionPhone);
         privacyCard = view.findViewById(R.id.privacyCard);
+        userGuideCard = view.findViewById(R.id.userGuideCard);
         prefillSubscriptionPhone();
     }
 
@@ -361,6 +371,10 @@ public class SettingsFragment extends Fragment {
 
         if (privacyCard != null) {
             privacyCard.setOnClickListener(v -> openPrivacyPolicy());
+        }
+
+        if (userGuideCard != null) {
+            userGuideCard.setOnClickListener(v -> downloadUserGuide());
         }
         
         switchNotifications.setOnCheckedChangeListener((buttonView, isChecked) -> {
@@ -833,6 +847,62 @@ public class SettingsFragment extends Fragment {
         }
     }
 
+    private void downloadUserGuide() {
+        try {
+            String fileName = "BulkSMS_User_Guide.docx";
+            
+            // 1. Copy from assets to internal files (for reliable sharing)
+            File filesDir = requireContext().getFilesDir();
+            File guideFile = new File(filesDir, fileName);
+
+            try (InputStream in = requireContext().getAssets().open(fileName);
+                 OutputStream out = new FileOutputStream(guideFile)) {
+                byte[] buffer = new byte[1024];
+                int read;
+                while ((read = in.read(buffer)) != -1) {
+                    out.write(buffer, 0, read);
+                }
+                out.flush();
+            }
+
+            // 2. Also try to copy to public Downloads folder for user convenience
+            try {
+                File downloadFolder = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+                if (downloadFolder.exists() || downloadFolder.mkdirs()) {
+                    File publicFile = new File(downloadFolder, fileName);
+                    try (InputStream in = requireContext().getAssets().open(fileName);
+                         OutputStream out = new FileOutputStream(publicFile)) {
+                        byte[] buffer = new byte[1024];
+                        int read;
+                        while ((read = in.read(buffer)) != -1) {
+                            out.write(buffer, 0, read);
+                        }
+                        out.flush();
+                    }
+                }
+            } catch (Exception e) {
+                // Non-critical if public folder copy fails
+                Log.w("SettingsFragment", "Could not copy to public downloads", e);
+            }
+
+            // 3. Open the file immediately
+            Uri uri = FileProvider.getUriForFile(requireContext(), 
+                    requireContext().getPackageName() + ".fileprovider", guideFile);
+            
+            Intent intent = new Intent(Intent.ACTION_VIEW);
+            intent.setDataAndType(uri, "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            
+            toastUtils.showSuccess("Opening User Guide...");
+            startActivity(intent);
+
+        } catch (Exception e) {
+            Log.e("SettingsFragment", "Guide extraction/opening failed", e);
+            toastUtils.showError("Could not open guide: " + e.getMessage());
+        }
+    }
+
     @Override
     public void onDestroyView() {
         super.onDestroyView();
@@ -848,6 +918,7 @@ public class SettingsFragment extends Fragment {
         premiumCard = null;
         supportCard = null;
         privacyCard = null;
+        userGuideCard = null;
         switchNotifications = null;
         txtCurrentTheme = null;
         txtDefaultSmsStatus = null;

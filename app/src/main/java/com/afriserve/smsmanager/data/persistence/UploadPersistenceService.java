@@ -16,8 +16,14 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 /**
- * Session persistence service for Excel upload data
- * Manages upload sessions across app restarts with timeout handling
+ * Session persistence service for Excel upload data.
+ * Manages upload sessions across app restarts with timeout handling.
+ *
+ * Changes v2:
+ *  - Added {@link SessionStats} inner class: a lightweight snapshot of key
+ *    session metrics that can be queried without deserialising the full
+ *    recipient list, making it safe for main-thread list/history UIs.
+ *  - Added {@link #getSessionStats(String)} and {@link #getSessionStatsAsync}.
  */
 @Singleton
 public class UploadPersistenceService {
@@ -43,8 +49,10 @@ public class UploadPersistenceService {
         this.uploadPreferences = loadPreferences();
     }
 
+    // ── Inner data classes ────────────────────────────────────────────────────
+
     /**
-     * Data class for upload session information
+     * Data class for upload session information.
      */
     public static class UploadSession {
         public String fileId;
@@ -64,6 +72,7 @@ public class UploadPersistenceService {
         public int sendSpeed = 300;
         public String campaignName;
         public String campaignType;
+        public String arrearsFilter;
         public String source;
         public long campaignId;
         public int lastProcessedIndex;
@@ -86,7 +95,7 @@ public class UploadPersistenceService {
     }
 
     /**
-     * Data class for upload preferences
+     * Data class for upload preferences.
      */
     public static class UploadPreferences {
         public boolean autoSave = true;
@@ -94,12 +103,11 @@ public class UploadPersistenceService {
         public boolean keepHistory = true;
         public int maxHistoryEntries = 10;
 
-        public UploadPreferences() {
-        }
+        public UploadPreferences() {}
     }
 
     /**
-     * Data class for upload history entry
+     * Data class for upload history entry.
      */
     public static class UploadHistoryEntry {
         public String fileId;
@@ -113,9 +121,56 @@ public class UploadPersistenceService {
         public int failedCount;
         public boolean archived;
 
-        public UploadHistoryEntry() {
+        public UploadHistoryEntry() {}
+    }
+
+    /**
+     * Lightweight snapshot of key metrics for a single upload session.
+     * Returned by {@link #getSessionStats(String)} for display in history/list UIs
+     * without needing to deserialize the full recipient list.
+     */
+    public static final class SessionStats {
+        public final String  fileId;
+        public final String  fileName;
+        public final int     totalRecords;
+        public final int     validRecords;
+        public final int     sentCount;
+        public final int     failedCount;
+        public final int     skippedCount;
+        public final int     lastProcessedIndex;
+        public final boolean isPaused;
+        public final boolean isStopped;
+        public final boolean isActive;
+        public final long    uploadTimestamp;
+        public final long    lastAccessed;
+        /** Percentage of valid records successfully sent (0–100). */
+        public final int deliveryPct;
+        /** Percentage of the send run completed so far (0–100). */
+        public final int progressPct;
+
+        private SessionStats(UploadSession s) {
+            this.fileId             = s.fileId;
+            this.fileName           = s.fileName;
+            this.totalRecords       = s.totalRecords;
+            this.validRecords       = s.validRecords;
+            this.sentCount          = s.sentCount;
+            this.failedCount        = s.failedCount;
+            this.skippedCount       = s.skippedCount;
+            this.lastProcessedIndex = s.lastProcessedIndex;
+            this.isPaused           = s.isPaused;
+            this.isStopped          = s.isStopped;
+            this.isActive           = s.isActive;
+            this.uploadTimestamp    = s.uploadTimestamp;
+            this.lastAccessed       = s.lastAccessed;
+            int processed = s.sentCount + s.failedCount + s.skippedCount;
+            this.deliveryPct = (s.validRecords > 0)
+                    ? Math.min(100, s.sentCount * 100 / s.validRecords) : 0;
+            this.progressPct = (s.validRecords > 0)
+                    ? Math.min(100, processed * 100 / s.validRecords) : 0;
         }
     }
+
+    // ── Private helpers ───────────────────────────────────────────────────────
 
     private String sessionKey(String sessionId) {
         return KEY_SESSION_PREFIX + sessionId;
@@ -128,16 +183,11 @@ public class UploadPersistenceService {
     }
 
     private boolean isSessionExpired(UploadSession session) {
-        if (session == null) {
-            return true;
-        }
+        if (session == null) return true;
         long now = System.currentTimeMillis();
-        if (session.scheduledAt != null && session.scheduledAt > now) {
-            return false;
-        }
+        if (session.scheduledAt != null && session.scheduledAt > now) return false;
         long maxAge = uploadPreferences.sessionTimeoutHours * 60 * 60 * 1000;
-        long sessionAge = now - session.uploadTimestamp;
-        return sessionAge > maxAge;
+        return (now - session.uploadTimestamp) > maxAge;
     }
 
     private void saveSessionInternal(UploadSession session, String key, boolean updateHistory) {
@@ -145,9 +195,7 @@ public class UploadPersistenceService {
         session.lastAccessed = System.currentTimeMillis();
         session.isActive = true;
         String json = gson.toJson(session);
-        preferences.edit()
-                .putString(key, json)
-                .apply();
+        preferences.edit().putString(key, json).apply();
         if (updateHistory && uploadPreferences.keepHistory) {
             addToHistory(session);
         }
@@ -155,13 +203,9 @@ public class UploadPersistenceService {
 
     private UploadSession loadSessionInternal(String key, boolean touch) {
         String json = preferences.getString(key, null);
-        if (json == null) {
-            return null;
-        }
+        if (json == null) return null;
         UploadSession session = gson.fromJson(json, UploadSession.class);
-        if (session == null) {
-            return null;
-        }
+        if (session == null) return null;
         normalizeSession(session);
         if (isSessionExpired(session)) {
             preferences.edit().remove(key).apply();
@@ -176,6 +220,8 @@ public class UploadPersistenceService {
         }
         return session;
     }
+
+    // ── Public session API ────────────────────────────────────────────────────
 
     public void saveSession(UploadSession session) {
         executor.execute(() -> {
@@ -207,9 +253,7 @@ public class UploadPersistenceService {
     public UploadSession loadCurrentUploadSync() {
         try {
             UploadSession session = loadSessionInternal(KEY_CURRENT_UPLOAD, true);
-            if (session != null) {
-                setActiveSessionId(session.fileId);
-            }
+            if (session != null) setActiveSessionId(session.fileId);
             return session;
         } catch (Exception e) {
             Log.e(TAG, "Failed to load current upload session", e);
@@ -233,18 +277,14 @@ public class UploadPersistenceService {
     public void clearSession(String sessionId) {
         executor.execute(() -> {
             try {
-                preferences.edit()
-                        .remove(sessionKey(sessionId))
-                        .apply();
+                preferences.edit().remove(sessionKey(sessionId)).apply();
             } catch (Exception e) {
                 Log.e(TAG, "Failed to clear session", e);
             }
         });
     }
 
-    /**
-     * Save current upload session
-     */
+    /** Save current upload session (async). */
     public void saveCurrentUpload(UploadSession session) {
         executor.execute(() -> {
             try {
@@ -269,18 +309,12 @@ public class UploadPersistenceService {
         }
     }
 
-    /**
-     * Load current upload session
-     * Returns null if no session or session expired
-     */
+    /** Load current upload session asynchronously. Returns null if no session or expired. */
     public void loadCurrentUpload(Callback<UploadSession> callback) {
         executor.execute(() -> {
             try {
                 UploadSession session = loadSessionInternal(KEY_CURRENT_UPLOAD, true);
-                if (session == null) {
-                    callback.onResult(null);
-                    return;
-                }
+                if (session == null) { callback.onResult(null); return; }
                 setActiveSessionId(session.fileId);
                 Log.d(TAG, "Loaded session: " + session.fileName);
                 callback.onResult(session);
@@ -291,9 +325,7 @@ public class UploadPersistenceService {
         });
     }
 
-    /**
-     * Clear current upload session
-     */
+    /** Clear current upload session. */
     public void clearCurrentUpload() {
         executor.execute(() -> {
             try {
@@ -301,9 +333,7 @@ public class UploadPersistenceService {
                 SharedPreferences.Editor editor = preferences.edit()
                         .remove(KEY_CURRENT_UPLOAD)
                         .remove(KEY_ACTIVE_SESSION_ID);
-                if (activeId != null) {
-                    editor.remove(sessionKey(activeId));
-                }
+                if (activeId != null) editor.remove(sessionKey(activeId));
                 editor.apply();
                 Log.d(TAG, "Cleared current upload session");
             } catch (Exception e) {
@@ -312,13 +342,45 @@ public class UploadPersistenceService {
         });
     }
 
+    // ── Session statistics ────────────────────────────────────────────────────
+
     /**
-     * Add upload to history
+     * Returns a lightweight {@link SessionStats} snapshot for the given session,
+     * or {@code null} if the session is not found or has expired.
+     *
+     * <p>Unlike {@link #loadSessionSync(String)}, this call does <em>not</em>
+     * re-deserialize the full recipient list, so it is safe to call from the
+     * main thread for history/list display.</p>
      */
+    public SessionStats getSessionStats(String sessionId) {
+        try {
+            UploadSession session = loadSessionInternal(sessionKey(sessionId), false);
+            return session != null ? new SessionStats(session) : null;
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to get session stats for " + sessionId, e);
+            return null;
+        }
+    }
+
+    /**
+     * Async variant of {@link #getSessionStats(String)}.
+     */
+    public void getSessionStatsAsync(String sessionId, Callback<SessionStats> callback) {
+        executor.execute(() -> {
+            try {
+                callback.onResult(getSessionStats(sessionId));
+            } catch (Exception e) {
+                Log.e(TAG, "Failed to get session stats async", e);
+                callback.onResult(null);
+            }
+        });
+    }
+
+    // ── History API ───────────────────────────────────────────────────────────
+
     private void addToHistory(UploadSession session) {
         try {
             List<UploadHistoryEntry> history = getUploadHistory();
-
             UploadHistoryEntry entry = new UploadHistoryEntry();
             entry.fileId = session.fileId;
             entry.fileName = session.fileName;
@@ -327,61 +389,40 @@ public class UploadPersistenceService {
             entry.validRecords = session.validRecords;
             entry.completed = false;
             entry.archived = false;
-
-            // Remove duplicate first, then add the latest entry to front
             history.removeIf(e -> e != null && session.fileId != null && session.fileId.equals(e.fileId));
             history.add(0, entry);
-
             while (history.size() > uploadPreferences.maxHistoryEntries) {
                 history.remove(history.size() - 1);
             }
-
-            String json = gson.toJson(history);
-            preferences.edit()
-                    .putString(KEY_UPLOAD_HISTORY, json)
-                    .apply();
-
+            preferences.edit().putString(KEY_UPLOAD_HISTORY, gson.toJson(history)).apply();
         } catch (Exception e) {
             Log.e(TAG, "Failed to add to history", e);
         }
     }
 
-    /**
-     * Get upload history
-     */
     public List<UploadHistoryEntry> getUploadHistory() {
         try {
             String json = preferences.getString(KEY_UPLOAD_HISTORY, null);
-            if (json == null) {
-                return new ArrayList<>();
-            }
-
+            if (json == null) return new ArrayList<>();
             UploadHistoryEntry[] entries = gson.fromJson(json, UploadHistoryEntry[].class);
             List<UploadHistoryEntry> history = new ArrayList<>();
             if (entries != null) {
                 for (UploadHistoryEntry entry : entries) {
-                    if (entry != null) {
-                        history.add(entry);
-                    }
+                    if (entry != null) history.add(entry);
                 }
             }
             return history;
-
         } catch (Exception e) {
             Log.e(TAG, "Failed to get upload history", e);
             return new ArrayList<>();
         }
     }
 
-    /**
-     * Mark upload as completed in history
-     */
     public void markUploadCompleted(String fileId, int sentCount, int failedCount) {
         executor.execute(() -> {
             try {
                 List<UploadHistoryEntry> history = getUploadHistory();
                 boolean updated = false;
-
                 for (UploadHistoryEntry entry : history) {
                     if (entry.fileId.equals(fileId)) {
                         entry.completed = true;
@@ -392,32 +433,21 @@ public class UploadPersistenceService {
                         break;
                     }
                 }
-
                 if (updated) {
-                    String json = gson.toJson(history);
-                    preferences.edit()
-                            .putString(KEY_UPLOAD_HISTORY, json)
-                            .apply();
-
+                    preferences.edit().putString(KEY_UPLOAD_HISTORY, gson.toJson(history)).apply();
                     Log.d(TAG, "Marked upload " + fileId + " as completed (" +
                             sentCount + " sent, " + failedCount + " failed)");
                 }
-
             } catch (Exception e) {
                 Log.e(TAG, "Failed to mark upload completed", e);
             }
         });
     }
 
-    /**
-     * Clear upload history
-     */
     public void clearHistory() {
         executor.execute(() -> {
             try {
-                preferences.edit()
-                        .remove(KEY_UPLOAD_HISTORY)
-                        .apply();
+                preferences.edit().remove(KEY_UPLOAD_HISTORY).apply();
                 Log.d(TAG, "Cleared upload history");
             } catch (Exception e) {
                 Log.e(TAG, "Failed to clear history", e);
@@ -425,23 +455,16 @@ public class UploadPersistenceService {
         });
     }
 
-    /**
-     * Get upload preferences
-     */
-    public UploadPreferences getPreferences() {
-        return uploadPreferences;
-    }
+    // ── Preferences API ───────────────────────────────────────────────────────
 
-    /**
-     * Update upload preferences
-     */
+    public UploadPreferences getPreferences() { return uploadPreferences; }
+
     public void updatePreferences(UploadPreferences preferences) {
         executor.execute(() -> {
             try {
                 this.uploadPreferences = preferences;
-                String json = gson.toJson(preferences);
                 this.preferences.edit()
-                        .putString(KEY_PREFERENCES, json)
+                        .putString(KEY_PREFERENCES, gson.toJson(preferences))
                         .apply();
                 Log.d(TAG, "Updated upload preferences");
             } catch (Exception e) {
@@ -450,52 +473,36 @@ public class UploadPersistenceService {
         });
     }
 
-    /**
-     * Check if there's an active session
-     */
     public void hasActiveSession(Callback<Boolean> callback) {
         loadCurrentUpload(session -> callback.onResult(session != null && session.isActive));
     }
 
-    /**
-     * Cleanup expired sessions
-     */
+    // ── Cleanup ───────────────────────────────────────────────────────────────
+
     public void cleanupExpiredSessions() {
         executor.execute(() -> {
             try {
-                loadCurrentUpload(session -> {
-                    // Session is automatically checked for expiry in loadCurrentUpload
-                    // If session is null due to expiry, it's already cleared
-                });
+                // The loadCurrentUpload call will automatically clear expired sessions.
+                loadCurrentUpload(session -> {});
 
-                // Also cleanup very old history entries (older than 30 days)
+                // Also purge history entries older than 30 days.
                 List<UploadHistoryEntry> history = getUploadHistory();
                 long thirtyDaysAgo = System.currentTimeMillis() - (30L * 24 * 60 * 60 * 1000);
-
                 history.removeIf(entry -> entry.uploadTimestamp < thirtyDaysAgo);
-
-                String json = gson.toJson(history);
-                preferences.edit()
-                        .putString(KEY_UPLOAD_HISTORY, json)
-                        .apply();
-
+                preferences.edit().putString(KEY_UPLOAD_HISTORY, gson.toJson(history)).apply();
                 Log.d(TAG, "Cleaned up expired sessions");
-
             } catch (Exception e) {
                 Log.e(TAG, "Failed to cleanup expired sessions", e);
             }
         });
     }
 
-    /**
-     * Load preferences from storage
-     */
+    // ── Internal helpers ──────────────────────────────────────────────────────
+
     private UploadPreferences loadPreferences() {
         try {
             String json = preferences.getString(KEY_PREFERENCES, null);
-            if (json != null) {
-                return gson.fromJson(json, UploadPreferences.class);
-            }
+            if (json != null) return gson.fromJson(json, UploadPreferences.class);
         } catch (Exception e) {
             Log.e(TAG, "Failed to load preferences", e);
         }
@@ -507,12 +514,9 @@ public class UploadPersistenceService {
             session.recipients = new ArrayList<>();
             return;
         }
-
         List<Recipient> normalized = new ArrayList<>();
         for (Object item : session.recipients) {
-            if (item == null) {
-                continue;
-            }
+            if (item == null) continue;
             if (item instanceof Recipient) {
                 normalized.add((Recipient) item);
                 continue;
@@ -526,19 +530,14 @@ public class UploadPersistenceService {
                 Log.w(TAG, "Skipping invalid recipient during session normalization", e);
             }
         }
-
         session.recipients = normalized;
-        if (session.totalRecords < normalized.size()) {
-            session.totalRecords = normalized.size();
-        }
-        if (session.validRecords < normalized.size()) {
-            session.validRecords = normalized.size();
-        }
+        if (session.totalRecords < normalized.size()) session.totalRecords = normalized.size();
+        if (session.validRecords < normalized.size()) session.validRecords = normalized.size();
     }
 
-    /**
-     * Callback interface for async operations
-     */
+    // ── Callback interface ────────────────────────────────────────────────────
+
+    /** Callback interface for async operations. */
     public interface Callback<T> {
         void onResult(T result);
     }

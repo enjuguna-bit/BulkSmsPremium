@@ -80,9 +80,12 @@ public class ContactResolver {
         
         // Check enhanced cache first
         ContactCacheEntry cachedEntry = nameCache.get(normalizedNumber);
-            if (cachedEntry != null) {
-                return cachedEntry.name;
-            }
+        if (cachedEntry != null) {
+            return cachedEntry.name;
+        }
+        if (nameCache.containsKey(normalizedNumber)) {
+            return phoneNumber;
+        }
         
         // Query with retry logic
         String contactName = queryContactNameWithRetry(normalizedNumber);

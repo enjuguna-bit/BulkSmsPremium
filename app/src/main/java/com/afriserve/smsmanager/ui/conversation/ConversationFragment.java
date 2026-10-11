@@ -386,7 +386,7 @@ public class ConversationFragment extends Fragment {
         viewModel.uiState.observe(getViewLifecycleOwner(), state -> {
             if (state == null) return;
             
-            switch (state) {
+            switch (state.type) {
                 case LOADING:
                     binding.progressBar.setVisibility(View.VISIBLE);
                     break;
@@ -638,10 +638,15 @@ public class ConversationFragment extends Fragment {
         if (binding != null && draftWatcher != null) {
             try {
                 binding.editTextMessage.removeTextChangedListener(draftWatcher);
-            } catch (Exception ignored) {
-            }
+            } catch (Exception ignored) { }
         }
-        binding = null;
+        // Null adapter to release RecyclerView reference while Fragment is on back stack
+        if (binding != null && binding.recyclerViewMessages != null) {
+            binding.recyclerViewMessages.setAdapter(null);
+        }
+        adapter  = null;
+        binding  = null;
+        viewModel = null;
     }
     
     // Factory method for creating instance with arguments

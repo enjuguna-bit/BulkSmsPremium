@@ -324,6 +324,9 @@ public class ContactSearchDialog extends DialogFragment {
     }
 
     private boolean isSubscriptionActive(@Nullable SubscriptionHelper.SubscriptionStatus status) {
+        if (SubscriptionHelper.INSTANCE.hasActiveSubscription(requireContext())) {
+            return true;
+        }
         if (status == null) {
             return false;
         }

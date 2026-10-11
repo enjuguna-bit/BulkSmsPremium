@@ -1,6 +1,7 @@
 package com.afriserve.smsmanager.ui.inbox;
 
 import android.app.Application;
+import android.content.ContentValues;
 import android.database.Cursor;
 import android.provider.Telephony;
 import android.util.Log;
@@ -14,207 +15,202 @@ import com.afriserve.smsmanager.models.SmsModel;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import javax.inject.Inject;
 
 import dagger.hilt.android.lifecycle.HiltViewModel;
 
+/**
+ * InboxViewModel — v2
+ *
+ * Changes vs v1:
+ *  - All ContentProvider (Telephony) queries moved OFF the main thread
+ *    onto a dedicated single-thread executor.  The original code queried
+ *    the cursor directly inside setValue() — a main-thread ANR risk.
+ *  - Results posted via LiveData.postValue() (thread-safe).
+ *  - Cursor column indices resolved safely with getColumnIndex() + guard
+ *    against -1 to avoid crashes on ROMs that omit non-standard columns.
+ *  - markAsRead() is also async now.
+ *  - Executor shut down in onCleared() to avoid thread leaks.
+ *  - Pagination limit added (QUERY_LIMIT = 500) to prevent OOM on devices
+ *    with thousands of SMS messages.
+ */
 @HiltViewModel
 public class InboxViewModel extends AndroidViewModel {
-    private static final String TAG = "InboxViewModel";
-    private static final int TYPE_INBOX = 1;
-    private static final int TYPE_SENT = 2;
-    
-    private final MutableLiveData<List<SmsModel>> messages = new MutableLiveData<>();
-    private final MutableLiveData<Boolean> isLoading = new MutableLiveData<>(false);
-    private final MutableLiveData<String> error = new MutableLiveData<>();
-    private final MutableLiveData<Integer> totalCount = new MutableLiveData<>(0);
-    private final MutableLiveData<Integer> unreadCount = new MutableLiveData<>(0);
-    
+
+    private static final String TAG        = "InboxViewModel";
+    private static final int    TYPE_INBOX = 1;
+    private static final int    TYPE_SENT  = 2;
+    /** Maximum number of messages loaded at once — prevents OOM on busy devices. */
+    private static final int    QUERY_LIMIT = 500;
+
+    private final ExecutorService executor = Executors.newSingleThreadExecutor();
+
+    private final MutableLiveData<List<SmsModel>> messages    = new MutableLiveData<>();
+    private final MutableLiveData<Boolean>         isLoading  = new MutableLiveData<>(false);
+    private final MutableLiveData<String>          error      = new MutableLiveData<>();
+    private final MutableLiveData<Integer>         totalCount = new MutableLiveData<>(0);
+    private final MutableLiveData<Integer>         unreadCount= new MutableLiveData<>(0);
+
+    /** Tracks the current filter so markAsRead can refresh correctly. */
+    private volatile Integer currentTypeFilter = null;
+    private volatile String  currentReadFilter = null;
+
     @Inject
     public InboxViewModel(@NonNull Application application) {
         super(application);
     }
 
-    public LiveData<List<SmsModel>> getMessages() {
-        return messages;
-    }
+    // ── LiveData getters ──────────────────────────────────────────────────────
 
-    public LiveData<Boolean> getIsLoading() {
-        return isLoading;
-    }
+    public LiveData<List<SmsModel>> getMessages()    { return messages;    }
+    public LiveData<Boolean>        getIsLoading()   { return isLoading;   }
+    public LiveData<String>         getError()       { return error;       }
+    public LiveData<Integer>        getTotalCount()  { return totalCount;  }
+    public LiveData<Integer>        getUnreadCount() { return unreadCount; }
 
-    public LiveData<String> getError() {
-        return error;
-    }
+    // ── Load actions ──────────────────────────────────────────────────────────
 
-    public LiveData<Integer> getTotalCount() {
-        return totalCount;
-    }
-
-    public LiveData<Integer> getUnreadCount() {
-        return unreadCount;
-    }
-
-    public void loadAllMessages() {
-        loadMessages(null, null);
-    }
-
-    public void loadInboxMessages() {
-        loadMessages(TYPE_INBOX, null);
-    }
-
-    public void loadSentMessages() {
-        loadMessages(TYPE_SENT, null);
-    }
-
-    public void loadUnreadMessages() {
-        loadMessages(TYPE_INBOX, "0"); // read = 0 means unread
-    }
+    public void loadAllMessages()    { loadMessages(null,       null); }
+    public void loadInboxMessages()  { loadMessages(TYPE_INBOX, null); }
+    public void loadSentMessages()   { loadMessages(TYPE_SENT,  null); }
+    public void loadUnreadMessages() { loadMessages(TYPE_INBOX, "0");  }
 
     public void loadMessageCounts() {
-        try {
-            int total = getMessageCount(null, null);
+        executor.execute(() -> {
+            int total  = getMessageCount(null,       null);
             int unread = getMessageCount(TYPE_INBOX, "0");
-            
             totalCount.postValue(total);
             unreadCount.postValue(unread);
-        } catch (Exception e) {
-            Log.e(TAG, "Error loading message counts", e);
-            error.postValue("Failed to load message counts");
-        }
+        });
     }
 
+    public void markAsRead(String messageId) {
+        executor.execute(() -> {
+            try {
+                ContentValues cv = new ContentValues();
+                cv.put(Telephony.Sms.READ, "1");
+                getApplication().getContentResolver().update(
+                        Telephony.Sms.CONTENT_URI, cv,
+                        Telephony.Sms._ID + " = ?", new String[]{messageId});
+                // Refresh after marking read
+                loadMessageCounts();
+                loadMessages(currentTypeFilter, currentReadFilter);
+            } catch (Exception e) {
+                Log.e(TAG, "Error marking message as read", e);
+                error.postValue("Failed to mark message as read");
+            }
+        });
+    }
+
+    @Override
+    protected void onCleared() {
+        super.onCleared();
+        executor.shutdownNow();
+    }
+
+    // ── Private query helpers ─────────────────────────────────────────────────
+
     private void loadMessages(Integer type, String read) {
-        isLoading.setValue(true);
-        error.setValue(null);
+        currentTypeFilter = type;
+        currentReadFilter = read;
 
-        try {
-            List<SmsModel> smsList = new ArrayList<>();
-            String selection = null;
-            String[] selectionArgs = null;
+        isLoading.postValue(true);
+        error.postValue(null);
 
-            if (type != null && read != null) {
-                selection = Telephony.Sms.TYPE + " = ? AND " + Telephony.Sms.READ + " = ?";
-                selectionArgs = new String[]{type.toString(), read};
-            } else if (type != null) {
-                selection = Telephony.Sms.TYPE + " = ?";
-                selectionArgs = new String[]{type.toString()};
-            } else if (read != null) {
-                selection = Telephony.Sms.READ + " = ?";
-                selectionArgs = new String[]{read};
-            }
+        executor.execute(() -> {
+            try {
+                String[] selection   = buildSelection(type, read);
+                String   where       = selection[0];  // may be null
+                String[] whereArgs   = selection[1] != null
+                        ? selection[1].split("\u0000") : null;
 
-            Cursor cursor = getApplication().getContentResolver().query(
-                    Telephony.Sms.CONTENT_URI,
-                    null,
-                    selection,
-                    selectionArgs,
-                    Telephony.Sms.DATE + " DESC"
-            );
+                Cursor cursor = getApplication().getContentResolver().query(
+                        Telephony.Sms.CONTENT_URI,
+                        new String[]{
+                            Telephony.Sms._ID,
+                            Telephony.Sms.ADDRESS,
+                            Telephony.Sms.BODY,
+                            Telephony.Sms.DATE,
+                            Telephony.Sms.TYPE,
+                            Telephony.Sms.READ,
+                            Telephony.Sms.THREAD_ID
+                        },
+                        where,
+                        whereArgs,
+                        Telephony.Sms.DATE + " DESC LIMIT " + QUERY_LIMIT
+                );
 
-            if (cursor != null) {
-                try {
-                    int idIndex = cursor.getColumnIndexOrThrow(Telephony.Sms._ID);
-                    int addressIndex = cursor.getColumnIndexOrThrow(Telephony.Sms.ADDRESS);
-                    int bodyIndex = cursor.getColumnIndexOrThrow(Telephony.Sms.BODY);
-                    int dateIndex = cursor.getColumnIndexOrThrow(Telephony.Sms.DATE);
-                    int typeIndex = cursor.getColumnIndexOrThrow(Telephony.Sms.TYPE);
-                    int readIndex = cursor.getColumnIndexOrThrow(Telephony.Sms.READ);
-                    int threadIdIndex = cursor.getColumnIndexOrThrow(Telephony.Sms.THREAD_ID);
+                List<SmsModel> smsList = new ArrayList<>();
+                if (cursor != null) {
+                    try {
+                        int colId       = cursor.getColumnIndex(Telephony.Sms._ID);
+                        int colAddress  = cursor.getColumnIndex(Telephony.Sms.ADDRESS);
+                        int colBody     = cursor.getColumnIndex(Telephony.Sms.BODY);
+                        int colDate     = cursor.getColumnIndex(Telephony.Sms.DATE);
+                        int colType     = cursor.getColumnIndex(Telephony.Sms.TYPE);
+                        int colRead     = cursor.getColumnIndex(Telephony.Sms.READ);
+                        int colThread   = cursor.getColumnIndex(Telephony.Sms.THREAD_ID);
 
-                    while (cursor.moveToNext()) {
-                        SmsModel sms = new SmsModel();
-                        sms.setId(cursor.getString(idIndex));
-                        sms.setAddress(cursor.getString(addressIndex));
-                        sms.setBody(cursor.getString(bodyIndex));
-                        sms.setDate(cursor.getString(dateIndex));
-                        sms.setType(cursor.getInt(typeIndex));
-                        sms.setRead(cursor.getInt(readIndex) == 1);
-                        sms.setThreadId(cursor.getString(threadIdIndex));
-                        
-                        smsList.add(sms);
+                        while (cursor.moveToNext()) {
+                            SmsModel sms = new SmsModel();
+                            if (colId      >= 0) sms.setId(cursor.getString(colId));
+                            if (colAddress >= 0) sms.setAddress(cursor.getString(colAddress));
+                            if (colBody    >= 0) sms.setBody(cursor.getString(colBody));
+                            if (colDate    >= 0) sms.setDate(cursor.getString(colDate));
+                            if (colType    >= 0) sms.setType(cursor.getInt(colType));
+                            if (colRead    >= 0) sms.setRead(cursor.getInt(colRead) == 1);
+                            if (colThread  >= 0) sms.setThreadId(cursor.getString(colThread));
+                            smsList.add(sms);
+                        }
+                    } finally {
+                        cursor.close();
                     }
-                } finally {
-                    cursor.close();
                 }
+
+                messages.postValue(smsList);
+                totalCount.postValue(smsList.size());
+
+            } catch (Exception e) {
+                Log.e(TAG, "Error loading messages", e);
+                error.postValue("Failed to load messages: " + e.getMessage());
+            } finally {
+                isLoading.postValue(false);
             }
-
-            messages.postValue(smsList);
-            isLoading.postValue(false);
-
-        } catch (Exception e) {
-            Log.e(TAG, "Error loading messages", e);
-            error.postValue("Failed to load messages: " + e.getMessage());
-            isLoading.postValue(false);
-        }
+        });
     }
 
     private int getMessageCount(Integer type, String read) {
-        try {
-            String selection = null;
-            String[] selectionArgs = null;
-
-            if (type != null && read != null) {
-                selection = Telephony.Sms.TYPE + " = ? AND " + Telephony.Sms.READ + " = ?";
-                selectionArgs = new String[]{type.toString(), read};
-            } else if (type != null) {
-                selection = Telephony.Sms.TYPE + " = ?";
-                selectionArgs = new String[]{type.toString()};
-            } else if (read != null) {
-                selection = Telephony.Sms.READ + " = ?";
-                selectionArgs = new String[]{read};
-            }
-
-            Cursor cursor = getApplication().getContentResolver().query(
-                    Telephony.Sms.CONTENT_URI,
-                    new String[]{"COUNT(*)"},
-                    selection,
-                    selectionArgs,
-                    null
-            );
-
-            if (cursor != null) {
-                try {
-                    if (cursor.moveToFirst()) {
-                        return cursor.getInt(0);
-                    }
-                } finally {
-                    cursor.close();
-                }
-            }
+        String[] sel = buildSelection(type, read);
+        String   where    = sel[0];
+        String[] whereArgs = sel[1] != null ? sel[1].split("\u0000") : null;
+        try (Cursor c = getApplication().getContentResolver().query(
+                Telephony.Sms.CONTENT_URI,
+                new String[]{"COUNT(*)"},
+                where, whereArgs, null)) {
+            if (c != null && c.moveToFirst()) return c.getInt(0);
         } catch (Exception e) {
-            Log.e(TAG, "Error getting message count", e);
+            Log.w(TAG, "getMessageCount failed", e);
         }
         return 0;
     }
 
-    public void markAsRead(String messageId) {
-        try {
-            // Update the message as read
-            android.content.ContentValues values = new android.content.ContentValues();
-            values.put(Telephony.Sms.READ, "1");
-            
-            String where = Telephony.Sms._ID + " = ?";
-            String[] whereArgs = new String[]{messageId};
-            
-            int rowsUpdated = getApplication().getContentResolver().update(
-                    Telephony.Sms.CONTENT_URI,
-                    values,
-                    where,
-                    whereArgs
-            );
-
-            if (rowsUpdated > 0) {
-                // Refresh the current list
-                loadMessageCounts();
-                // Reload current filter
-                // This is a simple approach - in a real app you might want to track current filter
-                loadAllMessages();
-            }
-        } catch (Exception e) {
-            Log.e(TAG, "Error marking message as read", e);
-            error.postValue("Failed to mark message as read");
+    /**
+     * Returns a 2-element array: [0] = WHERE clause (or null), [1] = args joined by NUL.
+     */
+    private static String[] buildSelection(Integer type, String read) {
+        if (type != null && read != null) {
+            return new String[]{
+                Telephony.Sms.TYPE + " = ? AND " + Telephony.Sms.READ + " = ?",
+                type + "\u0000" + read
+            };
+        } else if (type != null) {
+            return new String[]{ Telephony.Sms.TYPE + " = ?", type.toString() };
+        } else if (read != null) {
+            return new String[]{ Telephony.Sms.READ + " = ?", read };
         }
+        return new String[]{ null, null };
     }
 }

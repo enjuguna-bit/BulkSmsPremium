@@ -97,11 +97,11 @@ public class DeliveryTracker {
             // Create pending intents for sent and delivered callbacks
             Intent sentIntent = new Intent("com.afriserve.smsmanager.SMS_SENT");
             sentIntent.setPackage(context.getPackageName());
-            sentIntent.putExtra("messageId", messageId);
+            sentIntent.putExtra("sms_id", Long.parseLong(messageId));
             
             Intent deliveredIntent = new Intent("com.afriserve.smsmanager.SMS_DELIVERED");
             deliveredIntent.setPackage(context.getPackageName());
-            deliveredIntent.putExtra("messageId", messageId);
+            deliveredIntent.putExtra("sms_id", Long.parseLong(messageId));
             
             android.app.PendingIntent sentPendingIntent = android.app.PendingIntent.getBroadcast(
                 context, 
@@ -254,8 +254,9 @@ public class DeliveryTracker {
         @Override
         public void onReceive(Context context, Intent intent) {
             try {
-                String messageId = intent.getStringExtra("messageId");
-                if (messageId != null) {
+                long smsId = intent.getLongExtra("sms_id", -1);
+                if (smsId > 0) {
+                    String messageId = String.valueOf(smsId);
                     trackMessageStatus(messageId, null, DeliveryStatus.SENT);
                     Log.d(TAG, "SMS sent: " + messageId);
                 }
@@ -272,8 +273,9 @@ public class DeliveryTracker {
         @Override
         public void onReceive(Context context, Intent intent) {
             try {
-                String messageId = intent.getStringExtra("messageId");
-                if (messageId != null) {
+                long smsId = intent.getLongExtra("sms_id", -1);
+                if (smsId > 0) {
+                    String messageId = String.valueOf(smsId);
                     trackMessageStatus(messageId, null, DeliveryStatus.DELIVERED);
                     Log.d(TAG, "SMS delivered: " + messageId);
                 }

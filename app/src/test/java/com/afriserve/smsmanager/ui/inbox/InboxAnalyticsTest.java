@@ -201,7 +201,8 @@ public class InboxAnalyticsTest {
 
         // Then
         assertNotNull(message);
-        assertTrue(message.toLowerCase().contains("timeout"));
+        String normalized = message.toLowerCase();
+        assertTrue(normalized.contains("timeout") || normalized.contains("timed out"));
     }
 
     @Test

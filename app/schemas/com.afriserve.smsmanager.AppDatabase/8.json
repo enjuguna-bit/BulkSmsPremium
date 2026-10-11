@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 8,
-    "identityHash": "dccf4f98b036a2b4ca26f0d438616744",
+    "identityHash": "bc3425c97c48aea51a6cb5f999f68a0c",
     "entities": [
       {
         "tableName": "sms_entities",
@@ -17,62 +17,52 @@
           {
             "fieldPath": "deviceSmsId",
             "columnName": "deviceSmsId",
-            "affinity": "INTEGER",
-            "notNull": false
+            "affinity": "INTEGER"
           },
           {
             "fieldPath": "boxType",
             "columnName": "boxType",
-            "affinity": "INTEGER",
-            "notNull": false
+            "affinity": "INTEGER"
           },
           {
             "fieldPath": "threadId",
             "columnName": "threadId",
-            "affinity": "INTEGER",
-            "notNull": false
+            "affinity": "INTEGER"
           },
           {
             "fieldPath": "isRead",
             "columnName": "isRead",
-            "affinity": "INTEGER",
-            "notNull": false
+            "affinity": "INTEGER"
           },
           {
             "fieldPath": "phoneNumber",
             "columnName": "phoneNumber",
-            "affinity": "TEXT",
-            "notNull": false
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "message",
             "columnName": "message",
-            "affinity": "TEXT",
-            "notNull": false
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "isMms",
             "columnName": "isMms",
-            "affinity": "INTEGER",
-            "notNull": false
+            "affinity": "INTEGER"
           },
           {
             "fieldPath": "mediaUri",
             "columnName": "mediaUri",
-            "affinity": "TEXT",
-            "notNull": false
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "attachmentCount",
             "columnName": "attachmentCount",
-            "affinity": "INTEGER",
-            "notNull": false
+            "affinity": "INTEGER"
           },
           {
             "fieldPath": "status",
             "columnName": "status",
-            "affinity": "TEXT",
-            "notNull": false
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "createdAt",
@@ -83,20 +73,17 @@
           {
             "fieldPath": "sentAt",
             "columnName": "sentAt",
-            "affinity": "INTEGER",
-            "notNull": false
+            "affinity": "INTEGER"
           },
           {
             "fieldPath": "deliveredAt",
             "columnName": "deliveredAt",
-            "affinity": "INTEGER",
-            "notNull": false
+            "affinity": "INTEGER"
           },
           {
             "fieldPath": "campaignId",
             "columnName": "campaignId",
-            "affinity": "INTEGER",
-            "notNull": false
+            "affinity": "INTEGER"
           },
           {
             "fieldPath": "retryCount",
@@ -107,26 +94,22 @@
           {
             "fieldPath": "nextRetryAt",
             "columnName": "nextRetryAt",
-            "affinity": "INTEGER",
-            "notNull": false
+            "affinity": "INTEGER"
           },
           {
             "fieldPath": "errorCode",
             "columnName": "errorCode",
-            "affinity": "TEXT",
-            "notNull": false
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "errorMessage",
             "columnName": "errorMessage",
-            "affinity": "TEXT",
-            "notNull": false
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "deliveryTracking",
             "columnName": "deliveryTracking",
-            "affinity": "TEXT",
-            "notNull": false
+            "affinity": "TEXT"
           }
         ],
         "primaryKey": {
@@ -245,38 +228,32 @@
           {
             "fieldPath": "name",
             "columnName": "name",
-            "affinity": "TEXT",
-            "notNull": false
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "phone",
             "columnName": "phone",
-            "affinity": "TEXT",
-            "notNull": false
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "email",
             "columnName": "email",
-            "affinity": "TEXT",
-            "notNull": false
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "address",
             "columnName": "address",
-            "affinity": "TEXT",
-            "notNull": false
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "company",
             "columnName": "company",
-            "affinity": "TEXT",
-            "notNull": false
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "notes",
             "columnName": "notes",
-            "affinity": "TEXT",
-            "notNull": false
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "isFavorite",
@@ -287,8 +264,7 @@
           {
             "fieldPath": "lastSeen",
             "columnName": "lastSeen",
-            "affinity": "INTEGER",
-            "notNull": false
+            "affinity": "INTEGER"
           },
           {
             "fieldPath": "createdAt",
@@ -328,12 +304,11 @@
             "orders": [],
             "createSql": "CREATE INDEX IF NOT EXISTS `index_customers_lastSeen` ON `${TABLE_NAME}` (`lastSeen`)"
           }
-        ],
-        "foreignKeys": []
+        ]
       },
       {
         "tableName": "campaign_entities",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT, `description` TEXT, `status` TEXT, `templateId` INTEGER, `recipientCount` INTEGER NOT NULL, `sentCount` INTEGER NOT NULL, `deliveredCount` INTEGER NOT NULL, `failedCount` INTEGER NOT NULL, `skippedCount` INTEGER NOT NULL, `scheduledAt` INTEGER, `startedAt` INTEGER, `completedAt` INTEGER, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, `settings` TEXT)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT, `description` TEXT, `status` TEXT, `templateId` INTEGER, `recipientCount` INTEGER NOT NULL, `sentCount` INTEGER NOT NULL, `deliveredCount` INTEGER NOT NULL, `failedCount` INTEGER NOT NULL, `skippedCount` INTEGER NOT NULL, `charCount` INTEGER NOT NULL, `messagePartCount` INTEGER NOT NULL, `scheduledAt` INTEGER, `startedAt` INTEGER, `completedAt` INTEGER, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, `settings` TEXT)",
         "fields": [
           {
             "fieldPath": "id",
@@ -344,26 +319,22 @@
           {
             "fieldPath": "name",
             "columnName": "name",
-            "affinity": "TEXT",
-            "notNull": false
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "description",
             "columnName": "description",
-            "affinity": "TEXT",
-            "notNull": false
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "status",
             "columnName": "status",
-            "affinity": "TEXT",
-            "notNull": false
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "templateId",
             "columnName": "templateId",
-            "affinity": "INTEGER",
-            "notNull": false
+            "affinity": "INTEGER"
           },
           {
             "fieldPath": "recipientCount",
@@ -396,22 +367,31 @@
             "notNull": true
           },
           {
+            "fieldPath": "charCount",
+            "columnName": "charCount",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "messagePartCount",
+            "columnName": "messagePartCount",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
             "fieldPath": "scheduledAt",
             "columnName": "scheduledAt",
-            "affinity": "INTEGER",
-            "notNull": false
+            "affinity": "INTEGER"
           },
           {
             "fieldPath": "startedAt",
             "columnName": "startedAt",
-            "affinity": "INTEGER",
-            "notNull": false
+            "affinity": "INTEGER"
           },
           {
             "fieldPath": "completedAt",
             "columnName": "completedAt",
-            "affinity": "INTEGER",
-            "notNull": false
+            "affinity": "INTEGER"
           },
           {
             "fieldPath": "createdAt",
@@ -428,8 +408,7 @@
           {
             "fieldPath": "settings",
             "columnName": "settings",
-            "affinity": "TEXT",
-            "notNull": false
+            "affinity": "TEXT"
           }
         ],
         "primaryKey": {
@@ -457,12 +436,11 @@
             "orders": [],
             "createSql": "CREATE INDEX IF NOT EXISTS `index_campaign_entities_createdAt` ON `${TABLE_NAME}` (`createdAt`)"
           }
-        ],
-        "foreignKeys": []
+        ]
       },
       {
         "tableName": "template_entities",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT, `content` TEXT, `category` TEXT, `description` TEXT, `isFavorite` INTEGER NOT NULL, `usageCount` INTEGER NOT NULL, `lastUsed` INTEGER, `variables` TEXT, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT, `content` TEXT, `category` TEXT, `description` TEXT, `isFavorite` INTEGER NOT NULL, `usageCount` INTEGER NOT NULL, `lastUsed` INTEGER, `variables` TEXT, `charCount` INTEGER NOT NULL, `isArchived` INTEGER NOT NULL, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL)",
         "fields": [
           {
             "fieldPath": "id",
@@ -473,26 +451,22 @@
           {
             "fieldPath": "name",
             "columnName": "name",
-            "affinity": "TEXT",
-            "notNull": false
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "content",
             "columnName": "content",
-            "affinity": "TEXT",
-            "notNull": false
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "category",
             "columnName": "category",
-            "affinity": "TEXT",
-            "notNull": false
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "description",
             "columnName": "description",
-            "affinity": "TEXT",
-            "notNull": false
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "isFavorite",
@@ -509,14 +483,24 @@
           {
             "fieldPath": "lastUsed",
             "columnName": "lastUsed",
-            "affinity": "INTEGER",
-            "notNull": false
+            "affinity": "INTEGER"
           },
           {
             "fieldPath": "variables",
             "columnName": "variables",
-            "affinity": "TEXT",
-            "notNull": false
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "charCount",
+            "columnName": "charCount",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isArchived",
+            "columnName": "isArchived",
+            "affinity": "INTEGER",
+            "notNull": true
           },
           {
             "fieldPath": "createdAt",
@@ -564,9 +548,17 @@
             ],
             "orders": [],
             "createSql": "CREATE INDEX IF NOT EXISTS `index_template_entities_usageCount` ON `${TABLE_NAME}` (`usageCount`)"
+          },
+          {
+            "name": "index_template_entities_isArchived",
+            "unique": false,
+            "columnNames": [
+              "isArchived"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_template_entities_isArchived` ON `${TABLE_NAME}` (`isArchived`)"
           }
-        ],
-        "foreignKeys": []
+        ]
       },
       {
         "tableName": "opt_outs",
@@ -581,14 +573,12 @@
           {
             "fieldPath": "phoneNumber",
             "columnName": "phoneNumber",
-            "affinity": "TEXT",
-            "notNull": false
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "reason",
             "columnName": "reason",
-            "affinity": "TEXT",
-            "notNull": false
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "optOutTime",
@@ -599,20 +589,17 @@
           {
             "fieldPath": "source",
             "columnName": "source",
-            "affinity": "TEXT",
-            "notNull": false
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "campaignId",
             "columnName": "campaignId",
-            "affinity": "INTEGER",
-            "notNull": false
+            "affinity": "INTEGER"
           },
           {
             "fieldPath": "notes",
             "columnName": "notes",
-            "affinity": "TEXT",
-            "notNull": false
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "isActive",
@@ -658,8 +645,7 @@
             "orders": [],
             "createSql": "CREATE INDEX IF NOT EXISTS `index_opt_outs_optOutTime` ON `${TABLE_NAME}` (`optOutTime`)"
           }
-        ],
-        "foreignKeys": []
+        ]
       },
       {
         "tableName": "scheduled_campaigns",
@@ -686,14 +672,12 @@
           {
             "fieldPath": "timezone",
             "columnName": "timezone",
-            "affinity": "TEXT",
-            "notNull": false
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "status",
             "columnName": "status",
-            "affinity": "TEXT",
-            "notNull": false
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "isActive",
@@ -710,8 +694,7 @@
           {
             "fieldPath": "recurrencePattern",
             "columnName": "recurrencePattern",
-            "affinity": "TEXT",
-            "notNull": false
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "recurrenceInterval",
@@ -722,20 +705,17 @@
           {
             "fieldPath": "recurrenceDays",
             "columnName": "recurrenceDays",
-            "affinity": "TEXT",
-            "notNull": false
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "recurrenceTime",
             "columnName": "recurrenceTime",
-            "affinity": "TEXT",
-            "notNull": false
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "maxOccurrences",
             "columnName": "maxOccurrences",
-            "affinity": "INTEGER",
-            "notNull": false
+            "affinity": "INTEGER"
           },
           {
             "fieldPath": "currentOccurrences",
@@ -746,26 +726,22 @@
           {
             "fieldPath": "nextExecutionTime",
             "columnName": "nextExecutionTime",
-            "affinity": "INTEGER",
-            "notNull": false
+            "affinity": "INTEGER"
           },
           {
             "fieldPath": "lastExecutionTime",
             "columnName": "lastExecutionTime",
-            "affinity": "INTEGER",
-            "notNull": false
+            "affinity": "INTEGER"
           },
           {
             "fieldPath": "executionHistory",
             "columnName": "executionHistory",
-            "affinity": "TEXT",
-            "notNull": false
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "settings",
             "columnName": "settings",
-            "affinity": "TEXT",
-            "notNull": false
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "createdAt",
@@ -823,8 +799,7 @@
             "orders": [],
             "createSql": "CREATE INDEX IF NOT EXISTS `index_scheduled_campaigns_isActive` ON `${TABLE_NAME}` (`isActive`)"
           }
-        ],
-        "foreignKeys": []
+        ]
       },
       {
         "tableName": "conversations",
@@ -839,26 +814,22 @@
           {
             "fieldPath": "phoneNumber",
             "columnName": "phoneNumber",
-            "affinity": "TEXT",
-            "notNull": false
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "contactName",
             "columnName": "contactName",
-            "affinity": "TEXT",
-            "notNull": false
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "contactPhotoUri",
             "columnName": "contactPhotoUri",
-            "affinity": "TEXT",
-            "notNull": false
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "threadId",
             "columnName": "threadId",
-            "affinity": "INTEGER",
-            "notNull": false
+            "affinity": "INTEGER"
           },
           {
             "fieldPath": "lastMessageTime",
@@ -869,14 +840,12 @@
           {
             "fieldPath": "lastMessagePreview",
             "columnName": "lastMessagePreview",
-            "affinity": "TEXT",
-            "notNull": false
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "lastMessageType",
             "columnName": "lastMessageType",
-            "affinity": "TEXT",
-            "notNull": false
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "messageCount",
@@ -949,10 +918,29 @@
             "orders": [],
             "createSql": "CREATE INDEX IF NOT EXISTS `index_conversations_threadId` ON `${TABLE_NAME}` (`threadId`)"
           }
-        ],
-        "foreignKeys": []
+        ]
       },
       {
+        "tableName": "sms_fts",
+        "createSql": "CREATE VIRTUAL TABLE IF NOT EXISTS `${TABLE_NAME}` USING FTS4(`phoneNumber` TEXT, `message` TEXT, content=`sms_entities`)",
+        "fields": [
+          {
+            "fieldPath": "phoneNumber",
+            "columnName": "phoneNumber",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "message",
+            "columnName": "message",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "rowid"
+          ]
+        },
         "ftsVersion": "FTS4",
         "ftsOptions": {
           "tokenizer": "simple",
@@ -969,31 +957,7 @@
           "CREATE TRIGGER IF NOT EXISTS room_fts_content_sync_sms_fts_BEFORE_DELETE BEFORE DELETE ON `sms_entities` BEGIN DELETE FROM `sms_fts` WHERE `docid`=OLD.`rowid`; END",
           "CREATE TRIGGER IF NOT EXISTS room_fts_content_sync_sms_fts_AFTER_UPDATE AFTER UPDATE ON `sms_entities` BEGIN INSERT INTO `sms_fts`(`docid`, `phoneNumber`, `message`) VALUES (NEW.`rowid`, NEW.`phoneNumber`, NEW.`message`); END",
           "CREATE TRIGGER IF NOT EXISTS room_fts_content_sync_sms_fts_AFTER_INSERT AFTER INSERT ON `sms_entities` BEGIN INSERT INTO `sms_fts`(`docid`, `phoneNumber`, `message`) VALUES (NEW.`rowid`, NEW.`phoneNumber`, NEW.`message`); END"
-        ],
-        "tableName": "sms_fts",
-        "createSql": "CREATE VIRTUAL TABLE IF NOT EXISTS `${TABLE_NAME}` USING FTS4(`phoneNumber` TEXT, `message` TEXT, content=`sms_entities`)",
-        "fields": [
-          {
-            "fieldPath": "phoneNumber",
-            "columnName": "phoneNumber",
-            "affinity": "TEXT",
-            "notNull": false
-          },
-          {
-            "fieldPath": "message",
-            "columnName": "message",
-            "affinity": "TEXT",
-            "notNull": false
-          }
-        ],
-        "primaryKey": {
-          "autoGenerate": true,
-          "columnNames": [
-            "rowid"
-          ]
-        },
-        "indices": [],
-        "foreignKeys": []
+        ]
       },
       {
         "tableName": "sms_queue",
@@ -1008,14 +972,12 @@
           {
             "fieldPath": "phoneNumber",
             "columnName": "phoneNumber",
-            "affinity": "TEXT",
-            "notNull": false
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "message",
             "columnName": "message",
-            "affinity": "TEXT",
-            "notNull": false
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "simSlot",
@@ -1026,8 +988,7 @@
           {
             "fieldPath": "originalSmsId",
             "columnName": "originalSmsId",
-            "affinity": "INTEGER",
-            "notNull": false
+            "affinity": "INTEGER"
           },
           {
             "fieldPath": "retryCount",
@@ -1038,8 +999,7 @@
           {
             "fieldPath": "status",
             "columnName": "status",
-            "affinity": "TEXT",
-            "notNull": false
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "createdAt",
@@ -1056,20 +1016,17 @@
           {
             "fieldPath": "lastFailureAt",
             "columnName": "lastFailureAt",
-            "affinity": "INTEGER",
-            "notNull": false
+            "affinity": "INTEGER"
           },
           {
             "fieldPath": "errorMessage",
             "columnName": "errorMessage",
-            "affinity": "TEXT",
-            "notNull": false
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "errorCode",
             "columnName": "errorCode",
-            "affinity": "TEXT",
-            "notNull": false
+            "affinity": "TEXT"
           }
         ],
         "primaryKey": {
@@ -1115,8 +1072,7 @@
             "orders": [],
             "createSql": "CREATE INDEX IF NOT EXISTS `index_sms_queue_createdAt` ON `${TABLE_NAME}` (`createdAt`)"
           }
-        ],
-        "foreignKeys": []
+        ]
       },
       {
         "tableName": "kpi_data",
@@ -1131,14 +1087,12 @@
           {
             "fieldPath": "kpiType",
             "columnName": "kpiType",
-            "affinity": "TEXT",
-            "notNull": false
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "kpiName",
             "columnName": "kpiName",
-            "affinity": "TEXT",
-            "notNull": false
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "kpiValue",
@@ -1167,8 +1121,7 @@
           {
             "fieldPath": "period",
             "columnName": "period",
-            "affinity": "TEXT",
-            "notNull": false
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "timestamp",
@@ -1179,14 +1132,12 @@
           {
             "fieldPath": "status",
             "columnName": "status",
-            "affinity": "TEXT",
-            "notNull": false
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "trend",
             "columnName": "trend",
-            "affinity": "TEXT",
-            "notNull": false
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "trendPercentage",
@@ -1197,20 +1148,17 @@
           {
             "fieldPath": "unit",
             "columnName": "unit",
-            "affinity": "TEXT",
-            "notNull": false
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "category",
             "columnName": "category",
-            "affinity": "TEXT",
-            "notNull": false
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "description",
             "columnName": "description",
-            "affinity": "TEXT",
-            "notNull": false
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "isAlert",
@@ -1221,14 +1169,12 @@
           {
             "fieldPath": "alertMessage",
             "columnName": "alertMessage",
-            "affinity": "TEXT",
-            "notNull": false
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "metadata",
             "columnName": "metadata",
-            "affinity": "TEXT",
-            "notNull": false
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "createdAt",
@@ -1277,8 +1223,7 @@
             "orders": [],
             "createSql": "CREATE INDEX IF NOT EXISTS `index_kpi_data_period` ON `${TABLE_NAME}` (`period`)"
           }
-        ],
-        "foreignKeys": []
+        ]
       },
       {
         "tableName": "dashboard_stats",
@@ -1419,14 +1364,12 @@
           {
             "fieldPath": "rateLimitStatus",
             "columnName": "rateLimitStatus",
-            "affinity": "TEXT",
-            "notNull": false
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "systemStatus",
             "columnName": "systemStatus",
-            "affinity": "TEXT",
-            "notNull": false
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "lastUpdated",
@@ -1466,8 +1409,7 @@
             "orders": [],
             "createSql": "CREATE INDEX IF NOT EXISTS `index_dashboard_stats_lastUpdated` ON `${TABLE_NAME}` (`lastUpdated`)"
           }
-        ],
-        "foreignKeys": []
+        ]
       },
       {
         "tableName": "dashboard_metrics",
@@ -1488,8 +1430,7 @@
           {
             "fieldPath": "metricType",
             "columnName": "metricType",
-            "affinity": "TEXT",
-            "notNull": false
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "sentCount",
@@ -1646,8 +1587,7 @@
             "orders": [],
             "createSql": "CREATE INDEX IF NOT EXISTS `index_dashboard_metrics_createdAt` ON `${TABLE_NAME}` (`createdAt`)"
           }
-        ],
-        "foreignKeys": []
+        ]
       },
       {
         "tableName": "sync_status",
@@ -1662,14 +1602,12 @@
           {
             "fieldPath": "entityType",
             "columnName": "entityType",
-            "affinity": "TEXT",
-            "notNull": false
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "entityId",
             "columnName": "entityId",
-            "affinity": "TEXT",
-            "notNull": false
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "lastSyncAt",
@@ -1686,20 +1624,17 @@
           {
             "fieldPath": "status",
             "columnName": "status",
-            "affinity": "TEXT",
-            "notNull": false
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "conflictData",
             "columnName": "conflictData",
-            "affinity": "TEXT",
-            "notNull": false
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "eTag",
             "columnName": "eTag",
-            "affinity": "TEXT",
-            "notNull": false
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "syncVersion",
@@ -1716,8 +1651,7 @@
           {
             "fieldPath": "lastError",
             "columnName": "lastError",
-            "affinity": "TEXT",
-            "notNull": false
+            "affinity": "TEXT"
           }
         ],
         "primaryKey": {
@@ -1737,14 +1671,12 @@
             "orders": [],
             "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_sync_status_entityType_entityId` ON `${TABLE_NAME}` (`entityType`, `entityId`)"
           }
-        ],
-        "foreignKeys": []
+        ]
       }
     ],
-    "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'dccf4f98b036a2b4ca26f0d438616744')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'bc3425c97c48aea51a6cb5f999f68a0c')"
     ]
   }
 }

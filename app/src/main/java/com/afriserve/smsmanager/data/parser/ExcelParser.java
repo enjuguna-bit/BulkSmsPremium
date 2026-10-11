@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -182,19 +183,23 @@ public class ExcelParser {
 
             List<Map<String, String>> data = new ArrayList<>();
             for (int i = headerRowIndex + 1; i <= sheet.getLastRowNum(); i++) {
-                Row row = sheet.getRow(i);
-                if (row == null || isEmptyRow(row, headers.size(), formatter, evaluator)) {
-                    continue;
-                }
+                try {
+                    Row row = sheet.getRow(i);
+                    if (row == null || isEmptyRow(row, headers.size(), formatter, evaluator)) {
+                        continue;
+                    }
 
-                Map<String, String> rowObject = new LinkedHashMap<>();
-                for (int j = 0; j < headers.size(); j++) {
-                    String header = headers.get(j);
-                    Cell cell = row.getCell(j, Row.MissingCellPolicy.RETURN_BLANK_AS_NULL);
-                    String value = cleanCellValue(getCellValueAsString(cell, formatter, evaluator));
-                    rowObject.put(header, value);
+                    Map<String, String> rowObject = new LinkedHashMap<>();
+                    for (int j = 0; j < headers.size(); j++) {
+                        String header = headers.get(j);
+                        Cell cell = row.getCell(j, Row.MissingCellPolicy.RETURN_BLANK_AS_NULL);
+                        String value = cleanCellValue(getCellValueAsString(cell, formatter, evaluator));
+                        rowObject.put(header, value);
+                    }
+                    data.add(rowObject);
+                } catch (Exception e) {
+                    Log.w(TAG, "Skipping problematic Excel row " + i, e);
                 }
-                data.add(rowObject);
             }
 
             Log.d(TAG, "Parsed " + data.size() + " rows from Excel file");
@@ -391,9 +396,10 @@ public class ExcelParser {
         
         // Find column matches
         ColumnMapping mapping = new ColumnMapping();
-        mapping.name = findColumnMatch(headers, normalizedHeaders, HEADER_ALIASES.get("name"));
-        mapping.phone = findColumnMatch(headers, normalizedHeaders, HEADER_ALIASES.get("phone"));
-        mapping.amount = findColumnMatch(headers, normalizedHeaders, HEADER_ALIASES.get("amount"));
+        mapping.name = findNameColumnMatch(headers, normalizedHeaders);
+        mapping.phone = findPhoneColumnMatch(headers, normalizedHeaders);
+        mapping.amount = findAmountColumnMatch(headers, normalizedHeaders);
+        mapping.arrearsDays = findArrearsDaysColumnMatch(headers, normalizedHeaders);
         
         // Parse recipients
         List<Recipient> recipients = new ArrayList<>();
@@ -449,6 +455,104 @@ public class ExcelParser {
             }
         }
         return null;
+    }
+
+    private static String findNameColumnMatch(List<String> headers, List<String> normalizedHeaders) {
+        String directMatch = findColumnMatch(headers, normalizedHeaders, HEADER_ALIASES.get("name"));
+        if (directMatch != null) {
+            return directMatch;
+        }
+
+        for (int i = 0; i < normalizedHeaders.size(); i++) {
+            String normalizedHeader = normalizedHeaders.get(i);
+            if (looksLikeNameHeader(normalizedHeader)) {
+                return headers.get(i);
+            }
+        }
+
+        return null;
+    }
+
+    private static String findPhoneColumnMatch(List<String> headers, List<String> normalizedHeaders) {
+        String directMatch = findColumnMatch(headers, normalizedHeaders, HEADER_ALIASES.get("phone"));
+        if (directMatch != null) {
+            return directMatch;
+        }
+
+        for (int i = 0; i < normalizedHeaders.size(); i++) {
+            String normalizedHeader = normalizedHeaders.get(i);
+            if (looksLikePhoneHeader(normalizedHeader)) {
+                return headers.get(i);
+            }
+        }
+
+        return null;
+    }
+
+    private static String findAmountColumnMatch(List<String> headers, List<String> normalizedHeaders) {
+        String directMatch = findColumnMatch(headers, normalizedHeaders, HEADER_ALIASES.get("amount"));
+        if (directMatch != null) {
+            return directMatch;
+        }
+
+        for (int i = 0; i < normalizedHeaders.size(); i++) {
+            String normalizedHeader = normalizedHeaders.get(i);
+            if (looksLikeAmountHeader(normalizedHeader)) {
+                return headers.get(i);
+            }
+        }
+
+        return null;
+    }
+
+    private static String findArrearsDaysColumnMatch(List<String> headers, List<String> normalizedHeaders) {
+        String directMatch = findColumnMatch(headers, normalizedHeaders, Arrays.asList(
+                "days", "days_in_arrears", "days in arrears", "arrears_days",
+                "days_overdue", "overdue_days", "arrears days"));
+        if (directMatch != null) return directMatch;
+
+        for (int i = 0; i < normalizedHeaders.size(); i++) {
+            String header = normalizedHeaders.get(i);
+            if (header.contains("days") && (header.contains("arrears") || header.contains("overdue"))) {
+                return headers.get(i);
+            }
+        }
+        return null;
+    }
+
+    private static boolean looksLikeNameHeader(String normalizedHeader) {
+        if (normalizedHeader == null || normalizedHeader.isEmpty()) {
+            return false;
+        }
+
+        return normalizedHeader.contains("name")
+            && !normalizedHeader.contains("phone")
+            && !normalizedHeader.contains("branch")
+            && !normalizedHeader.contains("product");
+    }
+
+    private static boolean looksLikePhoneHeader(String normalizedHeader) {
+        if (normalizedHeader == null || normalizedHeader.isEmpty()) {
+            return false;
+        }
+
+        return normalizedHeader.contains("phone")
+            || normalizedHeader.contains("mobile")
+            || normalizedHeader.contains("telephone")
+            || normalizedHeader.equals("tel")
+            || normalizedHeader.contains("phonenumber")
+            || normalizedHeader.contains("contactnumber");
+    }
+
+    private static boolean looksLikeAmountHeader(String normalizedHeader) {
+        if (normalizedHeader == null || normalizedHeader.isEmpty()) {
+            return false;
+        }
+
+        return normalizedHeader.contains("amount")
+            || normalizedHeader.contains("balance")
+            || normalizedHeader.contains("arrears")
+            || normalizedHeader.contains("paymentdue");
     }
     
     /**
@@ -584,6 +688,7 @@ public class ExcelParser {
         public String name;
         public String phone;
         public String amount;
+        public String arrearsDays;
         
         public ColumnMapping() {}
         

@@ -27,12 +27,14 @@ import com.afriserve.smsmanager.data.sync.BidirectionalSmsSync;
 import com.afriserve.smsmanager.data.tracking.EnhancedDeliveryTracker;
 import com.afriserve.smsmanager.data.persistence.UploadPersistenceService;
 import com.afriserve.smsmanager.data.persistence.UploadPersistenceService.UploadSession;
+import com.afriserve.smsmanager.domain.FileImportService;
 import com.afriserve.smsmanager.data.parser.ExcelParser;
 import com.afriserve.smsmanager.data.parser.CsvParser;
 import com.afriserve.smsmanager.data.parser.TransactionParser;
 import com.afriserve.smsmanager.data.parser.PhoneNormalizer;
 import com.afriserve.smsmanager.data.parser.DateParser;
 import com.afriserve.smsmanager.data.parser.RecordParser;
+import com.afriserve.smsmanager.data.templates.TemplateValueResolver;
 import com.afriserve.smsmanager.billing.SubscriptionHelper;
 import dagger.hilt.android.qualifiers.ApplicationContext;
 import java.io.BufferedReader;
@@ -48,6 +50,10 @@ import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.UUID;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.TimeZone;
 import android.app.PendingIntent;
 import android.provider.Telephony;
 import javax.inject.Inject;
@@ -67,10 +73,10 @@ public class BulkSmsService {
     public static final String RESULT_PAUSED = "PAUSED";
     public static final String RESULT_STOPPED = "STOPPED";
     public static final String RESULT_FAILED = "FAILED";
-    private static final long SESSION_PERSIST_INTERVAL_MS = 1500L;
-    private static final long SESSION_FLAG_REFRESH_INTERVAL_MS = 1000L;
-    private static final long CONTROL_CHECK_INTERVAL_MS = 250L;
-    private static final int CSV_FREE_LIMIT = 15;
+    // AppConfig.Service.SESSION_PERSIST_INTERVAL_MS  -> AppConfig.Service.AppConfig.Service.SESSION_PERSIST_INTERVAL_MS
+    // AppConfig.Service.SESSION_FLAG_REFRESH_INTERVAL_MS -> AppConfig.Service.AppConfig.Service.SESSION_FLAG_REFRESH_INTERVAL_MS
+    // AppConfig.Service.CONTROL_CHECK_INTERVAL_MS     -> AppConfig.Service.AppConfig.Service.CONTROL_CHECK_INTERVAL_MS
+    // AppConfig.Service.CSV_FREE_LIMIT                -> AppConfig.Service.AppConfig.Service.CSV_FREE_LIMIT
     private final Context context;
     private final SmsDao smsDao;
     private final CampaignDao campaignDao;
@@ -80,6 +86,7 @@ public class BulkSmsService {
     private final UploadPersistenceService uploadPersistence;
     private final ConversationRepository conversationRepository;
     private final BidirectionalSmsSync bidirectionalSmsSync;
+    private final FileImportService fileImportService;
     private final ExecutorService executorService;
     private final Handler mainHandler;
 
@@ -93,7 +100,8 @@ public class BulkSmsService {
             @NonNull EnhancedDeliveryTracker deliveryTracker,
             @NonNull UploadPersistenceService uploadPersistence,
             @NonNull ConversationRepository conversationRepository,
-            @NonNull BidirectionalSmsSync bidirectionalSmsSync) {
+            @NonNull BidirectionalSmsSync bidirectionalSmsSync,
+            @NonNull FileImportService fileImportService) {
         this.context = context;
         this.smsDao = smsDao;
         this.campaignDao = campaignDao;
@@ -103,6 +111,7 @@ public class BulkSmsService {
         this.uploadPersistence = uploadPersistence;
         this.conversationRepository = conversationRepository;
         this.bidirectionalSmsSync = bidirectionalSmsSync;
+        this.fileImportService = fileImportService;
         this.executorService = Executors.newFixedThreadPool(4);
         this.mainHandler = new Handler(Looper.getMainLooper());
     }
@@ -236,6 +245,11 @@ public class BulkSmsService {
                 // Create campaign entity
                 CampaignEntity campaign = new CampaignEntity();
                 campaign.name = campaignName != null ? campaignName : "Bulk Campaign";
+                campaign.campaignUuid = UUID.randomUUID().toString();
+                campaign.campaignDate = campaignDate(System.currentTimeMillis());
+                campaign.campaignType = "BULK_MARKETING";
+                campaign.timezone = "Africa/Nairobi";
+                campaign.messageTemplate = template;
                 campaign.description = "Bulk SMS campaign with " + total + " recipients";
                 campaign.status = "ACTIVE";
                 campaign.recipientCount = total;
@@ -260,7 +274,7 @@ public class BulkSmsService {
                     try {
                         // Check compliance before sending
                         ComplianceManager.ComplianceResult complianceResult = 
-                            complianceManager.checkCompliance(recipient.getPhone(), "MARKETING").blockingGet();
+                            complianceManager.checkCompliance(recipient.getPhone(), "BULK_MARKETING").blockingGet();
                         
                         if (!complianceResult.isCompliant()) {
                             Log.w(TAG, "Skipping non-compliant number: " + recipient.getPhone() + 
@@ -292,6 +306,8 @@ public class BulkSmsService {
                             smsEntity.boxType = Telephony.Sms.MESSAGE_TYPE_SENT;
                             smsEntity.isRead = true;
                             smsEntity.campaignId = campaignId;
+                            populateRecipientSnapshot(smsEntity, recipient, i);
+                            smsEntity.simSlot = simSlot;
                             smsEntity.createdAt = System.currentTimeMillis();
                             
                             // Save SMS entity before sending
@@ -301,7 +317,8 @@ public class BulkSmsService {
                             
                             // Create delivery tracking intents
                             EnhancedDeliveryTracker.DeliveryIntents deliveryIntents = 
-                                deliveryTracker.createDeliveryIntents(String.valueOf(smsId));
+                                deliveryTracker.createDeliveryIntents(
+                                        String.valueOf(smsId), simSlot, getRecipientDisplayName(recipient));
                             
                             // Send SMS with delivery tracking
                             ArrayList<String> parts = smsManager.divideMessage(message);
@@ -342,17 +359,11 @@ public class BulkSmsService {
                             // Record send for rate limiting
                             rateLimitManager.recordSend(recipient.getPhone());
                             
-                            // Update SMS status to SENT
-                            smsEntity.status = "SENT";
-                            smsEntity.sentAt = System.currentTimeMillis();
-                            smsDao.updateSms(smsEntity).blockingAwait();
-                            syncSentToContentProviderSafe(smsId);
-                            
-                            // Update campaign counts
-                            campaignDao.incrementSentCount(campaignId).blockingAwait();
-                            
+                            // Leave the row PENDING until SmsManager confirms the
+                            // send through the PendingIntent callback. Marking it
+                            // SENT here hides carrier-side failures.
                             sent++;
-                            Log.d(TAG, "✅ SMS sent to: " + recipient.getPhone());
+                            Log.d(TAG, "SMS queued for send: " + recipient.getPhone());
                             
                         } catch (Exception e) {
                             failed++;
@@ -376,6 +387,7 @@ public class BulkSmsService {
                                 failedEntity.errorMessage = e.getMessage();
                                 failedEntity.errorCode = "SEND_ERROR";
                                 failedEntity.campaignId = campaignId;
+                                populateRecipientSnapshot(failedEntity, recipient, i);
                                 failedEntity.createdAt = System.currentTimeMillis();
                                 failedEntity.sentAt = System.currentTimeMillis();
                                 
@@ -411,11 +423,10 @@ public class BulkSmsService {
                 try {
                     CampaignEntity updatedCampaign = campaignDao.getCampaignById(campaignId).blockingGet();
                     if (updatedCampaign != null) {
-                        updatedCampaign.status = "COMPLETED";
-                        updatedCampaign.completedAt = System.currentTimeMillis();
+                        int pendingCallbacks = smsDao.getNonTerminalCountByCampaign(campaignId).blockingGet();
+                        updatedCampaign.status = pendingCallbacks == 0 ? "COMPLETED" : "ACTIVE";
+                        updatedCampaign.completedAt = pendingCallbacks == 0 ? System.currentTimeMillis() : null;
                         updatedCampaign.updatedAt = System.currentTimeMillis();
-                        updatedCampaign.sentCount = sent;
-                        updatedCampaign.failedCount = failed;
                         updatedCampaign.skippedCount = skipped;
                         campaignDao.updateCampaign(updatedCampaign).blockingAwait();
                         Log.d(TAG, "Campaign status updated to COMPLETED");
@@ -457,12 +468,12 @@ public class BulkSmsService {
         List<Recipient> recipients = session.recipients;
         int total = recipients.size();
         if (!isSubscriptionActive()) {
-            if (!(isCsvSession(session) && total <= CSV_FREE_LIMIT)) {
+            if (!(isCsvSession(session) && total <= AppConfig.Service.CSV_FREE_LIMIT)) {
                 session.processingStatus = "blocked";
                 session.isActive = false;
                 persistSession(session);
                 String reason = isCsvSession(session)
-                        ? "Free version allows up to " + CSV_FREE_LIMIT + " recipients per CSV"
+                        ? "Free version allows up to " + AppConfig.Service.CSV_FREE_LIMIT + " recipients per CSV"
                         : "Subscription required for bulk SMS";
                 return new BulkSendResult(RESULT_FAILED, 0, 0, 0, total,
                         session.campaignId, session.lastProcessedIndex, reason);
@@ -473,6 +484,10 @@ public class BulkSmsService {
         int failed = Math.max(0, session.failedCount);
         int skipped = Math.max(0, session.skippedCount);
 
+        // Statistics are process-local and belong to this campaign, not to a
+        // previous campaign that used the same singleton tracker.
+        deliveryTracker.resetStatistics();
+
         session.totalRecords = total;
         session.validRecords = total;
 
@@ -482,6 +497,13 @@ public class BulkSmsService {
         if (campaignId <= 0) {
             CampaignEntity campaign = new CampaignEntity();
             campaign.name = session.campaignName != null ? session.campaignName : "Bulk Campaign";
+            campaign.campaignUuid = UUID.randomUUID().toString();
+            campaign.campaignDate = campaignDate(now);
+            campaign.campaignType = session.campaignType != null ? session.campaignType : "BULK_MARKETING";
+            campaign.sourceFileName = session.fileName;
+            campaign.arrearsFilter = session.arrearsFilter;
+            campaign.timezone = "Africa/Nairobi";
+            campaign.messageTemplate = template;
             campaign.description = "Bulk SMS campaign with " + total + " recipients";
             campaign.status = "ACTIVE";
             campaign.recipientCount = total;
@@ -495,6 +517,14 @@ public class BulkSmsService {
         } else {
             try {
                 campaignDao.resumeCampaign(campaignId).blockingAwait();
+                CampaignEntity existing = campaignDao.getCampaignById(campaignId).blockingGet();
+                if (existing != null && (existing.campaignUuid == null || existing.campaignUuid.trim().isEmpty())) {
+                    existing.campaignUuid = UUID.randomUUID().toString();
+                    existing.campaignDate = existing.campaignDate != null ? existing.campaignDate : campaignDate(existing.createdAt);
+                    existing.timezone = existing.timezone != null ? existing.timezone : "Africa/Nairobi";
+                    existing.updatedAt = now;
+                    campaignDao.updateCampaign(existing).blockingAwait();
+                }
             } catch (Exception e) {
                 Log.w(TAG, "Failed to resume campaign", e);
             }
@@ -508,7 +538,7 @@ public class BulkSmsService {
 
         for (int i = startIndex; i < total; i++) {
             long nowLoop = System.currentTimeMillis();
-            if (lastFlagRefreshAt == 0L || nowLoop - lastFlagRefreshAt >= SESSION_FLAG_REFRESH_INTERVAL_MS) {
+            if (lastFlagRefreshAt == 0L || nowLoop - lastFlagRefreshAt >= AppConfig.Service.SESSION_FLAG_REFRESH_INTERVAL_MS) {
                 session = refreshSessionFlags(session);
                 lastFlagRefreshAt = nowLoop;
             }
@@ -561,13 +591,16 @@ public class BulkSmsService {
                 smsEntity.boxType = Telephony.Sms.MESSAGE_TYPE_SENT;
                 smsEntity.isRead = true;
                 smsEntity.campaignId = campaignId;
+                populateRecipientSnapshot(smsEntity, recipient, i);
+                smsEntity.simSlot = session.simSlot;
                 smsEntity.createdAt = System.currentTimeMillis();
 
                 smsId = smsDao.insertSms(smsEntity).blockingGet();
                 updateConversationSafe(smsEntity);
 
                 EnhancedDeliveryTracker.DeliveryIntents deliveryIntents =
-                        deliveryTracker.createDeliveryIntents(String.valueOf(smsId));
+                        deliveryTracker.createDeliveryIntents(
+                                String.valueOf(smsId), session.simSlot, getRecipientDisplayName(recipient));
 
                 ArrayList<String> parts = smsManager.divideMessage(message);
                 if (parts.size() == 1) {
@@ -603,13 +636,7 @@ public class BulkSmsService {
 
                 rateLimitManager.recordSend(recipient.getPhone());
 
-                smsEntity.status = "SENT";
-                smsEntity.sentAt = System.currentTimeMillis();
-                smsDao.updateSms(smsEntity).blockingAwait();
-                syncSentToContentProviderSafe(smsId);
-
-                campaignDao.incrementSentCount(campaignId).blockingAwait();
-
+                // The sent callback owns the SENT transition and campaign count.
                 sent++;
 
             } catch (Exception e) {
@@ -635,6 +662,7 @@ public class BulkSmsService {
                     failedEntity.errorMessage = e.getMessage();
                     failedEntity.errorCode = "SEND_ERROR";
                     failedEntity.campaignId = campaignId;
+                    populateRecipientSnapshot(failedEntity, recipient, i);
                     failedEntity.createdAt = System.currentTimeMillis();
                     failedEntity.sentAt = System.currentTimeMillis();
                     try {
@@ -661,7 +689,7 @@ public class BulkSmsService {
             updateProgressState(session, i + 1, sent, failed, skipped, progressCallback, total);
 
             nowLoop = System.currentTimeMillis();
-            if (nowLoop - lastPersistAt >= SESSION_PERSIST_INTERVAL_MS || i == total - 1) {
+            if (nowLoop - lastPersistAt >= AppConfig.Service.SESSION_PERSIST_INTERVAL_MS || i == total - 1) {
                 persistSession(session);
                 lastPersistAt = nowLoop;
             }
@@ -680,11 +708,10 @@ public class BulkSmsService {
             try {
                 CampaignEntity updatedCampaign = campaignDao.getCampaignById(campaignId).blockingGet();
                 if (updatedCampaign != null) {
-                    updatedCampaign.status = "COMPLETED";
-                    updatedCampaign.completedAt = System.currentTimeMillis();
+                    int pendingCallbacks = smsDao.getNonTerminalCountByCampaign(campaignId).blockingGet();
+                    updatedCampaign.status = pendingCallbacks == 0 ? "COMPLETED" : "ACTIVE";
+                    updatedCampaign.completedAt = pendingCallbacks == 0 ? System.currentTimeMillis() : null;
                     updatedCampaign.updatedAt = System.currentTimeMillis();
-                    updatedCampaign.sentCount = sent;
-                    updatedCampaign.failedCount = failed;
                     updatedCampaign.skippedCount = skipped;
                     campaignDao.updateCampaign(updatedCampaign).blockingAwait();
                 }
@@ -739,7 +766,7 @@ public class BulkSmsService {
     private UploadSession waitWithControl(@NonNull UploadSession session, long delayMs) {
         long remaining = delayMs;
         while (remaining > 0) {
-            long chunk = Math.min(CONTROL_CHECK_INTERVAL_MS, remaining);
+            long chunk = Math.min(AppConfig.Service.CONTROL_CHECK_INTERVAL_MS, remaining);
             try {
                 Thread.sleep(chunk);
             } catch (InterruptedException e) {
@@ -801,6 +828,9 @@ public class BulkSmsService {
 
     private boolean isSubscriptionActive() {
         try {
+            if (SubscriptionHelper.INSTANCE.hasActiveSubscription(context)) {
+                return true;
+            }
             SubscriptionHelper.SubscriptionStatus cached =
                     SubscriptionHelper.INSTANCE.getCachedStatus(context);
             long now = System.currentTimeMillis();
@@ -831,208 +861,187 @@ public class BulkSmsService {
      */
     @NonNull
     public String formatMessage(@NonNull String template, @NonNull Recipient recipient) {
-        String formatted = template;
+        Map<String, String> values = new HashMap<>();
+        values.put("name", recipient.getName() != null ? recipient.getName() : "");
+        values.put("phone", recipient.getPhone() != null ? recipient.getPhone() : "");
+        values.put("amount", recipient.getAmount() != null ? recipient.getAmount().toString() : "");
+        if (recipient.getFields() != null) values.putAll(recipient.getFields());
 
-        // Replace placeholders
-        if (recipient.getName() != null) {
-            formatted = formatted.replace("{name}", recipient.getName());
-        }
-        formatted = formatted.replace("{phone}", recipient.getPhone());
-
-        if (recipient.getAmount() != null) {
-            formatted = formatted.replace("{amount}", recipient.getAmount().toString());
-        }
-
-        // Replace custom fields
-        if (recipient.getFields() != null) {
+        String formatted = TemplateValueResolver.process(template, values);
+        
+        // Auto-split name support
+        String nameToSplit = null;
+        if (recipient.getName() != null && !recipient.getName().trim().isEmpty()) {
+            nameToSplit = recipient.getName();
+        } else if (recipient.getFields() != null) {
             for (Map.Entry<String, String> entry : recipient.getFields().entrySet()) {
-                formatted = formatted.replace("{" + entry.getKey() + "}", entry.getValue());
+                if (com.afriserve.smsmanager.data.csv.NameSplitter.isNameColumn(entry.getKey())) {
+                    String val = entry.getValue();
+                    if (val != null && !val.trim().isEmpty()) {
+                        nameToSplit = val;
+                        break;
+                    }
+                }
             }
+        }
+        
+        if (nameToSplit != null) {
+            com.afriserve.smsmanager.data.csv.NameSplitter.SplitName split = com.afriserve.smsmanager.data.csv.NameSplitter.split(nameToSplit);
+            formatted = formatted.replace("{firstname}", split.getPart("firstname"));
+            formatted = formatted.replace("{secondname}", split.getPart("secondname"));
+            formatted = formatted.replace("{thirdname}", split.getPart("thirdname"));
         }
 
         return formatted;
     }
 
+    /** Resolve the customer name shown when the delivery receipt arrives. */
+    @NonNull
+    private String getRecipientDisplayName(@NonNull Recipient recipient) {
+        Map<String, String> fields = recipient.getFields();
+        String fullName = getRecipientField(fields, "fullnames");
+        if (isBlank(fullName)) {
+            fullName = getRecipientField(fields, "fullname");
+        }
+        if (!isBlank(fullName)) {
+            return fullName.trim();
+        }
+
+        StringBuilder nameParts = new StringBuilder();
+        for (String field : new String[] {"firstname", "secondname", "thirdname"}) {
+            String value = getRecipientField(fields, field);
+            if (!isBlank(value)) {
+                if (nameParts.length() > 0) nameParts.append(' ');
+                nameParts.append(value.trim());
+            }
+        }
+        if (nameParts.length() > 0) {
+            return nameParts.toString();
+        }
+
+        if (!isBlank(recipient.getName())) {
+            return recipient.getName().trim();
+        }
+        return "customer";
+    }
+
+    private String campaignDate(long timestamp) {
+        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd", Locale.US);
+        format.setTimeZone(TimeZone.getTimeZone("Africa/Nairobi"));
+        return format.format(new Date(timestamp));
+    }
+
+    /** Store source-row values on the campaign recipient; never join reports by phone alone. */
+    private void populateRecipientSnapshot(@NonNull SmsEntity sms, @NonNull Recipient recipient, int rowIndex) {
+        sms.customerName = getRecipientDisplayName(recipient);
+        sms.amount = recipient.getAmount();
+        sms.officerName = firstRecipientField(recipient,
+                "officer", "officername", "loanofficer", "loan_officer", "loanofficername",
+                "fieldofficer", "field_officer", "fieldofficername",
+                "collectionofficer", "collection_officer", "collectionofficername",
+                "relationship_officer", "relationshipofficer", "relationshipofficername",
+                "officerincharge", "officer_in_charge", "assignedofficer", "assigned_officer",
+                "assignedto", "assigned_to", "salesrep", "sales_rep", "salesrepname",
+                "salesrepresentative", "collector", "collectorname", "agent", "agentname",
+                "ro", "ro_name", "roname");
+        sms.arrearsDays = parseArrearsDays(recipient);
+        sms.sourceRowIndex = rowIndex;
+    }
+
+    @Nullable
+    private String firstRecipientField(@NonNull Recipient recipient, String... keys) {
+        Map<String, String> fields = recipient.getFields();
+        if (fields == null) return null;
+        for (String wanted : keys) {
+            for (Map.Entry<String, String> entry : fields.entrySet()) {
+                String key = normalizeRecipientFieldKey(entry.getKey());
+                String wantedKey = normalizeRecipientFieldKey(wanted);
+                if (key.equals(wantedKey) && !isBlank(entry.getValue())) {
+                    return entry.getValue().trim();
+                }
+            }
+        }
+        return null;
+    }
+
+    private String normalizeRecipientFieldKey(@Nullable String value) {
+        if (value == null) return "";
+        return value.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]", "");
+    }
+
+    @Nullable
+    private Integer parseArrearsDays(@NonNull Recipient recipient) {
+        Map<String, String> fields = recipient.getFields();
+        if (fields == null) return null;
+        for (Map.Entry<String, String> entry : fields.entrySet()) {
+            String key = entry.getKey() == null ? "" : entry.getKey().toLowerCase(Locale.ROOT);
+            if (!(key.equals("days") || key.contains("days_in_arrears") || key.contains("arrears_days")
+                    || key.contains("days_overdue") || key.contains("overdue_days")
+                    || (key.contains("days") && (key.contains("arrears") || key.contains("overdue"))))) continue;
+            try {
+                java.util.regex.Matcher matcher = java.util.regex.Pattern.compile("-?\\d+(?:\\.\\d+)?")
+                        .matcher(entry.getValue() == null ? "" : entry.getValue());
+                if (matcher.find()) return (int) Double.parseDouble(matcher.group());
+            } catch (Exception ignored) { }
+        }
+        return null;
+    }
+
+    @Nullable
+    private String getRecipientField(Map<String, String> fields, String expectedName) {
+        if (fields == null) return null;
+        String normalizedExpected = expectedName.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]", "");
+        for (Map.Entry<String, String> entry : fields.entrySet()) {
+            if (entry.getKey() == null) continue;
+            String normalizedKey = entry.getKey().toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]", "");
+            if (normalizedExpected.equals(normalizedKey)) return entry.getValue();
+        }
+        return null;
+    }
+
+    private boolean isBlank(@Nullable String value) {
+        return value == null || value.trim().isEmpty();
+    }
+
     /**
-     * Parse a single CSV line handling quoted fields
-     * Supports basic CSV format with quoted fields containing commas
-     * @param line The CSV line to parse
-     * @return Array of parsed field values
+     * Parse a single CSV line handling quoted fields.
+     * Delegates to FileImportService.
      */
     @NonNull
     private String[] parseCsvLine(@NonNull String line) {
-        List<String> result = new ArrayList<>();
-        StringBuilder current = new StringBuilder();
-        boolean inQuotes = false;
-        
-        for (int i = 0; i < line.length(); i++) {
-            char c = line.charAt(i);
-            
-            if (c == '"') {
-                // Handle escaped quotes (double quotes)
-                if (inQuotes && i + 1 < line.length() && line.charAt(i + 1) == '"') {
-                    current.append('"');
-                    i++; // Skip the next quote
-                } else {
-                    inQuotes = !inQuotes;
-                }
-            } else if (c == ',' && !inQuotes) {
-                // End of field
-                result.add(current.toString().trim());
-                current = new StringBuilder();
-            } else {
-                current.append(c);
-            }
-        }
-        
-        // Add the last field
-        result.add(current.toString().trim());
-        
-        return result.toArray(new String[0]);
+        return fileImportService.parseCsvLine(line);
     }
 
     /**
-     * Parse CSV file to extract recipients
+     * Parse CSV file to extract recipients. Delegates to FileImportService.
      */
     @NonNull
     public List<Recipient> parseCsv(@NonNull Uri uri) throws IOException {
-        List<Recipient> recipients = new ArrayList<>();
-        InputStream inputStream = context.getContentResolver().openInputStream(uri);
-        
-        if (inputStream == null) {
-            throw new IOException("Cannot open input stream for URI: " + uri);
-        }
-
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream))) {
-            String line;
-            List<String> headers = new ArrayList<>();
-            boolean isFirstLine = true;
-
-            while ((line = reader.readLine()) != null) {
-                String[] values = parseCsvLine(line);
-
-                if (isFirstLine) {
-                    // Parse headers
-                    for (String header : values) {
-                        headers.add(header.trim().toLowerCase(Locale.ROOT));
-                    }
-                    isFirstLine = false;
-                    continue;
-                }
-
-                // Parse recipient data
-                Map<String, String> fields = new HashMap<>();
-                String name = null;
-                String phone = null;
-                Double amount = null;
-
-                for (int i = 0; i < Math.min(values.length, headers.size()); i++) {
-                    String header = headers.get(i);
-                    String value = values[i].trim();
-
-                    switch (header) {
-                        case "name":
-                            name = value;
-                            break;
-                        case "phone":
-                        case "mobile":
-                        case "number":
-                            phone = value;
-                            break;
-                        case "amount":
-                            try {
-                                amount = Double.parseDouble(value);
-                            } catch (NumberFormatException ignored) {}
-                            break;
-                        default:
-                            fields.put(header, value);
-                            break;
-                    }
-                }
-
-                if (phone != null && !phone.isEmpty()) {
-                    recipients.add(new Recipient(name, phone, amount, false, fields));
-                }
-            }
-        }
-
-        return recipients;
+        return fileImportService.parseCsv(uri);
     }
 
     /**
-     * Enhanced file parser supporting Excel (.xlsx, .xls) and CSV files
-     * Uses smart column mapping with aliases
+     * Enhanced file parser supporting Excel and CSV. Delegates to FileImportService.
      */
     @NonNull
     public ExcelParser.ParseResult parseImportFile(@NonNull Uri uri, @NonNull String fileName) throws IOException {
-        // Copy file to temporary location for parsing
-        File tempFile = copyUriToTempFile(uri, fileName);
-        
-        try {
-            return ExcelParser.parseImportFile(tempFile.getAbsolutePath(), fileName);
-        } finally {
-            // Clean up temporary file
-            if (tempFile.exists()) {
-                tempFile.delete();
-            }
-        }
+        return fileImportService.parseImportFile(uri, fileName);
     }
 
     /**
-     * Parse SMS message to extract transaction information
+     * Parse SMS transaction. Delegates to FileImportService.
      */
     @Nullable
     public TransactionParser.Transaction parseSmsTransaction(@NonNull String message) {
-        return TransactionParser.parseMobileMoneyTransaction(message);
+        return fileImportService.parseSmsTransaction(message);
     }
 
     /**
-     * Enhanced recipient parsing with record validation
+     * Enhanced recipient parsing with record validation. Delegates to FileImportService.
      */
     @NonNull
     public List<Recipient> parseAndValidateRecipients(@NonNull List<Map<String, String>> rawData, boolean isLoanData) {
-        List<Recipient> validRecipients = new ArrayList<>();
-        List<String> validationErrors = new ArrayList<>();
-        
-        for (int i = 0; i < rawData.size(); i++) {
-            Map<String, String> row = rawData.get(i);
-            
-            try {
-                if (isLoanData) {
-                    RecordParser.LoanRecord loanRecord = RecordParser.parseLoanRecord(row);
-                    if (RecordParser.isValidLoanRecord(loanRecord)) {
-                        Recipient recipient = RecordParser.loanToRecipient(loanRecord);
-                        validRecipients.add(recipient);
-                    } else {
-                        String error = RecordParser.getLoanValidationErrors(loanRecord);
-                        validationErrors.add("Row " + (i + 1) + ": " + error);
-                    }
-                } else {
-                    RecordParser.CustomerRecord customerRecord = RecordParser.parseCustomerRow(row);
-                    if (RecordParser.isValidCustomerRecord(customerRecord)) {
-                        Recipient recipient = RecordParser.customerToRecipient(customerRecord);
-                        validRecipients.add(recipient);
-                    } else {
-                        String error = RecordParser.getCustomerValidationErrors(customerRecord);
-                        validationErrors.add("Row " + (i + 1) + ": " + error);
-                    }
-                }
-            } catch (Exception e) {
-                validationErrors.add("Row " + (i + 1) + ": " + e.getMessage());
-                Log.e(TAG, "Error parsing row " + (i + 1), e);
-            }
-        }
-        
-        // Log validation results
-        if (!validationErrors.isEmpty()) {
-            Log.w(TAG, "Validation errors found: " + validationErrors.size() + " out of " + rawData.size() + " records");
-            for (String error : validationErrors.subList(0, Math.min(10, validationErrors.size()))) {
-                Log.w(TAG, error);
-            }
-        }
-        
-        Log.d(TAG, "Successfully parsed " + validRecipients.size() + " valid recipients from " + rawData.size() + " records");
-        return validRecipients;
+        return fileImportService.parseAndValidateRecipients(rawData, isLoanData);
     }
 
     /**
@@ -1040,42 +1049,7 @@ public class BulkSmsService {
      */
     @NonNull
     public String formatMessageWithDynamicPlaceholders(@NonNull String template, @NonNull Recipient recipient) {
-        try {
-            String result = template;
-            
-            // Built-in placeholders (backward compatible)
-            result = result.replace("{name}", recipient.getName() != null ? recipient.getName() : "");
-            result = result.replace("{phone}", recipient.getPhone() != null ? recipient.getPhone() : "");
-            result = result.replace("{amount}", recipient.getAmount() != null ? 
-                String.format("%,.2f", recipient.getAmount()) : "0.00");
-            
-            // Dynamic placeholders from recipient fields
-            if (recipient.getFields() != null) {
-                for (Map.Entry<String, String> entry : recipient.getFields().entrySet()) {
-                    String key = entry.getKey();
-                    String value = entry.getValue();
-                    
-                    if (value != null && !value.isEmpty()) {
-                        // Format numeric values
-                        try {
-                            double numValue = Double.parseDouble(value);
-                            value = String.format("%,.2f", numValue);
-                        } catch (NumberFormatException e) {
-                            // Keep as string if not numeric
-                        }
-                        
-                        result = result.replace("{" + key + "}", value);
-                    } else {
-                        result = result.replace("{" + key + "}", "");
-                    }
-                }
-            }
-            
-            return result;
-        } catch (Exception e) {
-            Log.e(TAG, "Error formatting message", e);
-            return template;
-        }
+        return formatMessage(template, recipient);
     }
 
     /**
@@ -1099,7 +1073,7 @@ public class BulkSmsService {
      */
     @NonNull
     public TemplateValidationResult validateTemplatePlaceholders(@NonNull String template, @NonNull List<Recipient> recipients) {
-        List<String> placeholders = extractPlaceholders(template);
+        List<String> placeholders = TemplateValueResolver.extractReferencedNames(template);
         List<String> missingPlaceholders = new ArrayList<>();
         List<String> availablePlaceholders = new ArrayList<>();
         
@@ -1120,10 +1094,13 @@ public class BulkSmsService {
         if (sampleRecipient.getFields() != null) {
             allFields.putAll(sampleRecipient.getFields());
         }
+        allFields = TemplateValueResolver.canonicalize(allFields);
         
         // Check each placeholder
         for (String placeholder : placeholders) {
-            if (allFields.containsKey(placeholder)) {
+            String normalized = TemplateValueResolver.normalizeKey(placeholder);
+            if (allFields.containsKey(normalized) || "money".equalsIgnoreCase(placeholder)
+                    || "number".equalsIgnoreCase(placeholder) || "date".equalsIgnoreCase(placeholder)) {
                 availablePlaceholders.add(placeholder);
             } else {
                 missingPlaceholders.add(placeholder);
@@ -1138,68 +1115,30 @@ public class BulkSmsService {
     }
 
     /**
-     * Get phone number statistics for recipients
+     * Get phone number statistics. Delegates to FileImportService.
      */
     @NonNull
     public PhoneStatistics getPhoneStatistics(@NonNull List<Recipient> recipients) {
+        FileImportService.PhoneStatistics fis = fileImportService.getPhoneStatistics(recipients);
         PhoneStatistics stats = new PhoneStatistics();
-        
-        for (Recipient recipient : recipients) {
-            if (recipient.getPhone() == null || recipient.getPhone().isEmpty()) {
-                continue;
-            }
-            
-            PhoneNormalizer.PhoneNumberType type = PhoneNormalizer.getPhoneNumberType(recipient.getPhone());
-            
-            stats.totalRecipients++;
-            
-            switch (type) {
-                case KENYA_MOBILE:
-                    stats.kenyaMobileCount++;
-                    break;
-                case INTERNATIONAL:
-                    stats.internationalCount++;
-                    break;
-                case OTHER:
-                    stats.otherCount++;
-                    break;
-                case INVALID:
-                    stats.invalidCount++;
-                    break;
-            }
-        }
-        
+        stats.totalRecipients = fis.totalRecipients;
+        stats.kenyaMobileCount = fis.kenyaMobileCount;
+        stats.internationalCount = fis.internationalCount;
+        stats.otherCount = fis.otherCount;
+        stats.invalidCount = fis.invalidCount;
         return stats;
     }
 
     /**
-     * Normalize phone numbers in recipient list
+     * Normalize phone numbers. Delegates to FileImportService.
      */
     @NonNull
     public List<Recipient> normalizePhoneNumbers(@NonNull List<Recipient> recipients) {
-        List<Recipient> normalizedRecipients = new ArrayList<>();
-        
-        for (Recipient recipient : recipients) {
-            if (recipient.getPhone() != null && !recipient.getPhone().isEmpty()) {
-                String normalizedPhone = PhoneNormalizer.normalizePhone(recipient.getPhone());
-                if (!normalizedPhone.isEmpty()) {
-                    Recipient normalizedRecipient = new Recipient(
-                        recipient.getName(),
-                        normalizedPhone,
-                        recipient.getAmount(),
-                        recipient.isProcessed(),
-                        recipient.getFields()
-                    );
-                    normalizedRecipients.add(normalizedRecipient);
-                }
-            }
-        }
-        
-        return normalizedRecipients;
+        return fileImportService.normalizePhoneNumbers(recipients);
     }
 
     /**
-     * Parse Excel file with smart mapping (enhanced version of parseCsv)
+     * Parse Excel file with smart mapping. Delegates to parseImportFile.
      */
     @NonNull
     public ExcelParser.ParseResult parseExcelSmart(@NonNull Uri uri, @NonNull String fileName) throws IOException {
@@ -1207,95 +1146,35 @@ public class BulkSmsService {
     }
 
     /**
-     * Copy URI content to temporary file for parsing
-     */
-    @NonNull
-    private File copyUriToTempFile(@NonNull Uri uri, @NonNull String fileName) throws IOException {
-        InputStream inputStream = context.getContentResolver().openInputStream(uri);
-        if (inputStream == null) {
-            throw new IOException("Cannot open input stream for URI: " + uri);
-        }
-
-        // Create temporary file
-        File tempDir = new File(context.getCacheDir(), "temp_imports");
-        if (!tempDir.exists()) {
-            tempDir.mkdirs();
-        }
-        
-        File tempFile = new File(tempDir, "temp_" + System.currentTimeMillis() + "_" + fileName);
-        
-        try (FileOutputStream outputStream = new FileOutputStream(tempFile)) {
-            byte[] buffer = new byte[4096];
-            int bytesRead;
-            while ((bytesRead = inputStream.read(buffer)) != -1) {
-                outputStream.write(buffer, 0, bytesRead);
-            }
-        } finally {
-            inputStream.close();
-        }
-        
-        return tempFile;
-    }
-
-    /**
-     * Detect file type from file name
+     * Detect file type. Delegates to FileImportService.
      */
     @NonNull
     public ExcelParser.ImportFileType detectFileType(@NonNull String fileName) {
-        return ExcelParser.detectFileType(fileName);
+        return fileImportService.detectFileType(fileName);
     }
 
     /**
-     * Check if file type is supported
+     * Check if file type is supported. Delegates to FileImportService.
      */
     public boolean isFileTypeSupported(@NonNull String fileName) {
-        return ExcelParser.isFileTypeSupported(fileName);
+        return fileImportService.isFileTypeSupported(fileName);
     }
 
     /**
-     * Get file type display name for user feedback
+     * Get file type display name. Delegates to FileImportService.
      */
     @NonNull
     public String getFileTypeDisplayName(@NonNull String fileName) {
-        return ExcelParser.getFileTypeDisplayName(fileName);
+        return fileImportService.getFileTypeDisplayName(fileName);
     }
 
     /**
-     * Get file preview data for UI display
+     * Get file preview data. Delegates to FileImportService.
      */
     @NonNull
     public FilePreviewData getFilePreview(@NonNull Uri uri, @NonNull String fileName) throws IOException {
-        ExcelParser.ParseResult result = parseImportFile(uri, fileName);
-        
-        List<String> headers = new ArrayList<>();
-        List<List<String>> rows = new ArrayList<>();
-        
-        if (!result.recipients.isEmpty()) {
-            // Get headers from mapping or use defaults
-            if (result.mapping.name != null) headers.add(result.mapping.name);
-            if (result.mapping.phone != null) headers.add(result.mapping.phone);
-            if (result.mapping.amount != null) headers.add(result.mapping.amount);
-            
-            // Ensure we have at least name, phone, amount headers
-            if (headers.isEmpty()) {
-                headers.add("Name");
-                headers.add("Phone");
-                headers.add("Amount");
-            }
-            
-            // Add preview rows (first 5)
-            int previewCount = Math.min(5, result.recipients.size());
-            for (int i = 0; i < previewCount; i++) {
-                Recipient recipient = result.recipients.get(i);
-                List<String> row = new ArrayList<>();
-                row.add(recipient.getName() != null ? recipient.getName() : "");
-                row.add(recipient.getPhone() != null ? recipient.getPhone() : "");
-                row.add(recipient.getAmount() != null ? recipient.getAmount().toString() : "");
-                rows.add(row);
-            }
-        }
-        
-        return new FilePreviewData(headers, rows, result.recipients.size());
+        FileImportService.FilePreviewData fis = fileImportService.getFilePreview(uri, fileName);
+        return new FilePreviewData(fis.getHeaders(), fis.getRows(), fis.getTotalRows());
     }
 
     /**

@@ -1,0 +1,377 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 1,
+    "identityHash": "b82af665f0a3aedd52ce31d2fee2460a",
+    "entities": [
+      {
+        "tableName": "dashboard_stats",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`statType` TEXT NOT NULL, `totalSent` INTEGER NOT NULL, `totalDelivered` INTEGER NOT NULL, `totalFailed` INTEGER NOT NULL, `totalPending` INTEGER NOT NULL, `activeCampaigns` INTEGER NOT NULL, `scheduledCampaigns` INTEGER NOT NULL, `totalCampaigns` INTEGER NOT NULL, `totalRecipients` INTEGER NOT NULL, `uniqueRecipients` INTEGER NOT NULL, `optOutCount` INTEGER NOT NULL, `complianceViolations` INTEGER NOT NULL, `averageDeliveryTime` INTEGER NOT NULL, `lastSentTime` INTEGER NOT NULL, `lastDeliveryTime` INTEGER NOT NULL, `totalCost` REAL NOT NULL, `totalRevenue` REAL NOT NULL, `conversionRate` REAL NOT NULL, `responseRate` REAL NOT NULL, `bounceRate` REAL NOT NULL, `peakHourActivity` INTEGER NOT NULL, `currentRateLimit` INTEGER NOT NULL, `rateLimitStatus` TEXT, `systemStatus` TEXT, `lastUpdated` INTEGER NOT NULL, `createdAt` INTEGER NOT NULL, PRIMARY KEY(`statType`))",
+        "fields": [
+          {
+            "fieldPath": "statType",
+            "columnName": "statType",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "totalSent",
+            "columnName": "totalSent",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "totalDelivered",
+            "columnName": "totalDelivered",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "totalFailed",
+            "columnName": "totalFailed",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "totalPending",
+            "columnName": "totalPending",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "activeCampaigns",
+            "columnName": "activeCampaigns",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "scheduledCampaigns",
+            "columnName": "scheduledCampaigns",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "totalCampaigns",
+            "columnName": "totalCampaigns",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "totalRecipients",
+            "columnName": "totalRecipients",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "uniqueRecipients",
+            "columnName": "uniqueRecipients",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "optOutCount",
+            "columnName": "optOutCount",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "complianceViolations",
+            "columnName": "complianceViolations",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "averageDeliveryTime",
+            "columnName": "averageDeliveryTime",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastSentTime",
+            "columnName": "lastSentTime",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastDeliveryTime",
+            "columnName": "lastDeliveryTime",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "totalCost",
+            "columnName": "totalCost",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "totalRevenue",
+            "columnName": "totalRevenue",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "conversionRate",
+            "columnName": "conversionRate",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "responseRate",
+            "columnName": "responseRate",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "bounceRate",
+            "columnName": "bounceRate",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "peakHourActivity",
+            "columnName": "peakHourActivity",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "currentRateLimit",
+            "columnName": "currentRateLimit",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "rateLimitStatus",
+            "columnName": "rateLimitStatus",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "systemStatus",
+            "columnName": "systemStatus",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "lastUpdated",
+            "columnName": "lastUpdated",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "createdAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "statType"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_dashboard_stats_statType",
+            "unique": false,
+            "columnNames": [
+              "statType"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_dashboard_stats_statType` ON `${TABLE_NAME}` (`statType`)"
+          },
+          {
+            "name": "index_dashboard_stats_lastUpdated",
+            "unique": false,
+            "columnNames": [
+              "lastUpdated"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_dashboard_stats_lastUpdated` ON `${TABLE_NAME}` (`lastUpdated`)"
+          }
+        ]
+      },
+      {
+        "tableName": "dashboard_metrics",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `metricDate` INTEGER NOT NULL, `metricType` TEXT, `sentCount` INTEGER NOT NULL, `deliveredCount` INTEGER NOT NULL, `failedCount` INTEGER NOT NULL, `pendingCount` INTEGER NOT NULL, `campaignCount` INTEGER NOT NULL, `activeCampaigns` INTEGER NOT NULL, `scheduledCampaigns` INTEGER NOT NULL, `optOutCount` INTEGER NOT NULL, `complianceViolations` INTEGER NOT NULL, `averageDeliveryTime` INTEGER NOT NULL, `peakHour` INTEGER NOT NULL, `totalRecipients` INTEGER NOT NULL, `uniqueRecipients` INTEGER NOT NULL, `totalCost` REAL NOT NULL, `totalRevenue` REAL NOT NULL, `conversionRate` REAL NOT NULL, `responseRate` REAL NOT NULL, `bounceRate` REAL NOT NULL, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "metricDate",
+            "columnName": "metricDate",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "metricType",
+            "columnName": "metricType",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "sentCount",
+            "columnName": "sentCount",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "deliveredCount",
+            "columnName": "deliveredCount",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "failedCount",
+            "columnName": "failedCount",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "pendingCount",
+            "columnName": "pendingCount",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "campaignCount",
+            "columnName": "campaignCount",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "activeCampaigns",
+            "columnName": "activeCampaigns",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "scheduledCampaigns",
+            "columnName": "scheduledCampaigns",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "optOutCount",
+            "columnName": "optOutCount",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "complianceViolations",
+            "columnName": "complianceViolations",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "averageDeliveryTime",
+            "columnName": "averageDeliveryTime",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "peakHour",
+            "columnName": "peakHour",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "totalRecipients",
+            "columnName": "totalRecipients",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "uniqueRecipients",
+            "columnName": "uniqueRecipients",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "totalCost",
+            "columnName": "totalCost",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "totalRevenue",
+            "columnName": "totalRevenue",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "conversionRate",
+            "columnName": "conversionRate",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "responseRate",
+            "columnName": "responseRate",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "bounceRate",
+            "columnName": "bounceRate",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "createdAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updatedAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_dashboard_metrics_metricDate",
+            "unique": false,
+            "columnNames": [
+              "metricDate"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_dashboard_metrics_metricDate` ON `${TABLE_NAME}` (`metricDate`)"
+          },
+          {
+            "name": "index_dashboard_metrics_metricType",
+            "unique": false,
+            "columnNames": [
+              "metricType"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_dashboard_metrics_metricType` ON `${TABLE_NAME}` (`metricType`)"
+          },
+          {
+            "name": "index_dashboard_metrics_createdAt",
+            "unique": false,
+            "columnNames": [
+              "createdAt"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_dashboard_metrics_createdAt` ON `${TABLE_NAME}` (`createdAt`)"
+          }
+        ]
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'b82af665f0a3aedd52ce31d2fee2460a')"
+    ]
+  }
+}

@@ -46,6 +46,21 @@ import javax.inject.Inject;
 @AndroidEntryPoint
 public class CsvUploadFragment extends Fragment {
     private static final int PICK_CSV_FILE = 1001;
+    private static final String[] IMPORT_FILE_MIME_TYPES = new String[]{
+        "*/*",
+        "text/csv",
+        "text/comma-separated-values",
+        "application/csv",
+        "text/plain",
+        "application/octet-stream",
+        "application/vnd.ms-excel",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "application/vnd.ms-excel.sheet.binary.macroEnabled.12",
+        "application/vnd.ms-excel.sheet.macroEnabled.12",
+        "application/vnd.ms-excel.template.macroEnabled.12",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.template",
+        "application/vnd.oasis.opendocument.spreadsheet"
+    };
 
     private ProgressBar progressLoading;
     private TextView tvSummary, tvPhoneValidation;
@@ -107,6 +122,7 @@ public class CsvUploadFragment extends Fragment {
                 if (result.getResultCode() == Activity.RESULT_OK && result.getData() != null) {
                     Uri uri = result.getData().getData();
                     if (uri != null) {
+                        persistReadPermission(uri, result.getData().getFlags());
                         viewModel.processCsvFile(uri, requireContext().getContentResolver());
                     }
                 }
@@ -158,21 +174,25 @@ public class CsvUploadFragment extends Fragment {
     }
 
     private void openFilePicker() {
-        Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
         intent.setType("*/*");
-        intent.putExtra(Intent.EXTRA_MIME_TYPES, new String[]{
-            "text/csv",
-            "text/plain",
-            "application/vnd.ms-excel",
-            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            "application/vnd.ms-excel.sheet.binary.macroEnabled.12",
-            "application/vnd.ms-excel.sheet.macroEnabled.12",
-            "application/vnd.ms-excel.template.macroEnabled.12",
-            "application/vnd.openxmlformats-officedocument.spreadsheetml.template",
-            "application/vnd.oasis.opendocument.spreadsheet"
-        });
+        intent.putExtra(Intent.EXTRA_MIME_TYPES, IMPORT_FILE_MIME_TYPES);
         intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, false);
+        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
         filePickerLauncher.launch(Intent.createChooser(intent, "Select CSV or Excel file"));
+    }
+
+    private void persistReadPermission(@NonNull Uri uri, int resultFlags) {
+        int readFlag = resultFlags & Intent.FLAG_GRANT_READ_URI_PERMISSION;
+        if (readFlag == 0) {
+            return;
+        }
+        try {
+            requireContext().getContentResolver().takePersistableUriPermission(uri, readFlag);
+        } catch (SecurityException | IllegalArgumentException e) {
+            android.util.Log.w("CsvUploadFragment", "Read permission was not persistable for selected file", e);
+        }
     }
 
     private void showPlaceholderDialog() {
@@ -308,7 +328,7 @@ public class CsvUploadFragment extends Fragment {
                 session.sendSpeed = 2000;
                 session.simSlot = 0;
                 session.campaignName = "CSV Campaign";
-                session.campaignType = "TRANSACTIONAL";
+                session.campaignType = "BULK_MARKETING";
                 session.source = "csv";
 
                 for (com.afriserve.smsmanager.data.csv.CsvRecipient csvRecipient : recipients) {
@@ -334,6 +354,9 @@ public class CsvUploadFragment extends Fragment {
     }
 
     private boolean isSubscriptionActive(@Nullable SubscriptionHelper.SubscriptionStatus status) {
+        if (SubscriptionHelper.INSTANCE.hasActiveSubscription(requireContext())) {
+            return true;
+        }
         if (status == null) {
             return false;
         }
@@ -352,6 +375,7 @@ public class CsvUploadFragment extends Fragment {
     @Override
     public void onDestroyView() {
         super.onDestroyView();
+        previewAdapter = null;
     }
 
     @Override

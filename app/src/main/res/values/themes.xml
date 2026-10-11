@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Material Design 3 Theme -->
-    <style name="Theme.BulkSMS" parent="Theme.Material3.DayNight">
+    <style name="Theme.BulkSMS" parent="Theme.Material3.DayNight.NoActionBar">
         <!-- Primary brand colors -->
         <item name="colorPrimary">@color/color_primary</item>
         <item name="colorOnPrimary">@color/color_on_primary</item>

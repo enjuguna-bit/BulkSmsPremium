@@ -158,36 +158,39 @@ public class ConversationViewModel extends ViewModel {
     @Override
     protected void onCleared() {
         super.onCleared();
-        executor.shutdown();
+        executor.shutdownNow();
     }
     
-    // UI State enum
-    public enum ConversationUiState {
-        LOADING("Loading"),
-        SENDING("Sending"),
-        SUCCESS("Success"),
-        ERROR("Error");
-        
+    /**
+     * UI state that carries both a type and an optional custom message.
+     * Previously an enum — factory methods now preserve the message so the
+     * Fragment can display the actual error text rather than a generic label.
+     */
+    public static final class ConversationUiState {
+        public enum Type { LOADING, SENDING, SUCCESS, ERROR }
+
+        // Singleton constants for the stateless states
+        public static final ConversationUiState LOADING = new ConversationUiState(Type.LOADING, "Loading");
+        public static final ConversationUiState SENDING = new ConversationUiState(Type.SENDING, "Sending");
+
+        public final Type   type;
         private final String message;
-        
-        ConversationUiState(String message) {
+
+        private ConversationUiState(Type type, String message) {
+            this.type    = type;
             this.message = message;
         }
-        
-        public String getMessage() {
-            return message;
+
+        public String getMessage() { return message; }
+
+        /** Returns a SUCCESS state carrying the provided message. */
+        public static ConversationUiState success(String msg) {
+            return new ConversationUiState(Type.SUCCESS, msg != null ? msg : "Success");
         }
-        
-        public static ConversationUiState success(String customMessage) {
-            // Create a SUCCESS state with custom message
-            // Note: For more flexibility, consider using a data class instead of enum
-            return SUCCESS;
-        }
-        
-        public static ConversationUiState error(String customMessage) {
-            // Create an ERROR state with custom message
-            // Note: For more flexibility, consider using a data class instead of enum
-            return ERROR;
+
+        /** Returns an ERROR state carrying the provided message. */
+        public static ConversationUiState error(String msg) {
+            return new ConversationUiState(Type.ERROR, msg != null ? msg : "Error");
         }
     }
 }

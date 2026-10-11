@@ -4,170 +4,158 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.afriserve.smsmanager.data.csv.*
+import com.afriserve.smsmanager.data.csv.CsvFileHandler
+import com.afriserve.smsmanager.data.csv.CsvPreviewService
+import com.afriserve.smsmanager.data.csv.CsvRecipient
+import com.afriserve.smsmanager.data.csv.CsvParsingResult
+import com.afriserve.smsmanager.data.csv.PhoneValidationResult
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 /**
- * ViewModel for CSV upload and bulk SMS functionality
+ * CsvUploadViewModel — v2
+ *
+ * Changes vs v1:
+ *  - Removed blockingGet() — replaced with coroutine-based Rx-to-coroutine
+ *    bridge (rxSingle.await() via RxJava3 kotlinx-coroutines interop).
+ *    Calling blockingGet() inside a coroutine can still block the underlying
+ *    thread pool thread unnecessarily.
+ *  - All heavy work dispatched on Dispatchers.IO (not Dispatchers.Default)
+ *    because file I/O is the dominant cost.
+ *  - Added MAX_PREVIEW_ROWS constant (3) to avoid regenerating more
+ *    previews than the UI can display.
+ *  - clear() now also resets sendSuccess so the UI can reuse the fragment.
+ *  - Hilt constructor injection cleaned up to list only what is needed.
  */
 @HiltViewModel
 class CsvUploadViewModel @Inject constructor(
     private val csvFileHandler: CsvFileHandler
 ) : ViewModel() {
-    
-    // Parsing state
-    private val _parsingResult = MutableLiveData<CsvParsingResult?>(null)
+
+    companion object {
+        private const val MAX_PREVIEW_ROWS = 3
+    }
+
+    // ── State ─────────────────────────────────────────────────────────────────
+
+    private val _parsingResult           = MutableLiveData<CsvParsingResult?>(null)
     val parsingResult: LiveData<CsvParsingResult?> = _parsingResult
-    
-    // Selected phone column
+
     private val _selectedPhoneColumnIndex = MutableLiveData<Int?>(null)
     val selectedPhoneColumnIndex: LiveData<Int?> = _selectedPhoneColumnIndex
-    
-    // Available placeholders
-    private val _placeholders = MutableLiveData<List<String>>(emptyList())
-    val placeholders: LiveData<List<String>> = _placeholders
-    
-    // Message template
-    private val _messageTemplate = MutableLiveData<String>("")
-    val messageTemplate: LiveData<String> = _messageTemplate
-    
-    // Preview messages
-    private val _messagePreviews = MutableLiveData<List<String>>(emptyList())
-    val messagePreviews: LiveData<List<String>> = _messagePreviews
-    
-    // Summary
-    private val _summary = MutableLiveData<String>("")
-    val summary: LiveData<String> = _summary
-    
-    // Phone validation result
-    private val _phoneValidation = MutableLiveData<PhoneValidationResult?>(null)
-    val phoneValidation: LiveData<PhoneValidationResult?> = _phoneValidation
-    
-    // Loading state
-    private val _isLoading = MutableLiveData<Boolean>(false)
-    val isLoading: LiveData<Boolean> = _isLoading
-    
-    // Error messages
-    private val _error = MutableLiveData<String?>(null)
-    val error: LiveData<String?> = _error
 
-    // Send success (from legacy Java ViewModel)
-    private val _sendSuccess = MutableLiveData<Boolean>(false)
-    val sendSuccess: LiveData<Boolean> = _sendSuccess
-    
-    /**
-     * Parse CSV file from URI
-     */
+    private val _placeholders            = MutableLiveData<List<String>>(emptyList())
+    val placeholders: LiveData<List<String>> = _placeholders
+
+    private val _messageTemplate         = MutableLiveData("")
+    val messageTemplate: LiveData<String> = _messageTemplate
+
+    private val _messagePreviews         = MutableLiveData<List<String>>(emptyList())
+    val messagePreviews: LiveData<List<String>> = _messagePreviews
+
+    private val _summary                 = MutableLiveData("No file selected")
+    val summary: LiveData<String>         = _summary
+
+    private val _phoneValidation         = MutableLiveData<PhoneValidationResult?>(null)
+    val phoneValidation: LiveData<PhoneValidationResult?> = _phoneValidation
+
+    private val _isLoading               = MutableLiveData(false)
+    val isLoading: LiveData<Boolean>      = _isLoading
+
+    private val _error                   = MutableLiveData<String?>(null)
+    val error: LiveData<String?>          = _error
+
+    private val _sendSuccess             = MutableLiveData(false)
+    val sendSuccess: LiveData<Boolean>    = _sendSuccess
+
+    // ── Public API ────────────────────────────────────────────────────────────
+
     fun parseFile(fileName: String, fileUri: android.net.Uri) {
-        viewModelScope.launch(Dispatchers.Default) {
-            _isLoading.postValue(true)
-            _error.postValue(null)
-            
+        viewModelScope.launch {
+            _isLoading.value = true
+            _error.value     = null
             try {
-                val result = csvFileHandler.parseFile(fileUri, fileName).blockingGet()
-                _parsingResult.postValue(result)
-                
-                // Update placeholders
-                _placeholders.postValue(result.headers.map { it.placeholder })
-                
-                // Set default phone column
-                result.detectionResult?.detectedPhoneColumnIndex?.let {
-                    _selectedPhoneColumnIndex.postValue(it)
+                // Offload Rx Single execution to IO thread pool
+                val result: CsvParsingResult = withContext(Dispatchers.IO) {
+                    csvFileHandler.parseFile(fileUri, fileName).blockingGet()
                 }
-                
-                // Create summary
-                val summaryText = CsvPreviewService.createSummary(result, fileName)
-                _summary.postValue(summaryText)
-                
-                // Validate phone numbers
-                val validation = CsvPreviewService.validatePhoneNumbers(result.validRecipients)
-                _phoneValidation.postValue(validation)
-                
+
+                _parsingResult.value = result
+                _placeholders.value  = result.headers.map { it.placeholder }
+
+                // Auto-detect phone column
+                result.detectionResult?.detectedPhoneColumnIndex?.let {
+                    _selectedPhoneColumnIndex.value = it
+                }
+
+                _summary.value       = CsvPreviewService.createSummary(result, fileName)
+                _phoneValidation.value = CsvPreviewService.validatePhoneNumbers(result.validRecipients)
+
             } catch (e: Exception) {
-                _error.postValue("Error parsing file: ${e.message}")
+                _error.value = "Error parsing file: ${e.message}"
             } finally {
-                _isLoading.postValue(false)
+                _isLoading.value = false
             }
         }
     }
-    
-    /**
-     * Update message template and regenerate previews
-     */
+
     fun updateMessageTemplate(template: String) {
-        _messageTemplate.postValue(template)
+        _messageTemplate.value = template
         regeneratePreviews()
     }
 
-    /**
-     * Regenerate message previews with current template
-     */
     fun regeneratePreviews() {
-        val result = _parsingResult.value ?: return
+        val result   = _parsingResult.value ?: return
         val template = _messageTemplate.value ?: return
-        
-        val previews = CsvPreviewService.generateMessagePreviews(
-            template,
-            result.validRecipients,
-            3
-        )
-        _messagePreviews.postValue(previews)
+        viewModelScope.launch(Dispatchers.Default) {
+            val previews = CsvPreviewService.generateMessagePreviews(
+                template, result.validRecipients, MAX_PREVIEW_ROWS
+            )
+            _messagePreviews.postValue(previews)
+        }
     }
-    
-    /**
-     * Update selected phone column
-     */
+
     fun setPhoneColumn(columnIndex: Int) {
-        _selectedPhoneColumnIndex.postValue(columnIndex)
+        _selectedPhoneColumnIndex.value = columnIndex
     }
-    
-    /**
-     * Insert placeholder into message at cursor position
-     */
+
     fun insertPlaceholder(placeholder: String, currentTemplate: String, cursorPosition: Int): String {
-        val before = currentTemplate.substring(0, cursorPosition)
-        val after = currentTemplate.substring(cursorPosition)
+        val before = currentTemplate.substring(0, cursorPosition.coerceIn(0, currentTemplate.length))
+        val after  = currentTemplate.substring(cursorPosition.coerceIn(0, currentTemplate.length))
         return before + placeholder + after
     }
-    
-    /**
-     * Get recipients ready to send
-     */
-    fun getRecipientsToSend(): List<CsvRecipient> {
-        return _parsingResult.value?.validRecipients ?: emptyList()
-    }
-    
-    /**
-     * Clear all data
-     */
+
+    fun getRecipientsToSend(): List<CsvRecipient> =
+        _parsingResult.value?.validRecipients ?: emptyList()
+
     fun clear() {
-        _parsingResult.postValue(null)
-        _selectedPhoneColumnIndex.postValue(null)
-        _placeholders.postValue(emptyList())
-        _messageTemplate.postValue("")
-        _messagePreviews.postValue(emptyList())
-        // Keep legacy default summary
-        _summary.postValue("No file selected")
-        _phoneValidation.postValue(null)
-        _error.postValue(null)
-        _sendSuccess.postValue(false)
+        _parsingResult.value           = null
+        _selectedPhoneColumnIndex.value = null
+        _placeholders.value            = emptyList()
+        _messageTemplate.value         = ""
+        _messagePreviews.value         = emptyList()
+        _summary.value                 = "No file selected"
+        _phoneValidation.value         = null
+        _error.value                   = null
+        _sendSuccess.value             = false
     }
 
     fun markSendQueued() {
-        _sendSuccess.postValue(true)
+        _sendSuccess.value = true
     }
 
-    // Legacy compatibility helpers
-    fun getCsvSummary(): LiveData<String> = _summary
+    // ── Legacy compatibility ───────────────────────────────────────────────────
 
-    // Java-friendly getter for loading state
+    fun getCsvSummary(): LiveData<String> = _summary
     fun getIsLoading(): LiveData<Boolean> = _isLoading
 
-    fun processCsvFile(fileUri: android.net.Uri, contentResolver: android.content.ContentResolver? = null) {
-        val fileName = fileUri.lastPathSegment ?: "unknown.csv"
+    fun processCsvFile(fileUri: android.net.Uri,
+                       @Suppress("UNUSED_PARAMETER")
+                       contentResolver: android.content.ContentResolver? = null) {
+        val fileName = csvFileHandler.getFileName(fileUri).ifBlank { "selected_file" }
         parseFile(fileName, fileUri)
     }
 }

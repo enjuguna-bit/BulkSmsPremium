@@ -61,20 +61,17 @@
 
         <activity
             android:name=".ui.conversation.ConversationActivity"
-            android:exported="false"
-            android:theme="@style/Theme.BulkSMS.NoActionBar" />
+            android:exported="false" />
 
         <activity
             android:name=".ui.privacy.PrivacyPolicyActivity"
             android:exported="false"
-            android:label="Privacy Policy"
-            android:theme="@style/Theme.BulkSMS.NoActionBar" />
+            android:label="Privacy Policy" />
 
         <activity
             android:name=".auth.BiometricSettingsActivity"
             android:exported="false"
-            android:label="Biometric Settings"
-            android:theme="@style/Theme.BulkSMS.NoActionBar" />
+            android:label="Biometric Settings" />
         
         <!-- Broadcast receivers for SMS sent/delivered tracking -->
         <receiver
@@ -121,14 +118,19 @@
         <receiver
             android:name=".receivers.SmsReplyReceiver"
             android:exported="false" />
+
+        <!-- Campaign scheduler alarm receiver -->
+        <receiver
+            android:name=".data.scheduler.CampaignAlarmReceiver"
+            android:exported="false"
+            android:enabled="true" />
         
 
         
         <!-- Activity for handling SMS composition (default SMS app) -->
         <activity
             android:name=".ui.compose.ComposeSmsActivity"
-            android:exported="true"
-            android:theme="@style/Theme.BulkSMS.NoActionBar">
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />
                 <action android:name="android.intent.action.SENDTO" />
@@ -193,8 +195,18 @@
             android:name=".billing.SubscriptionActivity"
             android:exported="false"
             android:label="Subscribe"
-            android:screenOrientation="portrait"
-            android:theme="@style/Theme.BulkSMS.NoActionBar" />
+            android:screenOrientation="portrait" />
+
+        <!-- FileProvider for sharing the user guide -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
     </application>
 
 </manifest>

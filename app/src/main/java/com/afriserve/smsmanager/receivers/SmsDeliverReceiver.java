@@ -19,6 +19,7 @@ import com.afriserve.smsmanager.data.utils.PhoneNumberUtils;
 import com.afriserve.smsmanager.data.utils.MultipartSmsUtils;
 import com.afriserve.smsmanager.notifications.SmsNotificationService;
 import com.afriserve.smsmanager.data.blocks.BlockListManager;
+import com.afriserve.smsmanager.receivers.InboundOptOutDetector;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -98,6 +99,8 @@ public class SmsDeliverReceiver extends BroadcastReceiver {
                         continue;
                     }
                     String body = completeMessage.body;
+                    // Auto-record opt-out if the sender replies with a stop keyword
+                    InboundOptOutDetector.handleIfOptOut(context, address, body);
                     long timestamp = completeMessage.timestamp;
                     
                     Log.d(TAG, "Processing complete SMS from: " + address + 

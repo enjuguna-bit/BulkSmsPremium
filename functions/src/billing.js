@@ -1,4 +1,6 @@
-// UPDATED WITH CORS & SIGNATURE HANDLING
+// UPDATED: plans aligned — 6hr=60, 12hr=100, daily=200, weekly=1000, monthly=3000
+// Removed 1-hour plan. Added twelve_hour and monthly plans.
+// Fixed amount thresholds. Synced /claim to support intent-based lookup.
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -121,20 +123,29 @@ export default {
       return okStatuses.has(statusValue) || okEvents.has(eventValue);
     };
 
+    // Plans: six_hour=60, twelve_hour=100, daily=200, weekly=1000, monthly=3000
     const normalizePlan = (value) => {
       if (!value) return null;
       const cleaned = String(value).toLowerCase().replace(/[^a-z0-9]/g, "");
-      if (cleaned === "weekly" || cleaned === "week") return "weekly";
-      if (cleaned === "daily" || cleaned === "day") return "daily";
+      if (cleaned === "monthly" || cleaned === "month" || cleaned === "30day" || cleaned === "30days") {
+        return "monthly";
+      }
+      if (cleaned === "weekly" || cleaned === "week" || cleaned === "7day" || cleaned === "7days") {
+        return "weekly";
+      }
+      if (cleaned === "daily" || cleaned === "day" || cleaned === "24hour" || cleaned === "24hr" || cleaned === "24h") {
+        return "daily";
+      }
+      if (cleaned === "twelvehour" || cleaned === "12hour" || cleaned === "12hr" || cleaned === "12h") {
+        return "twelve_hour";
+      }
       if (cleaned === "sixhour" || cleaned === "6hour" || cleaned === "6hr" || cleaned === "6h") {
         return "six_hour";
-      }
-      if (cleaned === "onehour" || cleaned === "1hour" || cleaned === "1hr" || cleaned === "1h" || cleaned === "hour") {
-        return "one_hour";
       }
       return null;
     };
 
+    // Amount thresholds: >=3000 monthly, >=1000 weekly, >=200 daily, >=100 twelve_hour, >=60 six_hour
     const extractPlan = (payload, reference, amount) => {
       const candidate =
         payload.plan ||
@@ -153,10 +164,11 @@ export default {
       }
 
       if (amount != null) {
+        if (amount >= 3000) return "monthly";
         if (amount >= 1000) return "weekly";
-        if (amount >= 200) return "daily";
-        if (amount >= 100) return "six_hour";
-        if (amount >= 60) return "one_hour";
+        if (amount >= 200)  return "daily";
+        if (amount >= 100)  return "twelve_hour";
+        if (amount >= 60)   return "six_hour";
       }
 
       return "daily";
@@ -165,17 +177,20 @@ export default {
     const addPlanDuration = (baseDate, plan) => {
       const date = new Date(baseDate.getTime());
       switch (plan) {
+        case "monthly":
+          date.setDate(date.getDate() + 30);
+          return date;
         case "weekly":
           date.setDate(date.getDate() + 7);
           return date;
         case "daily":
           date.setDate(date.getDate() + 1);
           return date;
+        case "twelve_hour":
+          date.setHours(date.getHours() + 12);
+          return date;
         case "six_hour":
           date.setHours(date.getHours() + 6);
-          return date;
-        case "one_hour":
-          date.setHours(date.getHours() + 1);
           return date;
         default:
           date.setDate(date.getDate() + 1);
@@ -202,6 +217,7 @@ export default {
     };
 
     const INTENT_TTL_SECONDS = 3 * 60 * 60;
+    const INTENT_TXN_TTL_SECONDS = 7 * 24 * 60 * 60;
 
     const createIntentId = () => {
       if (globalThis.crypto?.randomUUID) {
@@ -344,7 +360,6 @@ export default {
         });
       }
 
-      // Get from KV
       const subData =
         (await env.SUBSCRIPTIONS.get(`sub:${cleanPhone}`, { type: "json" })) ||
         (await env.SUBSCRIPTIONS.get(`sub:+${cleanPhone}`, { type: "json" }));
@@ -500,6 +515,13 @@ export default {
           body.receipt_number ||
           body.mpesaReceipt ||
           body.receipt;
+        const intentId =
+          payload.intent_id ||
+          payload.intentId ||
+          body.intent_id ||
+          body.intentId ||
+          extractIntentId(payload, payload.reference) ||
+          extractIntentId(body, body.reference);
         let txnId =
           payload.transaction_id ||
           payload.id ||
@@ -508,10 +530,10 @@ export default {
           body.txn_id ||
           payload.txn_id;
 
-        if (!deviceId || (!phone && !txnId && !receipt)) {
+        if (!deviceId || (!phone && !txnId && !receipt && !intentId)) {
           return new Response(JSON.stringify({
             success: false,
-            error: "phone, device_id, and receipt or transaction_id are required",
+            error: "phone, device_id, and receipt, transaction_id, or intent_id are required",
           }, null, 2), {
             status: 400,
             headers: {
@@ -523,6 +545,50 @@ export default {
 
         if (!txnId && receipt) {
           txnId = await env.TRANSACTIONS.get(`receipt:${receipt}`);
+        }
+
+        if (!txnId && intentId) {
+          txnId = await env.TRANSACTIONS.get(`intent_txn:${intentId}`);
+        }
+
+        if (!txnId && intentId) {
+          const intent = await getIntentById(intentId);
+          if (!intent) {
+            return new Response(JSON.stringify({
+              success: false,
+              error: "Intent not found or expired",
+            }, null, 2), {
+              status: 404,
+              headers: {
+                "Content-Type": "application/json",
+                "Access-Control-Allow-Origin": "*",
+              },
+            });
+          }
+          if (intent.device_id && intent.device_id !== deviceId) {
+            return new Response(JSON.stringify({
+              success: false,
+              error: "Device does not match intent",
+            }, null, 2), {
+              status: 403,
+              headers: {
+                "Content-Type": "application/json",
+                "Access-Control-Allow-Origin": "*",
+              },
+            });
+          }
+          return new Response(JSON.stringify({
+            success: false,
+            error: "Payment pending",
+            reason: "payment_pending",
+            retry_after_seconds: 20,
+          }, null, 2), {
+            status: 202,
+            headers: {
+              "Content-Type": "application/json",
+              "Access-Control-Allow-Origin": "*",
+            },
+          });
         }
 
         if (!txnId) {
@@ -552,8 +618,26 @@ export default {
           });
         }
 
+        let intentDataForClaim = null;
+        if (intentId) {
+          intentDataForClaim = await getIntentById(intentId);
+        }
+        if (intentDataForClaim?.device_id && intentDataForClaim.device_id !== deviceId) {
+          return new Response(JSON.stringify({
+            success: false,
+            error: "Device does not match intent",
+          }, null, 2), {
+            status: 403,
+            headers: {
+              "Content-Type": "application/json",
+              "Access-Control-Allow-Origin": "*",
+            },
+          });
+        }
+
         const txnPhone = normalizePhone(txnData.phone);
-        const cleanPhone = phone || txnPhone;
+        const intentPhone = intentDataForClaim?.phone ? normalizePhone(intentDataForClaim.phone) : null;
+        const cleanPhone = phone || txnPhone || intentPhone;
         if (!cleanPhone || (txnPhone && txnPhone !== cleanPhone)) {
           return new Response(JSON.stringify({
             success: false,
@@ -591,6 +675,9 @@ export default {
 
         await env.SUBSCRIPTIONS.put(`sub:${cleanPhone}`, JSON.stringify(subData));
         await env.SUBSCRIPTIONS.put(`sub:+${cleanPhone}`, JSON.stringify(subData));
+        if (intentDataForClaim) {
+          await markIntentUsed(intentDataForClaim, txnId);
+        }
 
         return new Response(JSON.stringify({
           success: true,
@@ -625,7 +712,7 @@ export default {
       const html = `<!DOCTYPE html>
 <html>
 <head>
-  <title>Payment System Active</title>
+  <title>BulkSMS Payment System</title>
   <style>
     body { font-family: Arial; padding: 20px; max-width: 800px; margin: 0 auto; }
     .success { color: #28a745; font-weight: bold; }
@@ -633,12 +720,24 @@ export default {
     .test-btn:hover { background: #218838; }
     #result { margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 5px; border: 1px solid #dee2e6; }
     pre { background: #343a40; color: #f8f9fa; padding: 10px; border-radius: 5px; overflow: auto; }
+    table { border-collapse: collapse; width: 100%; margin-bottom: 20px; }
+    th, td { border: 1px solid #dee2e6; padding: 8px 12px; text-align: left; }
+    th { background: #f8f9fa; }
   </style>
 </head>
 <body>
-  <h1>Payment System Active</h1>
+  <h1>BulkSMS Payment System</h1>
   <p class="success">Lipa Na Dev M-PESA payments are LIVE!</p>
-  <p>Webhook URL: <code>https://bulksmsbilling.enjuguna794.workers.dev/</code></p>
+
+  <h3>Plans</h3>
+  <table>
+    <tr><th>Plan</th><th>Amount (KSH)</th><th>Duration</th></tr>
+    <tr><td>six_hour</td><td>60</td><td>6 hours</td></tr>
+    <tr><td>twelve_hour</td><td>100</td><td>12 hours</td></tr>
+    <tr><td>daily</td><td>200</td><td>24 hours</td></tr>
+    <tr><td>weekly</td><td>1,000</td><td>7 days</td></tr>
+    <tr><td>monthly</td><td>3,000</td><td>30 days</td></tr>
+  </table>
 
   <h3>Test Endpoints:</h3>
   <button class="test-btn" onclick="testStatus()">Test Status API</button>
@@ -651,7 +750,6 @@ export default {
     async function testStatus() {
       const result = document.getElementById("result");
       result.innerHTML = "Testing status for 254712345678...";
-
       try {
         const response = await fetch("/status?phone=254712345678&device_id=test-device-123");
         const data = await response.json();
@@ -663,8 +761,7 @@ export default {
 
     async function testPayment() {
       const result = document.getElementById("result");
-      result.innerHTML = "Simulating test payment...";
-
+      result.innerHTML = "Simulating test payment (twelve_hour, KSH 100)...";
       try {
         const response = await fetch("/", {
           method: "POST",
@@ -672,18 +769,16 @@ export default {
           body: JSON.stringify({
             transaction_id: "TEST_" + Date.now(),
             phone: "254712345678",
-            amount: 200,
+            amount: 100,
+            plan: "twelve_hour",
             status: "success",
             mpesa_receipt: "MPESA" + Math.random().toString(36).substr(2, 8).toUpperCase(),
-            reference: "user_123_daily_device=test-device-123_" + Date.now(),
+            reference: "bulksms|plan=twelve_hour|device=test-device-123",
             timestamp: new Date().toISOString()
           })
         });
-
         const data = await response.json();
         result.innerHTML = "<h4>Payment Test Result:</h4><pre>" + JSON.stringify(data, null, 2) + "</pre>";
-
-        // Check status after payment
         setTimeout(testStatus, 1000);
       } catch (error) {
         result.innerHTML = "Error: " + error.message;
@@ -704,22 +799,18 @@ export default {
     // ========== LIPA NA DEV WEBHOOK HANDLER ==========
     if (request.method === "POST" && path === "/") {
       try {
-        // Get raw body for signature verification
         const rawBody = await request.text();
         const signature = request.headers.get("x-lipana-signature");
         const event = request.headers.get("x-lipana-event");
 
-        // Parse JSON
         const body = JSON.parse(rawBody);
         const payload = extractPayload(body);
 
-        // Log everything for debugging
         console.log("Lipa Na Dev Webhook Received");
         console.log("Event:", event);
         console.log("Signature:", signature);
         console.log("Payment Data:", JSON.stringify(body, null, 2));
 
-        // Extract data
         const txnId = payload.transaction_id || payload.id || "txn_" + Date.now();
         const reference = payload.reference || payload.custom_reference || payload.account || "";
         let cleanPhone = extractPhone(payload, reference);
@@ -758,6 +849,7 @@ export default {
           status,
           receipt,
           reference,
+          plan,
           intent_id: intentId || intentData?.id || null,
           device_id: deviceId || null,
         });
@@ -782,6 +874,14 @@ export default {
         await env.TRANSACTIONS.put(`txn:${txnId}`, JSON.stringify(txnData));
         if (receipt) {
           await env.TRANSACTIONS.put(`receipt:${receipt}`, txnId);
+        }
+        // Save intent→txn mapping so /claim can look up by intent_id
+        if (txnData.intent_id) {
+          await env.TRANSACTIONS.put(
+            `intent_txn:${txnData.intent_id}`,
+            txnId,
+            { expirationTtl: INTENT_TXN_TTL_SECONDS }
+          );
         }
         console.log("Transaction saved to KV:", txnId);
 
@@ -840,18 +940,19 @@ export default {
           event,
           phone: cleanPhone,
           amount,
+          plan,
           status,
           txnId,
           timestamp: new Date().toISOString(),
         }));
 
-        // Return success to Lipa Na Dev
         return new Response(JSON.stringify({
           success: true,
           message: "Payment processed successfully",
           transaction_id: txnId,
           phone: cleanPhone,
           amount,
+          plan,
           status,
           processed_at: new Date().toISOString(),
         }, null, 2), {
@@ -864,7 +965,6 @@ export default {
 
       } catch (error) {
         console.error("Webhook processing error:", error);
-
         return new Response(JSON.stringify({
           success: false,
           error: "Processing error",
@@ -881,11 +981,20 @@ export default {
 
     // ========== DEFAULT / NOT FOUND ==========
     return new Response(JSON.stringify({
-      message: "Lipa Na Dev Payment System",
+      message: "BulkSMS Lipa Na Dev Payment System",
+      plans: {
+        six_hour:    { amount: 60,   duration: "6 hours" },
+        twelve_hour: { amount: 100,  duration: "12 hours" },
+        daily:       { amount: 200,  duration: "24 hours" },
+        weekly:      { amount: 1000, duration: "7 days" },
+        monthly:     { amount: 3000, duration: "30 days" },
+      },
       endpoints: {
-        "GET /": "Info dashboard",
-        "GET /status?phone=254...": "Check subscription status",
-        "POST /": "Lipa Na Dev webhook endpoint",
+        "GET /":        "Info dashboard",
+        "GET /status":  "Check subscription status (?phone=254...&device_id=...)",
+        "POST /init":   "Create payment intent",
+        "POST /claim":  "Claim subscription after payment",
+        "POST /":       "Lipa Na Dev webhook endpoint",
       },
       status: "active",
       timestamp: new Date().toISOString(),

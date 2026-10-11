@@ -1,22 +1,29 @@
 package com.afriserve.smsmanager.ui.conversation;
 
+import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
+import android.view.View;
+import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.afriserve.smsmanager.R;
 import com.afriserve.smsmanager.databinding.ActivityConversationBinding;
+import com.google.android.material.button.MaterialButton;
 
 import dagger.hilt.android.AndroidEntryPoint;
 
 /**
- * Activity for displaying SMS conversation
+ * Activity for displaying SMS conversation.
+ * Includes a direct Call button to dial the contact from the inbox.
  */
 @AndroidEntryPoint
 public class ConversationActivity extends AppCompatActivity {
     
     private ActivityConversationBinding binding;
     private ConversationViewModel viewModel;
+    private String contactAddress;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -28,6 +35,7 @@ public class ConversationActivity extends AppCompatActivity {
         
         setupToolbar();
         setupFragment();
+        setupCallButton();
     }
     
     private void setupToolbar() {
@@ -36,17 +44,24 @@ public class ConversationActivity extends AppCompatActivity {
             getSupportActionBar().setDisplayHomeAsUpEnabled(true);
             getSupportActionBar().setTitle("Conversation");
         }
-        
         binding.toolbar.setNavigationOnClickListener(v -> finish());
     }
     
     private void setupFragment() {
-        // Get arguments from intent
         String address = getIntent().getStringExtra("address");
         String threadId = getIntent().getStringExtra("threadId");
         long threadIdLong = getIntent().getLongExtra("thread_id", -1L);
+
+        // Store address for the call button
+        contactAddress = address;
+
+        // Update toolbar title to show contact name/number
+        if (address != null && !address.isEmpty()) {
+            if (getSupportActionBar() != null) {
+                getSupportActionBar().setTitle(address);
+            }
+        }
         
-        // Create fragment with arguments
         ConversationFragment fragment = new ConversationFragment();
         Bundle args = new Bundle();
         if (address != null) {
@@ -66,12 +81,39 @@ public class ConversationActivity extends AppCompatActivity {
         }
         fragment.setArguments(args);
         
-        // Add fragment to the container
         if (getSupportFragmentManager().findFragmentById(R.id.fragment_container) == null) {
             getSupportFragmentManager()
                 .beginTransaction()
                 .replace(R.id.fragment_container, fragment)
                 .commit();
+        }
+    }
+
+    private void setupCallButton() {
+        MaterialButton btnCall = binding.getRoot().findViewById(R.id.btnCall);
+        if (btnCall == null) return;
+
+        if (contactAddress == null || contactAddress.trim().isEmpty()) {
+            btnCall.setVisibility(View.GONE);
+            return;
+        }
+
+        btnCall.setVisibility(View.VISIBLE);
+        btnCall.setOnClickListener(v -> initiateCall(contactAddress));
+    }
+
+    private void initiateCall(String phoneNumber) {
+        if (phoneNumber == null || phoneNumber.trim().isEmpty()) {
+            Toast.makeText(this, "No phone number available", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        try {
+            String cleanNumber = phoneNumber.trim();
+            Intent callIntent = new Intent(Intent.ACTION_DIAL);
+            callIntent.setData(Uri.parse("tel:" + Uri.encode(cleanNumber)));
+            startActivity(callIntent);
+        } catch (Exception e) {
+            Toast.makeText(this, "Unable to open dialler", Toast.LENGTH_SHORT).show();
         }
     }
 }

@@ -48,6 +48,15 @@
                         android:textColor="@color/color_on_surface_variant"
                         android:layout_marginTop="4dp" />
 
+                    <TextView
+                        android:id="@+id/txtDashboardUpdated"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="● Waiting for activity"
+                        android:textSize="11sp"
+                        android:textColor="@color/color_on_surface_variant"
+                        android:layout_marginTop="5dp" />
+
                 </LinearLayout>
 
                 <TextView
@@ -143,7 +152,7 @@
                             android:layout_width="@dimen/icon_medium"
                             android:layout_height="@dimen/icon_medium"
                             android:src="@drawable/ic_dashboard_delivery"
-                            app:tint="@color/color_primary"
+                            app:tint="@color/color_secondary"
                             android:layout_marginBottom="@dimen/spacing_small"
                             android:contentDescription="@string/dashboard_delivery_rate" />
 
@@ -508,6 +517,15 @@
                         </com.google.android.material.card.MaterialCardView>
 
                     </LinearLayout>
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/actionCampaignHistory"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/spacing_small"
+                        android:text="Campaign History"
+                        app:icon="@drawable/ic_campaign"
+                        app:iconGravity="textStart" />
 
                 </LinearLayout>
 

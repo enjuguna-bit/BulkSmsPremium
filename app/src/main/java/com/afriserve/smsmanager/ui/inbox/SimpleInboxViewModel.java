@@ -21,7 +21,15 @@ import com.afriserve.smsmanager.data.sync.OfflineFirstSyncManager;
 import com.afriserve.smsmanager.data.sync.ConversationSyncManager;
 import com.afriserve.smsmanager.data.repository.SyncResult;
 import dagger.hilt.android.lifecycle.HiltViewModel;
+import dagger.hilt.android.qualifiers.ApplicationContext;
+import android.app.Application;
+import android.content.Context;
+import com.afriserve.smsmanager.BuildConfig;
+import com.afriserve.smsmanager.data.blocks.BlockListManager;
+import com.afriserve.smsmanager.data.dao.OptOutDao;
+import io.reactivex.rxjava3.core.Completable;
 import io.reactivex.rxjava3.disposables.CompositeDisposable;
+import io.reactivex.rxjava3.schedulers.Schedulers;
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers;
 import java.util.List;
 import javax.inject.Inject;
@@ -36,6 +44,8 @@ public class SimpleInboxViewModel extends ViewModel {
     private final OfflineFirstSyncManager offlineFirstSyncManager;
     private final ConversationSyncManager conversationSyncManager;
     private final CompositeDisposable disposables = new CompositeDisposable();
+    private final OptOutDao optOutDao;
+    private final Context appContext;
     
     // UI State
     private final MutableLiveData<InboxUiState> _uiState = new MutableLiveData<>(InboxUiState.LOADING);
@@ -85,7 +95,9 @@ public class SimpleInboxViewModel extends ViewModel {
         SmsSearchRepository searchRepository,
         SmsSyncManager syncManager,
         OfflineFirstSyncManager offlineFirstSyncManager,
-        ConversationSyncManager conversationSyncManager
+        ConversationSyncManager conversationSyncManager,
+        OptOutDao optOutDao,
+        @ApplicationContext Context appContext
     ) {
         this.conversationSyncManager = conversationSyncManager;
         this.repository = repository;
@@ -93,6 +105,8 @@ public class SimpleInboxViewModel extends ViewModel {
         this.searchRepository = searchRepository;
         this.syncManager = syncManager;
         this.offlineFirstSyncManager = offlineFirstSyncManager;
+        this.optOutDao = optOutDao;
+        this.appContext = appContext;
         
         // Setup messages using Kotlin helper for Paging 3
         updateMessagesSource();
@@ -377,6 +391,55 @@ public class SimpleInboxViewModel extends ViewModel {
         Log.d("SimpleInboxViewModel", "Observer registered and messages source updated");
     }
     
+    // ── Block / opt-out ───────────────────────────────────────────────────────
+
+    /**
+     * Blocks a number in both SharedPreferences and OptOutDao (on IO thread).
+     * Call from Fragment instead of directly using BlockListManager.
+     */
+    public void blockNumber(String phoneNumber) {
+        disposables.add(
+            Completable.fromAction(() -> {
+                BlockListManager blm = new BlockListManager(appContext);
+                blm.blockAndOptOut(phoneNumber, optOutDao, "USER_BLOCK");
+            })
+            .subscribeOn(Schedulers.io())
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe(
+                () -> Log.d("SimpleInboxViewModel", "Blocked: " + phoneNumber),
+                err -> {
+                    Log.e("SimpleInboxViewModel", "Block failed", err);
+                    _errorState.postValue("Failed to block number");
+                }
+            )
+        );
+    }
+
+    /**
+     * Unblocks a number in both SharedPreferences and OptOutDao (on IO thread).
+     */
+    public void unblockNumber(String phoneNumber) {
+        disposables.add(
+            Completable.fromAction(() -> {
+                BlockListManager blm = new BlockListManager(appContext);
+                blm.unblockAndReactivate(phoneNumber, optOutDao);
+            })
+            .subscribeOn(Schedulers.io())
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe(
+                () -> Log.d("SimpleInboxViewModel", "Unblocked: " + phoneNumber),
+                err -> {
+                    Log.e("SimpleInboxViewModel", "Unblock failed", err);
+                    _errorState.postValue("Failed to unblock number");
+                }
+            )
+        );
+    }
+
+    /** Returns true if the number is in the SharedPreferences block list (main-thread safe). */
+    public boolean isBlocked(String phoneNumber) {
+        return new BlockListManager(appContext).isBlocked(phoneNumber);
+    }
     @Override
     protected void onCleared() {
         super.onCleared();

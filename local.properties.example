@@ -1,0 +1,23 @@
+# Copy this file to local.properties and fill in your values.
+# local.properties is gitignored — never commit real credentials.
+#
+# Android SDK path (required)
+sdk.dir=/path/to/your/Android/Sdk
+
+# ── Billing configuration ─────────────────────────────────────────────────────
+# Your Cloudflare Worker base URL (no trailing slash).
+# Production:  https://bulksms-webhook.yourdomain.workers.dev
+# Staging:     https://bulksms-webhook-staging.yourdomain.workers.dev
+# Local dev:   http://localhost:8787
+BILLING_BASE_URL=http://localhost:8787
+
+# Webhook HMAC secret — must match the value set in your Cloudflare Worker.
+# Generate a strong random value: openssl rand -hex 32
+WEBHOOK_SECRET=your-webhook-secret-here
+
+# ── Release signing ───────────────────────────────────────────────────────────
+# These can also go in ~/.gradle/gradle.properties (preferred for CI)
+# MYAPP_UPLOAD_STORE_FILE=/absolute/path/to/keystore.jks
+# MYAPP_UPLOAD_STORE_PASSWORD=
+# MYAPP_UPLOAD_KEY_ALIAS=
+# MYAPP_UPLOAD_KEY_PASSWORD=

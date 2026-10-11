@@ -27,6 +27,7 @@ import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.DividerItemDecoration;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import com.afriserve.smsmanager.R;
+import com.afriserve.smsmanager.BuildConfig;
 import com.afriserve.smsmanager.data.entity.ConversationEntity;
 import com.afriserve.smsmanager.data.contacts.ContactResolver;
 import com.afriserve.smsmanager.databinding.FragmentInboxBinding;
@@ -87,7 +88,7 @@ public class InboxFragment extends Fragment {
     public void onViewCreated(View view, Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         analytics = new InboxAnalytics(requireContext());
-        blockListManager = new BlockListManager(requireContext());
+        // blockListManager is no longer used directly; block ops go through SimpleInboxViewModel.
         
         // Initialize shimmer container
         shimmerContainer = binding.shimmerContainer;
@@ -520,14 +521,14 @@ public class InboxFragment extends Fragment {
     }
     
     private void observeData() {
-        Log.d("InboxFragment", "Setting up data observers");
+        if (BuildConfig.DEBUG) { Log.d("InboxFragment", "Setting up data observers"); }
         
         try {
             // Observe messages using LiveData with comprehensive null safety
             if (viewModel != null && viewModel.messages != null) {
                 viewModel.messages.observe(getViewLifecycleOwner(), pagingData -> {
                     try {
-                        Log.d("InboxFragment", "Messages observer triggered - PagingData: " + (pagingData != null ? "non-null" : "null"));
+                        if (BuildConfig.DEBUG) { Log.d("InboxFragment", "Messages observer triggered - PagingData: " + (pagingData != null ? "non-null" : "null")); }
                         
                         // Validate fragment state before updating UI
                         if (!isAdded() || binding == null || adapter == null) {
@@ -536,7 +537,7 @@ public class InboxFragment extends Fragment {
                         }
                         
                         if (pagingData != null) {
-                            Log.d("InboxFragment", "Submitting PagingData to adapter");
+                            if (BuildConfig.DEBUG) { Log.d("InboxFragment", "Submitting PagingData to adapter"); }
                             adapter.submitData(getViewLifecycleOwner().getLifecycle(), pagingData);
                         } else {
                             Log.w("InboxFragment", "Received null PagingData, showing empty state");
@@ -557,7 +558,7 @@ public class InboxFragment extends Fragment {
             if (viewModel != null && viewModel.unreadCount != null) {
                 viewModel.unreadCount.observe(getViewLifecycleOwner(), count -> {
                     try {
-                        Log.d("InboxFragment", "Unread count updated: " + count);
+                        if (BuildConfig.DEBUG) { Log.d("InboxFragment", "Unread count updated: " + count); }
                         
                         if (binding != null && binding.tvUnreadCount != null && isAdded()) {
                             int safeCount = count != null ? count : 0;
@@ -574,7 +575,7 @@ public class InboxFragment extends Fragment {
             if (viewModel != null && viewModel.totalCount != null) {
                 viewModel.totalCount.observe(getViewLifecycleOwner(), count -> {
                     try {
-                        Log.d("InboxFragment", "Total count updated: " + count);
+                        if (BuildConfig.DEBUG) { Log.d("InboxFragment", "Total count updated: " + count); }
                         
                         if (binding != null && binding.tvTotalCount != null && isAdded()) {
                             int safeCount = count != null ? count : 0;
@@ -670,100 +671,45 @@ public class InboxFragment extends Fragment {
     }
     
     private void openConversation(ConversationEntity conversation) {
+        if (!isAdded() || getContext() == null) return;
+        if (conversation == null || conversation.phoneNumber == null || conversation.phoneNumber.trim().isEmpty()) {
+            Toast.makeText(getContext(), "Cannot open conversation: invalid data", Toast.LENGTH_SHORT).show();
+            if (analytics != null) analytics.trackConversationOpenError(conversation,
+                    new IllegalArgumentException("null or empty phone number"));
+            return;
+        }
+
         long startTime = System.currentTimeMillis();
-        
+        String phoneNumber = conversation.phoneNumber.trim();
+
+        // Mark as read (async, safe to call before navigation)
+        if (viewModel != null) viewModel.markAsRead(phoneNumber);
+
+        // Navigate
         try {
-            // Validate fragment state
-            if (!isAdded() || getContext() == null || getView() == null) {
-                Log.w("InboxFragment", "Fragment not attached, skipping conversation open");
-                return;
+            Bundle args = new Bundle();
+            args.putString("phone_number", phoneNumber);
+            if (conversation.threadId != null && conversation.threadId > 0) {
+                args.putLong("thread_id", conversation.threadId);
             }
-            
-            // Validate conversation data
-            if (conversation == null) {
-                String error = "Conversation is null";
-                analytics.trackConversationOpenError(null, new IllegalArgumentException(error));
-                if (isAdded() && getContext() != null) {
-                    Toast.makeText(getContext(), "Error: " + error, Toast.LENGTH_SHORT).show();
-                }
-                return;
-            }
-            
-            // Get phone number with validation
-            String phoneNumber = conversation.phoneNumber;
-            if (phoneNumber == null || phoneNumber.trim().isEmpty()) {
-                String error = "Invalid phone number";
-                analytics.trackConversationOpenError(conversation, new IllegalArgumentException(error));
-                if (isAdded() && getContext() != null) {
-                    Toast.makeText(getContext(), "Error: " + error, Toast.LENGTH_SHORT).show();
-                }
-                return;
-            }
-            
-            // Mark conversation as read safely
-            if (viewModel != null) {
-                viewModel.markAsRead(conversation.phoneNumber);
-            }
-            
-            // Navigate safely with validation
-            NavController navController = null;
-            try {
-                navController = Navigation.findNavController(requireView());
-            } catch (Exception e) {
-                Log.e("InboxFragment", "Failed to get NavController", e);
-                if (isAdded() && getContext() != null) {
-                    Toast.makeText(getContext(), "Navigation error: Cannot find navigation controller", Toast.LENGTH_LONG).show();
-                }
-                return;
-            }
-            
-            if (navController != null) {
-                Bundle args = new Bundle();
-                args.putString("phone_number", phoneNumber.trim());
-                if (conversation.threadId != null && conversation.threadId > 0) {
-                    args.putLong("thread_id", conversation.threadId);
-                }
-                
-                // Validate navigation destination
-                try {
-                    navController.navigate(R.id.nav_conversation, args);
-                } catch (Exception e) {
-                    Log.e("InboxFragment", "Navigation failed", e);
-                    analytics.trackConversationOpenError(conversation, e);
-                    if (isAdded() && getContext() != null) {
-                        String userMessage = analytics.getUserFriendlyErrorMessage(e);
-                        Toast.makeText(getContext(), "Navigation error: " + userMessage, Toast.LENGTH_LONG).show();
-                    }
-                    return;
-                }
-            }
-            
-            // Track successful conversation open
+            Navigation.findNavController(requireView()).navigate(R.id.nav_conversation, args);
+
             if (analytics != null) {
                 Map<String, String> params = new HashMap<>();
                 params.put("conversation_id", String.valueOf(conversation.id));
                 params.put("phone_number", phoneNumber);
                 analytics.trackUserInteraction("conversation_opened", params);
-                
-                // Track performance
-                long duration = System.currentTimeMillis() - startTime;
-                analytics.trackPerformance("conversation_open", duration);
+                analytics.trackPerformance("conversation_open", System.currentTimeMillis() - startTime);
             }
-            
         } catch (Exception e) {
-            Log.e("InboxFragment", "Unexpected error opening conversation", e);
-            if (analytics != null) {
-                analytics.trackConversationOpenError(conversation, e);
-            }
-            if (isAdded() && getContext() != null) {
-                String userMessage = analytics != null ? analytics.getUserFriendlyErrorMessage(e) : "Unknown error";
-                Toast.makeText(getContext(), "Navigation error: " + userMessage, Toast.LENGTH_LONG).show();
-            }
+            Log.e("InboxFragment", "Navigation to conversation failed", e);
+            if (analytics != null) analytics.trackConversationOpenError(conversation, e);
+            Toast.makeText(getContext(), "Could not open conversation", Toast.LENGTH_SHORT).show();
         }
     }
     
     private void showConversationOptions(ConversationEntity conversation) {
-        boolean isBlocked = blockListManager != null && blockListManager.isBlocked(conversation.phoneNumber);
+        boolean isBlocked = viewModel != null && viewModel.isBlocked(conversation.phoneNumber);
         String[] options = {
             "Delete conversation",
             conversation.unreadCount > 0 ? "Mark as read" : "Mark as unread",
@@ -838,12 +784,13 @@ public class InboxFragment extends Fragment {
     }
 
     private void toggleBlockStatus(ConversationEntity conversation) {
-        if (blockListManager == null) return;
-        if (blockListManager.isBlocked(conversation.phoneNumber)) {
-            blockListManager.unblock(conversation.phoneNumber);
+        if (viewModel == null || conversation == null || conversation.phoneNumber == null) return;
+        boolean wasBlocked = viewModel.isBlocked(conversation.phoneNumber);
+        if (wasBlocked) {
+            viewModel.unblockNumber(conversation.phoneNumber);
             Toast.makeText(requireContext(), "Number unblocked", Toast.LENGTH_SHORT).show();
         } else {
-            blockListManager.block(conversation.phoneNumber);
+            viewModel.blockNumber(conversation.phoneNumber);
             Toast.makeText(requireContext(), "Number blocked", Toast.LENGTH_SHORT).show();
         }
     }
@@ -1337,6 +1284,7 @@ public class InboxFragment extends Fragment {
             footerLoadStateAdapter = null;
             shimmerContainer = null;
             analytics = null;
+            blockListManager = null;
             inboxInitialized = false;
             
             // Clear binding last

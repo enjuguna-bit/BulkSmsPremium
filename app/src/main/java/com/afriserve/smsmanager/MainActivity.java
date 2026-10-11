@@ -10,6 +10,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.provider.Telephony;
 import android.util.Log;
+import com.afriserve.smsmanager.DashboardDbMigrationHelper;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -43,18 +44,13 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        Log.d("BulkSmsStartup", "MainActivity onCreate start: " + System.currentTimeMillis());
+        Log.i("BulkSmsStartup", "MainActivity starting up");
         applyThemePreference();
-        Log.d("BulkSmsStartup", "Theme applied: " + System.currentTimeMillis());
         setContentView(R.layout.activity_main);
         
         setupNavigation();
-        Log.d("BulkSmsStartup", "Navigation setup complete: " + System.currentTimeMillis());
         setupBackNavigation();
         checkAndRequestPermissions();
-        Log.d("BulkSmsStartup", "Permissions check initiated: " + System.currentTimeMillis());
-        startLocalServer();
-        Log.d("BulkSmsStartup", "MainActivity onCreate end: " + System.currentTimeMillis());
     }
 
     private void setupNavigation() {
@@ -293,11 +289,6 @@ public class MainActivity extends AppCompatActivity {
                == PackageManager.PERMISSION_GRANTED;
     }
 
-    private void startLocalServer() {
-        // Implementation for local server if needed
-        // This would typically be in a separate service
-    }
-
     private void applyThemePreference() {
         SharedPreferences prefs = getSharedPreferences("settings", Context.MODE_PRIVATE);
         String themeMode = prefs.getString("theme_mode", AppConfig.Defaults.THEME_MODE);
@@ -312,5 +303,26 @@ public class MainActivity extends AppCompatActivity {
         }
         
         AppCompatDelegate.setDefaultNightMode(nightMode);
+    }
+    /**
+     * Runs the one-time migration of dashboard entities from AppDatabase (v8) into
+     * the new DashboardDatabase (v9) on a background thread.
+     * Guarded by a SharedPreferences flag so it only runs once.
+     */
+    private void runDashboardDbMigrationIfNeeded() {
+        android.content.SharedPreferences prefs =
+            getSharedPreferences("app_migration_flags", android.content.Context.MODE_PRIVATE);
+        if (prefs.getBoolean("dashboard_db_migrated_v9", false)) return;
+
+        new Thread(() -> {
+            try {
+                DashboardDbMigrationHelper.migrateFromAppDatabase(getApplicationContext());
+                prefs.edit().putBoolean("dashboard_db_migrated_v9", true).apply();
+                Log.i("MainActivity", "Dashboard DB v9 migration complete");
+            } catch (Exception e) {
+                Log.e("MainActivity", "Dashboard DB migration failed", e);
+                // Do NOT set the flag — will retry on next launch.
+            }
+        }, "DashboardDbMigration").start();
     }
 }

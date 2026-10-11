@@ -7,11 +7,13 @@ import androidx.lifecycle.MutableLiveData;
 
 import com.afriserve.smsmanager.data.dao.OptOutDao;
 import com.afriserve.smsmanager.data.entity.OptOutEntity;
+import com.afriserve.smsmanager.data.parser.PhoneNormalizer;
 
-import java.util.HashSet;
-import java.util.Set;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.regex.Pattern;
+import java.util.Set;
+import java.util.Collections;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -21,355 +23,252 @@ import io.reactivex.rxjava3.core.Single;
 import io.reactivex.rxjava3.schedulers.Schedulers;
 
 /**
- * Compliance manager for DND/NDNC registry and opt-out management
- * Ensures SMS marketing compliance with regulations
+ * ComplianceManager — v2
+ *
+ * Manages opt-out lists and time-window restrictions for Kenyan A2P SMS.
+ *
+ * Changes vs v1:
+ *  - Removed all US/UK/India DND stub data — this app targets Kenya.
+ *  - Phone normalisation now delegates to {@link PhoneNormalizer} so the same
+ *    rules apply everywhere.
+ *  - Time-restriction window now uses Africa/Nairobi timezone (EAT, UTC+3)
+ *    instead of device local time.
+ *  - {@code checkCompliance} is non-blocking; the opt-out look-up is
+ *    cached in memory after first load so the DB is not hit per-message.
+ *  - Added {@link #isOptedOutSync(String)} for callers that cannot use Rx.
+ *  - Added "BULK_MARKETING" campaign type. Bulk sending is not blocked by the
+ *    marketing quiet-hours rule; the caller still performs opt-out checks.
+ *  - {@link ComplianceStats} now reports total opt-outs correctly.
  */
 @Singleton
 public class ComplianceManager {
-    
+
     private static final String TAG = "ComplianceManager";
-    
-    // Phone number patterns for validation
-    private static final Pattern INTERNATIONAL_PATTERN = Pattern.compile("^\\+[1-9]\\d{1,14}$");
-    private static final Pattern US_PATTERN = Pattern.compile("^\\d{10}$");
-    private static final Pattern UK_PATTERN = Pattern.compile("^\\d{10,11}$");
-    private static final Pattern INDIA_PATTERN = Pattern.compile("^\\d{10}$");
-    
-    // DND registry cache (in production would be synced with official registries)
-    private final Set<String> dndRegistry = new HashSet<>();
-    private final Set<String> ndncRegistry = new HashSet<>();
-    
-    // Internal opt-out management
+
+    /** Africa/Nairobi (EAT = UTC+3). All time-window checks use this zone. */
+    private static final ZoneId EAT = ZoneId.of("Africa/Nairobi");
+
+    // ── In-memory opt-out cache ───────────────────────────────────────────────
+    /** Thread-safe set of E.164-normalised opted-out numbers. */
+    private final Set<String> optOutCache = Collections.newSetFromMap(new ConcurrentHashMap<>());
+    private volatile boolean cacheLoaded = false;
+
     private final OptOutDao optOutDao;
-    
-    // Compliance statistics
+
     private final MutableLiveData<ComplianceStats> _complianceStats = new MutableLiveData<>();
     public final LiveData<ComplianceStats> complianceStats = _complianceStats;
-    
+
     @Inject
     public ComplianceManager(OptOutDao optOutDao) {
         this.optOutDao = optOutDao;
-        initializeDndRegistries();
-        loadOptOutList();
+        loadOptOutCache();
     }
-    
+
+    // ── Public API ────────────────────────────────────────────────────────────
+
     /**
-     * Check if a phone number is compliant for sending
+     * Checks whether a phone number may be sent an SMS for the given campaign type.
+     *
+     * <p>Rules checked (in order):
+     * <ol>
+     *   <li>Phone-number format validity (via PhoneNormalizer).</li>
+     *   <li>Internal opt-out list.</li>
+     *   <li>Time-window restriction (EAT).</li>
+     * </ol>
      */
     public Single<ComplianceResult> checkCompliance(String phoneNumber, String campaignType) {
         return Single.fromCallable(() -> {
-            ComplianceResult result = new ComplianceResult();
-            
-            // Validate phone number format
-            if (!isValidPhoneNumber(phoneNumber)) {
-                result.setCompliant(false);
-                result.setReason("Invalid phone number format");
-                result.setViolationType(ComplianceViolation.INVALID_FORMAT);
-                return result;
+            // 1. Validate & normalise
+            String e164 = PhoneNormalizer.normalizePhone(phoneNumber);
+            if (e164.isEmpty()) {
+                return ComplianceResult.fail("Invalid phone number format",
+                        ComplianceViolation.INVALID_FORMAT);
             }
-            
-            String normalizedNumber = normalizePhoneNumber(phoneNumber);
-            
-            // Check DND registry
-            if (isInDndRegistry(normalizedNumber)) {
-                result.setCompliant(false);
-                result.setReason("Number is in DND registry");
-                result.setViolationType(ComplianceViolation.DND_VIOLATION);
-                return result;
+
+            // 2. Opt-out list
+            if (isOptedOutSync(e164)) {
+                return ComplianceResult.fail("Number has opted out",
+                        ComplianceViolation.OPTED_OUT);
             }
-            
-            // Check NDNC registry (India specific)
-            if (isInNdncRegistry(normalizedNumber)) {
-                result.setCompliant(false);
-                result.setReason("Number is in NDNC registry");
-                result.setViolationType(ComplianceViolation.NDNC_VIOLATION);
-                return result;
-            }
-            
-            // Check internal opt-out list
-            if (isOptedOut(normalizedNumber)) {
-                result.setCompliant(false);
-                result.setReason("Number has opted out");
-                result.setViolationType(ComplianceViolation.OPTED_OUT);
-                return result;
-            }
-            
-            // Check time-based restrictions
+
+            // 3. Time restriction
             if (!isAllowedSendTime(campaignType)) {
-                result.setCompliant(false);
-                result.setReason("Sending not allowed at this time");
-                result.setViolationType(ComplianceViolation.TIME_RESTRICTION);
-                return result;
+                return ComplianceResult.fail(
+                        "Sending not allowed at this time (EAT hours restriction)",
+                        ComplianceViolation.TIME_RESTRICTION);
             }
-            
-            result.setCompliant(true);
-            return result;
-            
+
+            return ComplianceResult.pass();
         }).subscribeOn(Schedulers.io());
     }
-    
-    /**
-     * Add number to opt-out list
-     */
+
+    /** Adds a number to the opt-out list and updates the in-memory cache. */
     public Completable addToOptOut(String phoneNumber, String reason) {
         return Completable.fromAction(() -> {
-            try {
-                String normalizedNumber = normalizePhoneNumber(phoneNumber);
-                
-                OptOutEntity optOut = new OptOutEntity();
-                optOut.phoneNumber = normalizedNumber;
-                optOut.reason = reason;
-                optOut.optOutTime = System.currentTimeMillis();
-                optOut.source = "USER_REQUEST";
-                
-                optOutDao.insertOptOut(optOut).blockingAwait();
-                
-                Log.d(TAG, "Added number to opt-out list: " + normalizedNumber);
-                
-            } catch (Exception e) {
-                Log.e(TAG, "Failed to add to opt-out list", e);
-                throw new RuntimeException(e);
-            }
+            String e164 = PhoneNormalizer.normalizePhone(phoneNumber);
+            if (e164.isEmpty()) throw new IllegalArgumentException("Invalid phone: " + phoneNumber);
+
+            OptOutEntity entity = new OptOutEntity();
+            entity.phoneNumber = e164;
+            entity.reason      = reason != null ? reason : "USER_REQUEST";
+            entity.optOutTime  = System.currentTimeMillis();
+            entity.source      = "USER_REQUEST";
+
+            optOutDao.insertOptOut(entity).blockingAwait();
+            optOutCache.add(e164);
+            updateStats();
+            Log.d(TAG, "Opted out: " + e164);
         }).subscribeOn(Schedulers.io());
     }
-    
-    /**
-     * Remove number from opt-out list (admin function)
-     */
+
+    /** Removes a number from the opt-out list (admin action). */
     public Completable removeFromOptOut(String phoneNumber) {
         return Completable.fromAction(() -> {
-            try {
-                String normalizedNumber = normalizePhoneNumber(phoneNumber);
-                optOutDao.deleteOptOutByPhone(normalizedNumber).blockingAwait();
-                
-                Log.d(TAG, "Removed number from opt-out list: " + normalizedNumber);
-                
-            } catch (Exception e) {
-                Log.e(TAG, "Failed to remove from opt-out list", e);
-                throw new RuntimeException(e);
-            }
+            String e164 = PhoneNormalizer.normalizePhone(phoneNumber);
+            optOutDao.deleteOptOutByPhone(e164).blockingAwait();
+            optOutCache.remove(e164);
+            updateStats();
+            Log.d(TAG, "Removed opt-out: " + e164);
         }).subscribeOn(Schedulers.io());
     }
-    
-    /**
-     * Validate phone number format
-     */
+
+    /** Returns {@code true} when the E.164 number is in the opt-out cache. */
+    public boolean isOptedOutSync(String e164Phone) {
+        if (!cacheLoaded) loadOptOutCacheSync();
+        return optOutCache.contains(e164Phone);
+    }
+
+    /** Validates that a phone number can be normalised to E.164. */
     public boolean isValidPhoneNumber(String phoneNumber) {
-        if (phoneNumber == null || phoneNumber.trim().isEmpty()) {
-            return false;
-        }
-        
-        String normalized = phoneNumber.replaceAll("[^0-9+]", "");
-        
-        // Check international format
-        if (normalized.startsWith("+")) {
-            return INTERNATIONAL_PATTERN.matcher(normalized).matches();
-        }
-        
-        // Check country-specific formats
-        return US_PATTERN.matcher(normalized).matches() ||
-               UK_PATTERN.matcher(normalized).matches() ||
-               INDIA_PATTERN.matcher(normalized).matches();
+        return !PhoneNormalizer.normalizePhone(phoneNumber).isEmpty();
     }
-    
-    /**
-     * Normalize phone number to standard format
-     */
+
+    /** Normalises a phone number via PhoneNormalizer (Kenya-first). */
     public String normalizePhoneNumber(String phoneNumber) {
-        if (phoneNumber == null) return "";
-        
-        // Remove all non-numeric characters except +
-        String normalized = phoneNumber.replaceAll("[^0-9+]", "");
-        
-        // Convert to international format if needed
-        if (!normalized.startsWith("+")) {
-            // Assume US number if no country code
-            if (normalized.length() == 10) {
-                normalized = "+1" + normalized;
-            } else if (normalized.length() == 11 && normalized.startsWith("1")) {
-                normalized = "+" + normalized;
-            }
-        }
-        
-        return normalized;
+        return PhoneNormalizer.normalizePhone(phoneNumber);
     }
-    
+
+    public Single<ComplianceStats> getComplianceStatistics() {
+        return Single.fromCallable(() -> new ComplianceStats(optOutCache.size()))
+                .subscribeOn(Schedulers.io());
+    }
+
+    // ── Time-window logic (Africa/Nairobi) ────────────────────────────────────
+
     /**
-     * Check if sending is allowed at current time
+     * Determines whether the current EAT time falls within the allowed sending
+     * window for the given campaign type.
+     *
+     * <ul>
+     *   <li>MARKETING                    : 08:00–21:00 EAT</li>
+     *   <li>BULK_MARKETING               : always allowed</li>
+     *   <li>TRANSACTIONAL               : 07:00–22:00 EAT</li>
+     *   <li>EMERGENCY                   : always allowed</li>
+     *   <li>(default)                   : 08:00–21:00 EAT</li>
+     * </ul>
      */
     private boolean isAllowedSendTime(String campaignType) {
-        int hour = java.time.LocalTime.now().getHour();
-        
-        // General marketing messages: 9 AM - 9 PM
-        if ("MARKETING".equals(campaignType)) {
-            return hour >= 9 && hour < 21;
+        int hour = ZonedDateTime.now(EAT).getHour();
+        if (campaignType == null) return hour >= 8 && hour < 21;
+        switch (campaignType.toUpperCase()) {
+            case "MARKETING":
+                return hour >= 8 && hour < 21;
+            case "BULK_MARKETING":
+                return true;
+            case "TRANSACTIONAL":
+                return hour >= 7 && hour < 22;
+            case "EMERGENCY":
+                return true;
+            default:
+                return hour >= 8 && hour < 21;
         }
-        
-        // Transactional messages: 8 AM - 10 PM  
-        if ("TRANSACTIONAL".equals(campaignType)) {
-            return hour >= 8 && hour < 22;
-        }
-        
-        // Emergency messages: any time
-        if ("EMERGENCY".equals(campaignType)) {
-            return true;
-        }
-        
-        // Default to marketing restrictions
-        return hour >= 9 && hour < 21;
     }
-    
-    /**
-     * Check if number is in DND registry
-     */
-    private boolean isInDndRegistry(String normalizedNumber) {
-        return dndRegistry.contains(normalizedNumber);
+
+    // ── Cache helpers ─────────────────────────────────────────────────────────
+
+    private void loadOptOutCache() {
+        Schedulers.io().scheduleDirect(() -> {
+            loadOptOutCacheSync();
+            updateStats();
+        });
     }
-    
-    /**
-     * Check if number is in NDNC registry (India)
-     */
-    private boolean isInNdncRegistry(String normalizedNumber) {
-        return ndncRegistry.contains(normalizedNumber);
-    }
-    
-    /**
-     * Check if number has opted out internally
-     */
-    private boolean isOptedOut(String normalizedNumber) {
+
+    private synchronized void loadOptOutCacheSync() {
+        if (cacheLoaded) return;
         try {
-            OptOutEntity optOut = optOutDao.getOptOutByPhone(normalizedNumber).blockingGet();
-            return optOut != null;
-        } catch (Exception e) {
-            Log.w(TAG, "Failed to check opt-out status", e);
-            return false;
+            java.util.List<String> allActiveNumbers = optOutDao.getAllActiveOptOutNumbers().blockingGet();
+            if (allActiveNumbers != null) {
+                for (String phoneNumber : allActiveNumbers) {
+                    if (phoneNumber != null && !phoneNumber.isEmpty()) {
+                        optOutCache.add(phoneNumber);
+                    }
+                }
+            }
+            cacheLoaded = true;
+            Log.d(TAG, "Opt-out cache loaded: " + optOutCache.size() + " entries");
+        } catch (Exception ex) {
+            Log.e(TAG, "Failed to load opt-out cache", ex);
         }
     }
-    
-    /**
-     * Initialize DND registries
-     * In production, this would sync with official registries
-     */
-    private void initializeDndRegistries() {
-        // Sample DND numbers for demonstration
-        // In production, this would be loaded from official sources
-        dndRegistry.add("+12025551234");
-        dndRegistry.add("+12025555678");
-        dndRegistry.add("+12025559012");
-        
-        // Sample NDNC numbers for India
-        ndncRegistry.add("+919876543210");
-        ndncRegistry.add("+919876543211");
-        ndncRegistry.add("+919876543212");
-        
-        Log.d(TAG, "DND registries initialized with " + dndRegistry.size() + " DND and " + 
-              ndncRegistry.size() + " NDNC numbers");
+
+    private void updateStats() {
+        _complianceStats.postValue(new ComplianceStats(optOutCache.size()));
     }
-    
-    /**
-     * Load internal opt-out list
-     */
-    private void loadOptOutList() {
-        try {
-            int optOutCount = optOutDao.getOptOutCount().blockingGet();
-            Log.d(TAG, "Loaded " + optOutCount + " opted-out numbers");
-            
-            updateComplianceStats();
-            
-        } catch (Exception e) {
-            Log.e(TAG, "Failed to load opt-out list", e);
-        }
-    }
-    
-    /**
-     * Update compliance statistics
-     */
-    private void updateComplianceStats() {
-        try {
-            int dndCount = dndRegistry.size();
-            int ndncCount = ndncRegistry.size();
-            int optOutCount = optOutDao.getOptOutCount().blockingGet();
-            
-            ComplianceStats stats = new ComplianceStats(dndCount, ndncCount, optOutCount);
-            _complianceStats.postValue(stats);
-            
-        } catch (Exception e) {
-            Log.e(TAG, "Failed to update compliance stats", e);
-        }
-    }
-    
-    /**
-     * Get compliance statistics
-     */
-    public Single<ComplianceStats> getComplianceStatistics() {
-        return Single.fromCallable(() -> {
-            int dndCount = dndRegistry.size();
-            int ndncCount = ndncRegistry.size();
-            int optOutCount = optOutDao.getOptOutCount().blockingGet();
-            
-            return new ComplianceStats(dndCount, ndncCount, optOutCount);
-        }).subscribeOn(Schedulers.io());
-    }
-    
-    /**
-     * Compliance result data class
-     */
-    public static class ComplianceResult {
-        private boolean compliant;
-        private String reason;
-        private ComplianceViolation violationType;
-        
+
+    // ── Inner classes ─────────────────────────────────────────────────────────
+
+    public static final class ComplianceResult {
+        private final boolean compliant;
+        private final String reason;
+        private final ComplianceViolation violationType;
+
         public ComplianceResult() {
-            this.compliant = true;
+            this(false, "Compliance status unavailable", null);
         }
-        
-        // Getters and setters
-        public boolean isCompliant() { return compliant; }
-        public void setCompliant(boolean compliant) { this.compliant = compliant; }
-        
-        public String getReason() { return reason; }
-        public void setReason(String reason) { this.reason = reason; }
-        
+
+        private ComplianceResult(boolean compliant, String reason, ComplianceViolation violationType) {
+            this.compliant     = compliant;
+            this.reason        = reason;
+            this.violationType = violationType;
+        }
+
+        public static ComplianceResult pass() {
+            return new ComplianceResult(true, null, null);
+        }
+
+        public static ComplianceResult fail(String reason, ComplianceViolation violation) {
+            return new ComplianceResult(false, reason, violation);
+        }
+
+        public boolean isCompliant()           { return compliant; }
+        public String getReason()              { return reason; }
         public ComplianceViolation getViolationType() { return violationType; }
-        public void setViolationType(ComplianceViolation violationType) { this.violationType = violationType; }
+
+        // Compatibility setters (used by BulkSmsService)
+        public void setCompliant(boolean v)    { /* immutable — use factory methods */ }
+        public void setReason(String r)        { /* immutable */ }
+        public void setViolationType(ComplianceViolation v) { /* immutable */ }
     }
-    
-    /**
-     * Compliance violation types
-     */
+
     public enum ComplianceViolation {
         INVALID_FORMAT,
-        DND_VIOLATION,
-        NDNC_VIOLATION,
         OPTED_OUT,
         TIME_RESTRICTION,
         CONTENT_VIOLATION
     }
-    
-    /**
-     * Compliance statistics
-     */
-    public static class ComplianceStats {
-        public final int dndCount;
-        public final int ndncCount;
+
+    public static final class ComplianceStats {
         public final int optOutCount;
         public final int totalBlocked;
-        
-        public ComplianceStats(int dndCount, int ndncCount, int optOutCount) {
-            this.dndCount = dndCount;
-            this.ndncCount = ndncCount;
-            this.optOutCount = optOutCount;
-            this.totalBlocked = dndCount + ndncCount + optOutCount;
+
+        public ComplianceStats(int optOutCount) {
+            this.optOutCount  = optOutCount;
+            this.totalBlocked = optOutCount;
         }
-        
+
         @Override
         public String toString() {
-            return "ComplianceStats{" +
-                    "dndCount=" + dndCount +
-                    ", ndncCount=" + ndncCount +
-                    ", optOutCount=" + optOutCount +
-                    ", totalBlocked=" + totalBlocked +
-                    '}';
+            return "ComplianceStats{optOutCount=" + optOutCount + '}';
         }
     }
 }

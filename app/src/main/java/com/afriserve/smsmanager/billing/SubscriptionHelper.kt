@@ -35,7 +35,7 @@ object SubscriptionHelper {
     private val STATUS_BASE_URL: String = "$BASE_URL/status"
     private val INIT_URL: String = "$BASE_URL/init"
     private val CLAIM_URL: String = "$BASE_URL/claim"
-    private const val STATUS_CACHE_MS = 5 * 60 * 1000L
+    private val STATUS_CACHE_MS get() = com.afriserve.smsmanager.AppConfig.Cache.SUBSCRIPTION_STATUS_TTL_MS
 
     private const val KEY_LAST_PHONE = "last_phone"
     private const val KEY_LAST_ATTEMPT = "last_attempt"
@@ -45,6 +45,8 @@ object SubscriptionHelper {
     private const val KEY_PREMIUM_PLAN = "premium_plan"
     private const val KEY_PREMIUM_UNTIL = "premium_until"
     private const val KEY_PREMIUM_LAST_CHECK = "premium_last_checked"
+    /** Device-local owner access used while the payment processor is unavailable. */
+    private const val KEY_OWNER_ACCESS = "owner_access_enabled"
 
     // Use secure client with certificate pinning for billing API
     private val httpClient: OkHttpClient by lazy { NetworkSecurityConfig.createSecureBillingClient() }
@@ -84,10 +86,29 @@ object SubscriptionHelper {
      * Use refreshSubscriptionStatus() to update from server.
      */
     fun hasActiveSubscription(context: Context): Boolean {
+        if (context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+                .getBoolean(KEY_OWNER_ACCESS, false)) {
+            return true
+        }
         val cached = getCachedStatus(context)
         if (!cached.premium) return false
         val now = System.currentTimeMillis()
         return cached.paidUntilMillis?.let { it > now } ?: true
+    }
+
+    /** Enable premium locally for the app owner; survives billing outages. */
+    fun enableOwnerAccess(context: Context) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .edit()
+            .putBoolean(KEY_OWNER_ACCESS, true)
+            .apply()
+    }
+
+    fun disableOwnerAccess(context: Context) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .edit()
+            .putBoolean(KEY_OWNER_ACCESS, false)
+            .apply()
     }
 
     /**
@@ -410,3 +431,4 @@ object SubscriptionHelper {
         }
     }
 }
+

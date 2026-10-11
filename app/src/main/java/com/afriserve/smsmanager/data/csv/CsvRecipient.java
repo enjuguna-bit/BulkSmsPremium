@@ -67,6 +67,17 @@ public class CsvRecipient implements Parcelable {
                 return entry.getValue();
             }
         }
+        
+        // Auto-split name support
+        if (fieldName.equals("firstname") || fieldName.equals("secondname") || fieldName.equals("thirdname")) {
+            for (Map.Entry<String, String> entry : data.entrySet()) {
+                if (NameSplitter.isNameColumn(entry.getKey())) {
+                    NameSplitter.SplitName split = NameSplitter.split(entry.getValue());
+                    return split.getPart(fieldName);
+                }
+            }
+        }
+        
         return null;
     }
 

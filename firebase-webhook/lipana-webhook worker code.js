@@ -124,13 +124,20 @@ export default {
     const normalizePlan = (value) => {
       if (!value) return null;
       const cleaned = String(value).toLowerCase().replace(/[^a-z0-9]/g, "");
-      if (cleaned === "weekly" || cleaned === "week") return "weekly";
-      if (cleaned === "daily" || cleaned === "day") return "daily";
+      if (cleaned === "monthly" || cleaned === "month" || cleaned === "30day" || cleaned === "30days") {
+        return "monthly";
+      }
+      if (cleaned === "weekly" || cleaned === "week" || cleaned === "7day" || cleaned === "7days") {
+        return "weekly";
+      }
+      if (cleaned === "daily" || cleaned === "day" || cleaned === "24hour" || cleaned === "24hr" || cleaned === "24h") {
+        return "daily";
+      }
+      if (cleaned === "twelvehour" || cleaned === "12hour" || cleaned === "12hr" || cleaned === "12h") {
+        return "twelve_hour";
+      }
       if (cleaned === "sixhour" || cleaned === "6hour" || cleaned === "6hr" || cleaned === "6h") {
         return "six_hour";
-      }
-      if (cleaned === "onehour" || cleaned === "1hour" || cleaned === "1hr" || cleaned === "1h" || cleaned === "hour") {
-        return "one_hour";
       }
       return null;
     };
@@ -153,10 +160,11 @@ export default {
       }
 
       if (amount != null) {
+        if (amount >= 3000) return "monthly";
         if (amount >= 1000) return "weekly";
         if (amount >= 200) return "daily";
-        if (amount >= 100) return "six_hour";
-        if (amount >= 60) return "one_hour";
+        if (amount >= 100) return "twelve_hour";
+        if (amount >= 60) return "six_hour";
       }
 
       return "daily";
@@ -165,17 +173,20 @@ export default {
     const addPlanDuration = (baseDate, plan) => {
       const date = new Date(baseDate.getTime());
       switch (plan) {
+        case "monthly":
+          date.setDate(date.getDate() + 30);
+          return date;
         case "weekly":
           date.setDate(date.getDate() + 7);
           return date;
         case "daily":
           date.setDate(date.getDate() + 1);
           return date;
+        case "twelve_hour":
+          date.setHours(date.getHours() + 12);
+          return date;
         case "six_hour":
           date.setHours(date.getHours() + 6);
-          return date;
-        case "one_hour":
-          date.setHours(date.getHours() + 1);
           return date;
         default:
           date.setDate(date.getDate() + 1);

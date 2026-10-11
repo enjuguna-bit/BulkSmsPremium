@@ -1,6 +1,8 @@
 package com.afriserve.smsmanager;
 
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -26,6 +28,7 @@ import com.afriserve.smsmanager.ui.dashboard.DashboardViewModel;
 import com.afriserve.smsmanager.ui.dashboard.SmsStats;
 import com.google.android.material.snackbar.Snackbar;
 
+import com.afriserve.smsmanager.AppConfig;
 import dagger.hilt.android.AndroidEntryPoint;
 
 import java.util.ArrayList;
@@ -39,14 +42,25 @@ import java.util.Locale;
 public class DashboardFragment extends Fragment {
     private SwipeRefreshLayout swipeRefresh;
     private TextView txtSmsSent, txtDeliveryRate, txtDeliveryStatus, txtFailed,
-                     txtQueued, txtSmsTrend, txtNoActivity;
+                     txtQueued, txtSmsTrend, txtNoActivity, txtDashboardUpdated;
     private ImageView imgTrendIndicator;
     private RecyclerView recyclerActivity;
     private CardView actionBulkSms, actionSingleSms, actionInbox, actionSettings;
+    private View actionCampaignHistory;
 
     private ActivityAdapter activityAdapter;
     private final List<SmsModel> activityList = new ArrayList<>();
     private DashboardViewModel viewModel;
+    private long lastRefreshMs = 0L;
+    private final Handler liveHandler = new Handler(Looper.getMainLooper());
+    private final Runnable liveRefresh = new Runnable() {
+        @Override public void run() {
+            if (isAdded()) {
+                refreshDashboard();
+                liveHandler.postDelayed(this, 30_000L);
+            }
+        }
+    };
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, 
@@ -91,10 +105,14 @@ public class DashboardFragment extends Fragment {
     private void updateUI(com.afriserve.smsmanager.ui.dashboard.DashboardStats stats) {
         if (stats == null) return;
 
-        txtSmsSent.setText(String.valueOf(stats.getSmsStats().getTotalSent()));
-        txtDeliveryRate.setText(String.format(Locale.getDefault(), "%.1f%%", stats.getSmsStats().getDeliveryRate()));
-        txtFailed.setText(String.valueOf(stats.getSmsStats().getTotalFailed()));
-        txtQueued.setText(String.valueOf(stats.getSmsStats().getTotalQueued()));
+        animateText(txtSmsSent, String.valueOf(stats.getSmsStats().getTotalSent()));
+        animateText(txtDeliveryRate, String.format(Locale.getDefault(), "%.1f%%", stats.getSmsStats().getDeliveryRate()));
+        animateText(txtFailed, String.valueOf(stats.getSmsStats().getTotalFailed()));
+        animateText(txtQueued, String.valueOf(stats.getSmsStats().getTotalQueued()));
+        if (txtDashboardUpdated != null) {
+            txtDashboardUpdated.setText("● Live · Updated just now");
+            txtDashboardUpdated.setTextColor(ContextCompat.getColor(requireContext(), R.color.status_success));
+        }
         updateDeliveryStatus(stats.getSmsStats().getDeliveryStatus());
         updateTrendDisplay(stats.getSmsStats());
 
@@ -120,11 +138,13 @@ public class DashboardFragment extends Fragment {
         txtSmsTrend = view.findViewById(R.id.txtSmsTrend);
         imgTrendIndicator = view.findViewById(R.id.imgTrendIndicator);
         txtNoActivity = view.findViewById(R.id.txtNoActivity);
+        txtDashboardUpdated = view.findViewById(R.id.txtDashboardUpdated);
         recyclerActivity = view.findViewById(R.id.recyclerActivity);
         actionBulkSms = view.findViewById(R.id.actionBulkSms);
         actionSingleSms = view.findViewById(R.id.actionSingleSms);
         actionInbox = view.findViewById(R.id.actionInbox);
         actionSettings = view.findViewById(R.id.actionSettings);
+        actionCampaignHistory = view.findViewById(R.id.actionCampaignHistory);
     }
 
     private void setupQuickActions() {
@@ -132,6 +152,7 @@ public class DashboardFragment extends Fragment {
         actionSingleSms.setOnClickListener(v -> navigateTo(R.id.nav_send));
         actionInbox.setOnClickListener(v -> navigateTo(R.id.nav_inbox));
         actionSettings.setOnClickListener(v -> navigateTo(R.id.nav_settings));
+        actionCampaignHistory.setOnClickListener(v -> navigateTo(R.id.nav_campaign_history));
     }
 
     private void navigateTo(int destination) {
@@ -157,6 +178,13 @@ public class DashboardFragment extends Fragment {
     }
 
     private void updateDeliveryStatus(SmsStats.DeliveryStatus status) {
+        SmsStats currentStats = viewModel.getDashboardStats().getValue() != null
+                ? viewModel.getDashboardStats().getValue().getSmsStats() : null;
+        if (currentStats != null && currentStats.getTotalSent() == 0 && currentStats.getTotalQueued() == 0) {
+            txtDeliveryStatus.setText("No activity yet");
+            txtDeliveryStatus.setTextColor(ContextCompat.getColor(requireContext(), R.color.status_muted));
+            return;
+        }
         int textColor;
         int labelRes;
         switch (status) {
@@ -183,6 +211,13 @@ public class DashboardFragment extends Fragment {
     }
 
     private void updateTrendDisplay(SmsStats stats) {
+        if (stats.getTotalSent() == 0 && stats.getTotalQueued() == 0) {
+            imgTrendIndicator.setVisibility(View.INVISIBLE);
+            txtSmsTrend.setText("Send your first SMS to see a trend");
+            txtSmsTrend.setTextColor(ContextCompat.getColor(requireContext(), R.color.status_muted));
+            return;
+        }
+        imgTrendIndicator.setVisibility(View.VISIBLE);
         float absTrend = Math.abs(stats.getTrendPercentage());
         int trendColor;
         String signPrefix;
@@ -261,10 +296,57 @@ public class DashboardFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
-        refreshDashboard();
+        long now = System.currentTimeMillis();
+        if (now - lastRefreshMs >= AppConfig.Polling.DASHBOARD_REFRESH_THROTTLE_MS) {
+            lastRefreshMs = now;
+            refreshDashboard();
+        }
+        liveHandler.removeCallbacks(liveRefresh);
+        liveHandler.postDelayed(liveRefresh, 30_000L);
     }
 
-    // ==================== INNER CLASSES ====================
+    @Override
+    public void onPause() {
+        liveHandler.removeCallbacks(liveRefresh);
+        super.onPause();
+    }
+
+    private void animateText(TextView target, String value) {
+        if (target == null) return;
+        target.animate().alpha(0.35f).setDuration(110L).withEndAction(() -> {
+            target.setText(value);
+            target.animate().alpha(1f).setDuration(180L).start();
+        }).start();
+    }
+
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        // Null all view references so the GC can collect the View tree while
+        // this Fragment instance stays on the back stack.
+        swipeRefresh   = null;
+        txtSmsSent     = null;
+        txtDeliveryRate = null;
+        txtDeliveryStatus = null;
+        txtFailed      = null;
+        txtQueued      = null;
+        txtDashboardUpdated = null;
+        imgTrendIndicator = null;
+        actionBulkSms  = null;
+        actionSingleSms = null;
+        actionInbox    = null;
+        actionSettings = null;
+        actionCampaignHistory = null;
+        // Release the adapter's RecyclerView reference.
+        if (recyclerActivity != null) {
+            recyclerActivity.setAdapter(null);
+        }
+        recyclerActivity = null;
+        activityAdapter  = null;
+        // viewModel survives rotation — do not null it here.
+    }
+        // ==================== INNER CLASSES ====================
 
     private static class ActivityAdapter extends RecyclerView.Adapter<ActivityAdapter.ViewHolder> {
         private final List<SmsModel> items;
@@ -306,3 +388,4 @@ public class DashboardFragment extends Fragment {
         }
     }
 }
+

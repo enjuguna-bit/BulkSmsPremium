@@ -6,9 +6,7 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
-import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModel;
-import androidx.work.WorkInfo;
 import com.afriserve.smsmanager.models.Recipient;
 import com.afriserve.smsmanager.data.dao.CampaignDao;
 import com.afriserve.smsmanager.data.dao.ScheduledCampaignDao;
@@ -17,46 +15,41 @@ import com.afriserve.smsmanager.data.entity.ScheduledCampaignEntity;
 import com.afriserve.smsmanager.data.compliance.RateLimitManager;
 import com.afriserve.smsmanager.data.compliance.ComplianceManager;
 import com.afriserve.smsmanager.data.tracking.EnhancedDeliveryTracker;
-import com.afriserve.smsmanager.data.persistence.UploadPersistenceService;
-import com.afriserve.smsmanager.data.queue.SmsQueueManager;
 import com.afriserve.smsmanager.data.persistence.UploadPersistenceService.UploadSession;
+import com.afriserve.smsmanager.data.queue.SmsQueueManager;
 import com.afriserve.smsmanager.data.parser.ExcelParser;
 import com.afriserve.smsmanager.data.parser.TemplateVariableExtractor;
 import com.afriserve.smsmanager.data.templates.TemplateManager;
 import com.afriserve.smsmanager.data.templates.SmsTemplate;
+import com.afriserve.smsmanager.domain.CampaignSessionManager;
+import com.afriserve.smsmanager.domain.MessagePreviewManager;
+import com.afriserve.smsmanager.domain.SendingOrchestrator;
 import com.afriserve.smsmanager.utils.FileUtils;
-import com.afriserve.smsmanager.worker.BulkSmsSendingWorker;
 import com.afriserve.smsmanager.worker.BulkSmsWorkManager;
 import dagger.hilt.android.lifecycle.HiltViewModel;
+import io.reactivex.rxjava3.core.Observable;
 import io.reactivex.rxjava3.disposables.CompositeDisposable;
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers;
+import io.reactivex.rxjava3.disposables.Disposable;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.TimeZone;
 import java.util.UUID;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.concurrent.TimeUnit;
-import io.reactivex.rxjava3.core.Observable;
 import javax.inject.Inject;
 
 /**
- * ViewModel for Bulk SMS operations
- * Uses Hilt for dependency injection
+ * ViewModel for Bulk SMS operations.
+ * Delegates to domain helpers: CampaignSessionManager, MessagePreviewManager, SendingOrchestrator.
  */
 @HiltViewModel
 public class BulkSmsViewModel extends ViewModel {
     private static final String TAG = "BulkSmsViewModel";
-    private static final int PREVIEW_COUNT = 5;
-    private static final int VARIABLE_SAMPLE_COUNT = 25;
-    private static final long PREVIEW_DEBOUNCE_MS = 180L;
-    private static final long TEMPLATE_SAVE_DEBOUNCE_MS = 600L;
-    
+    private static final long TEMPLATE_SAVE_DEBOUNCE_MS = AppConfig.Polling.TEMPLATE_SAVE_DEBOUNCE_MS;
+
     // Dependencies
     private final Application application;
     private final BulkSmsService bulkSmsService;
@@ -65,20 +58,18 @@ public class BulkSmsViewModel extends ViewModel {
     private final RateLimitManager rateLimitManager;
     private final ComplianceManager complianceManager;
     private final EnhancedDeliveryTracker deliveryTracker;
-    private final UploadPersistenceService uploadPersistence;
     private final SmsQueueManager queueManager;
     private final TemplateManager templateManager;
-    private final ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
-    private final ScheduledExecutorService previewExecutor = Executors.newSingleThreadScheduledExecutor();
-    private ScheduledFuture<?> deliveryTrackingFuture;
-    private ScheduledFuture<?> previewFuture;
-    private ScheduledFuture<?> saveTemplateFuture;
-    private final Object previewLock = new Object();
-    private final Object saveLock = new Object();
-    private volatile int previewSequence = 0;
-    private volatile int variableSequence = 0;
+
+    // Domain helpers
+    private final CampaignSessionManager sessionManager;
+    private final MessagePreviewManager previewManager;
+    private final SendingOrchestrator sendingOrchestrator;
+
     private final CompositeDisposable disposables = new CompositeDisposable();
-    
+    private Disposable deliveryPollingDisposable;
+    private String campaignNameOverride;
+
     // LiveData for UI
     private final MutableLiveData<List<Recipient>> recipientsLiveData = new MutableLiveData<>();
     private final MutableLiveData<Boolean> isLoadingLiveData = new MutableLiveData<>(false);
@@ -95,21 +86,20 @@ public class BulkSmsViewModel extends ViewModel {
     private final MutableLiveData<List<ComplianceManager.ComplianceResult>> complianceResultsLiveData = new MutableLiveData<>();
     private final MutableLiveData<Boolean> isPausedLiveData = new MutableLiveData<>(false);
     private final MutableLiveData<Boolean> isSendingLiveData = new MutableLiveData<>(false);
-    private final MutableLiveData<Integer> sendSpeedLiveData = new MutableLiveData<>(300);
-    private final MutableLiveData<Integer> simSlotLiveData = new MutableLiveData<>(1);
+    private final MutableLiveData<Integer> sendSpeedLiveData = new MutableLiveData<>(AppConfig.Defaults.SEND_SPEED);
+    private final MutableLiveData<Integer> simSlotLiveData =
+            new MutableLiveData<>(AppConfig.Defaults.SIM_SLOT);
     private final MutableLiveData<UploadSession> activeSessionLiveData = new MutableLiveData<>();
     private final MutableLiveData<Boolean> resumePromptLiveData = new MutableLiveData<>(false);
-    private final MutableLiveData<com.afriserve.smsmanager.data.compliance.RateLimitManager.RateLimitStats> rateLimitStatsLiveData = new MutableLiveData<>();
-    private final MutableLiveData<com.afriserve.smsmanager.data.queue.SmsQueueManager.QueueStatistics> queueStatsLiveData = new MutableLiveData<>();
-    
+    private final MutableLiveData<RateLimitManager.RateLimitStats> rateLimitStatsLiveData = new MutableLiveData<>();
+    private final MutableLiveData<SmsQueueManager.QueueStatistics> queueStatsLiveData = new MutableLiveData<>();
+    private final MutableLiveData<String> deliveredRecipientLiveData = new MutableLiveData<>();
+
     // Current data
     private List<Recipient> currentData = new ArrayList<>();
+    private List<Recipient> importedData = new ArrayList<>();
     private String currentTemplate = "";
-    private UploadSession currentSession;
-    private UploadSession pendingSession;
-    private LiveData<List<WorkInfo>> workInfoLiveData;
-    private Observer<List<WorkInfo>> workObserver;
-    
+
     @Inject
     public BulkSmsViewModel(
         Application application,
@@ -119,9 +109,11 @@ public class BulkSmsViewModel extends ViewModel {
         RateLimitManager rateLimitManager,
         ComplianceManager complianceManager,
         EnhancedDeliveryTracker deliveryTracker,
-        UploadPersistenceService uploadPersistence,
         SmsQueueManager queueManager,
-        TemplateManager templateManager
+        TemplateManager templateManager,
+        CampaignSessionManager sessionManager,
+        MessagePreviewManager previewManager,
+        SendingOrchestrator sendingOrchestrator
     ) {
         this.application = application;
         this.bulkSmsService = bulkSmsService;
@@ -130,71 +122,61 @@ public class BulkSmsViewModel extends ViewModel {
         this.rateLimitManager = rateLimitManager;
         this.complianceManager = complianceManager;
         this.deliveryTracker = deliveryTracker;
-        this.uploadPersistence = uploadPersistence;
         this.queueManager = queueManager;
         this.templateManager = templateManager;
-        
+        this.sessionManager = sessionManager;
+        this.previewManager = previewManager;
+        this.sendingOrchestrator = sendingOrchestrator;
+
+        deliveryTracker.setDeliveryEventListener((smsId, recipientName) ->
+                deliveredRecipientLiveData.postValue(
+                        recipientName == null || recipientName.trim().isEmpty()
+                                ? "customer" : recipientName.trim()));
+
         // Initialize with empty data
         recipientsLiveData.postValue(new ArrayList<>());
         templateVariablesLiveData.postValue(new ArrayList<>());
         messagePreviewsLiveData.postValue(new ArrayList<>());
         complianceResultsLiveData.postValue(new ArrayList<>());
-        
-        // Setup delivery tracking
-        setupDeliveryTracking();
-        checkForResumeSession();
-    }
-    
-    private void setupDeliveryTracking() {
-        // Poll delivery statistics periodically and post to LiveData
-        deliveryTrackingFuture = executor.scheduleAtFixedRate(() -> {
-            try {
-                EnhancedDeliveryTracker.DeliveryStatistics stats = deliveryTracker.getDeliveryStatistics();
-                deliveryStatsLiveData.postValue(stats);
 
-                // Also poll queue statistics and rate limit stats
+        // Setup delivery tracking via RxJava interval
+        setupDeliveryTracking();
+        sessionManager.checkForResumeSession(available -> resumePromptLiveData.postValue(available));
+    }
+
+    // ==================== Delivery Tracking (RxJava) ====================
+
+    private void setupDeliveryTracking() {
+        deliveryPollingDisposable = Observable.interval(0, AppConfig.Polling.DELIVERY_STATS_INTERVAL_MS, TimeUnit.MILLISECONDS)
+            .observeOn(io.reactivex.rxjava3.schedulers.Schedulers.io())
+            .subscribe(tick -> {
                 try {
-                    com.afriserve.smsmanager.data.queue.SmsQueueManager.QueueStatistics qstats = queueManager.getQueueStatistics();
-                    queueStatsLiveData.postValue(qstats);
+                    deliveryStatsLiveData.postValue(deliveryTracker.getDeliveryStatistics());
+                } catch (Exception e) {
+                    Log.e(TAG, "Error polling delivery statistics", e);
+                }
+                try {
+                    queueStatsLiveData.postValue(queueManager.getQueueStatistics());
                 } catch (Exception e) {
                     Log.w(TAG, "Failed to get queue stats", e);
                 }
-
                 try {
-                    com.afriserve.smsmanager.data.compliance.RateLimitManager.RateLimitStats rstats = rateLimitManager.getStats();
-                    rateLimitStatsLiveData.postValue(rstats);
+                    rateLimitStatsLiveData.postValue(rateLimitManager.getStats());
                 } catch (Exception e) {
                     Log.w(TAG, "Failed to get rate limit stats", e);
                 }
-
-            } catch (Exception e) {
-                Log.e(TAG, "Error polling delivery statistics", e);
-            }
-        }, 0, 2, TimeUnit.SECONDS);
+            }, error -> Log.e(TAG, "Delivery tracking error", error));
     }
 
-    private void checkForResumeSession() {
-        uploadPersistence.loadCurrentUpload(session -> {
-            if (session != null && session.isActive) {
-                pendingSession = session;
-                resumePromptLiveData.postValue(true);
-            }
-        });
-    }
-    
-    // Public LiveData getters
+    // ==================== Public LiveData Getters ====================
+
     public LiveData<List<Recipient>> getRecipients() { return recipientsLiveData; }
-    public LiveData<List<Recipient>> getRecipientsRaw() { return recipientsLiveData; }
     public LiveData<Boolean> getIsLoading() { return isLoadingLiveData; }
-    public LiveData<Boolean> getIsLoadingRaw() { return isLoadingLiveData; }
     public LiveData<String> getError() { return errorLiveData; }
     public LiveData<String> getStatus() { return statusLiveData; }
-    public LiveData<String> getStatusRaw() { return statusLiveData; }
     public LiveData<Integer> getProgress() { return progressLiveData; }
     public LiveData<Integer> getSentCount() { return sentCountLiveData; }
-    public LiveData<Integer> getSentCountRaw() { return sentCountLiveData; }
     public LiveData<Integer> getFailedCount() { return failedCountLiveData; }
-    public LiveData<Integer> getFailedCountRaw() { return failedCountLiveData; }
     public LiveData<Integer> getQueuedCount() { return queuedCountLiveData; }
     public LiveData<EnhancedDeliveryTracker.DeliveryStatistics> getDeliveryStats() { return deliveryStatsLiveData; }
     public LiveData<List<TemplateVariableExtractor.TemplateVariable>> getTemplateVariables() { return templateVariablesLiveData; }
@@ -207,12 +189,25 @@ public class BulkSmsViewModel extends ViewModel {
     public LiveData<Integer> getSimSlot() { return simSlotLiveData; }
     public LiveData<Integer> getSelectedSimSlot() { return simSlotLiveData; }
     public LiveData<UploadSession> getActiveSession() { return activeSessionLiveData; }
+    public LiveData<String> getDeliveredRecipient() { return deliveredRecipientLiveData; }
+
+    public void clearDeliveredRecipient() {
+        deliveredRecipientLiveData.setValue(null);
+    }
     public LiveData<Boolean> getResumePrompt() { return resumePromptLiveData; }
-    public LiveData<com.afriserve.smsmanager.data.compliance.RateLimitManager.RateLimitStats> getRateLimitStats() { return rateLimitStatsLiveData; }
     public LiveData<Boolean> getShowResumePrompt() { return resumePromptLiveData; }
-    public LiveData<com.afriserve.smsmanager.data.queue.SmsQueueManager.QueueStatistics> getQueueStats() { return queueStatsLiveData; }
-    
-    // File upload and processing
+    public LiveData<RateLimitManager.RateLimitStats> getRateLimitStats() { return rateLimitStatsLiveData; }
+    public LiveData<SmsQueueManager.QueueStatistics> getQueueStats() { return queueStatsLiveData; }
+
+    // Backward-compatibility aliases
+    public LiveData<List<Recipient>> getRecipientsRaw() { return recipientsLiveData; }
+    public LiveData<Boolean> getIsLoadingRaw() { return isLoadingLiveData; }
+    public LiveData<String> getStatusRaw() { return statusLiveData; }
+    public LiveData<Integer> getSentCountRaw() { return sentCountLiveData; }
+    public LiveData<Integer> getFailedCountRaw() { return failedCountLiveData; }
+
+    // ==================== File Upload ====================
+
     public void uploadFile(Uri fileUri) {
         isLoadingLiveData.postValue(true);
         errorLiveData.postValue(null);
@@ -221,7 +216,6 @@ public class BulkSmsViewModel extends ViewModel {
         disposables.add(
             io.reactivex.rxjava3.core.Single.fromCallable(() -> {
                 try {
-                    // Use existing parseImportFile which returns an ExcelParser.ParseResult
                     return bulkSmsService.parseImportFile(fileUri, fileName);
                 } catch (IOException e) {
                     throw new RuntimeException(e);
@@ -231,14 +225,20 @@ public class BulkSmsViewModel extends ViewModel {
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe(
                 res -> {
-                    currentData = res.recipients;
+                    importedData = new ArrayList<>(res.recipients);
+                    currentData = new ArrayList<>(importedData);
                     recipientsLiveData.postValue(res.recipients);
                     queuedCountLiveData.postValue(res.recipients.size());
                     isLoadingLiveData.postValue(false);
                     statusLiveData.postValue("File uploaded successfully: " + res.recipients.size() + " recipients");
                     detectedColumnsLiveData.postValue(res.mapping);
-                    updateTemplateVariables();
-                    initSessionFromImport(fileName, res);
+                    previewManager.updateTemplateVariables(currentData, templateVariablesLiveData::postValue);
+
+                    int speed = sendSpeedLiveData.getValue() != null ? sendSpeedLiveData.getValue() : AppConfig.Defaults.SEND_SPEED;
+                    int slot = simSlotLiveData.getValue() != null ? simSlotLiveData.getValue() : 0;
+                    UploadSession session = sessionManager.initSessionFromImport(fileName, res, currentTemplate, speed, slot);
+                    resumePromptLiveData.postValue(false);
+                    activeSessionLiveData.postValue(session);
                 },
                 error -> {
                     isLoadingLiveData.postValue(false);
@@ -250,189 +250,46 @@ public class BulkSmsViewModel extends ViewModel {
         );
     }
 
-    private void initSessionFromImport(String fileName, ExcelParser.ParseResult res) {
-        UploadSession session = new UploadSession();
-        session.fileId = UUID.randomUUID().toString();
-        session.fileName = fileName;
-        session.recipients = res.recipients;
-        session.totalRecords = res.recipients != null ? res.recipients.size() : 0;
-        session.validRecords = session.totalRecords;
-        session.invalidRecords = 0;
-        session.processingStatus = "ready";
-        session.template = currentTemplate;
-        session.sendSpeed = sendSpeedLiveData.getValue() != null ? sendSpeedLiveData.getValue() : 300;
-        session.simSlot = simSlotLiveData.getValue() != null ? simSlotLiveData.getValue() : 0;
-        session.campaignName = "Bulk Campaign";
-        session.campaignType = "MARKETING";
-
-        session.columnMapping = new HashMap<>();
-        if (res.mapping != null) {
-            if (res.mapping.name != null) session.columnMapping.put("name", res.mapping.name);
-            if (res.mapping.phone != null) session.columnMapping.put("phone", res.mapping.phone);
-            if (res.mapping.amount != null) session.columnMapping.put("amount", res.mapping.amount);
-        }
-
-        currentSession = session;
-        pendingSession = null;
-        resumePromptLiveData.postValue(false);
-        uploadPersistence.saveCurrentUploadSync(session);
-        activeSessionLiveData.postValue(session);
-    }
-    
-    // Legacy method for CSV import compatibility
     public void importRecipientsFromCsv(Uri fileUri) {
         uploadFile(fileUri);
     }
-    
-    // Template operations
+
+    // ==================== Template Operations ====================
+
     public void updateMessageTemplate(String template) {
         this.currentTemplate = template;
-        updateMessagePreviews();
-        scheduleTemplateSave(template);
+        previewManager.updateMessagePreviews(template, currentData, messagePreviewsLiveData::postValue);
+        previewManager.scheduleTemplateSave(template, TEMPLATE_SAVE_DEBOUNCE_MS,
+                () -> sessionManager.saveTemplateToSession(template));
     }
-    
-    // Legacy method for compatibility
+
     public void updateMessagePreview(String template) {
         updateMessageTemplate(template);
     }
-    
-    private void updateTemplateVariables() {
-        final int sequence = ++variableSequence;
-        final List<Recipient> sample = getRecipientSample(VARIABLE_SAMPLE_COUNT);
-        previewExecutor.execute(() -> {
-            List<Map<String, String>> data = convertRecipientsToRowList(sample, VARIABLE_SAMPLE_COUNT);
-            if (data.isEmpty()) {
-                if (sequence == variableSequence) {
-                    templateVariablesLiveData.postValue(new ArrayList<>());
-                }
-                return;
-            }
-            List<TemplateVariableExtractor.TemplateVariable> variables =
-                TemplateVariableExtractor.extractVariables(data);
-            if (sequence == variableSequence) {
-                templateVariablesLiveData.postValue(variables);
-            }
-        });
-    }
-    
-    private void updateMessagePreviews() {
-        final String template = currentTemplate != null ? currentTemplate : "";
-        if (template.trim().isEmpty()) {
-            synchronized (previewLock) {
-                previewSequence++;
-                if (previewFuture != null) {
-                    previewFuture.cancel(false);
-                    previewFuture = null;
-                }
-            }
-            messagePreviewsLiveData.postValue(new ArrayList<>());
-            return;
-        }
 
-        final int sequence;
-        synchronized (previewLock) {
-            if (previewFuture != null) {
-                previewFuture.cancel(false);
-            }
-            sequence = ++previewSequence;
-            final List<Recipient> sample = getRecipientSample(PREVIEW_COUNT);
-            previewFuture = previewExecutor.schedule(() -> {
-                List<Map<String, String>> data = convertRecipientsToRowList(sample, PREVIEW_COUNT);
-                List<TemplateVariableExtractor.MessagePreview> previews =
-                    TemplateVariableExtractor.generatePreview(template, data, PREVIEW_COUNT);
-                if (sequence == previewSequence) {
-                    messagePreviewsLiveData.postValue(previews);
-                }
-            }, PREVIEW_DEBOUNCE_MS, TimeUnit.MILLISECONDS);
-        }
-    }
-    
     public void clearTemplateData() {
-        synchronized (previewLock) {
-            previewSequence++;
-            if (previewFuture != null) {
-                previewFuture.cancel(false);
-                previewFuture = null;
-            }
-        }
-        synchronized (saveLock) {
-            if (saveTemplateFuture != null) {
-                saveTemplateFuture.cancel(false);
-                saveTemplateFuture = null;
-            }
-        }
+        previewManager.clearAll();
         templateVariablesLiveData.postValue(new ArrayList<>());
         messagePreviewsLiveData.postValue(new ArrayList<>());
         detectedColumnsLiveData.postValue(null);
         currentData = new ArrayList<>();
+        importedData = new ArrayList<>();
         currentTemplate = "";
     }
 
-    // Helper to convert Recipient objects into a simple row map expected by parsers
-    private List<Map<String, String>> convertRecipientsToRowList(List<Recipient> recipients) {
-        return convertRecipientsToRowList(recipients, Integer.MAX_VALUE);
-    }
+    // ==================== Compliance ====================
 
-    private List<Map<String, String>> convertRecipientsToRowList(List<Recipient> recipients, int maxCount) {
-        List<Map<String, String>> rows = new ArrayList<>();
-        if (recipients == null || recipients.isEmpty()) return rows;
-
-        int count = Math.min(maxCount, recipients.size());
-        for (int i = 0; i < count; i++) {
-            Recipient r = recipients.get(i);
-            Map<String, String> row = new HashMap<>();
-            row.put("Name", r.getName() != null ? r.getName() : "");
-            row.put("PhoneNumber", r.getPhone() != null ? r.getPhone() : "");
-            row.put("Phone", r.getPhone() != null ? r.getPhone() : "");
-            row.put("Mobile", r.getPhone() != null ? r.getPhone() : "");
-            row.put("Amount", r.getAmount() != null ? String.valueOf(r.getAmount()) : "");
-            if (r.getFields() != null) row.putAll(r.getFields());
-            rows.add(row);
-        }
-
-        return rows;
-    }
-
-    private List<Recipient> getRecipientSample(int maxCount) {
-        List<Recipient> sample = new ArrayList<>();
-        if (currentData == null || currentData.isEmpty()) {
-            return sample;
-        }
-        int count = Math.min(maxCount, currentData.size());
-        for (int i = 0; i < count; i++) {
-            sample.add(currentData.get(i));
-        }
-        return sample;
-    }
-
-    private void scheduleTemplateSave(String template) {
-        final UploadSession session = currentSession;
-        if (session == null) {
-            return;
-        }
-        synchronized (saveLock) {
-            if (saveTemplateFuture != null) {
-                saveTemplateFuture.cancel(false);
-            }
-            saveTemplateFuture = previewExecutor.schedule(() -> {
-                session.template = template;
-                uploadPersistence.saveCurrentUpload(session);
-            }, TEMPLATE_SAVE_DEBOUNCE_MS, TimeUnit.MILLISECONDS);
-        }
-    }
-    
-    // Compliance checking
     public void checkCompliance() {
         if (currentData.isEmpty()) {
             complianceResultsLiveData.postValue(new ArrayList<>());
             return;
         }
-        
+
         isLoadingLiveData.postValue(true);
-        
+
         disposables.add(
             Observable.fromIterable(currentData)
-                .flatMapSingle(recipient -> complianceManager.checkCompliance(recipient.getPhone(), "MARKETING")
+                .flatMapSingle(recipient -> complianceManager.checkCompliance(recipient.getPhone(), "BULK_MARKETING")
                     .onErrorReturnItem(new ComplianceManager.ComplianceResult()))
                 .toList()
                 .subscribeOn(io.reactivex.rxjava3.schedulers.Schedulers.io())
@@ -441,13 +298,11 @@ public class BulkSmsViewModel extends ViewModel {
                     results -> {
                         complianceResultsLiveData.postValue(results);
                         isLoadingLiveData.postValue(false);
-
                         int compliantCount = 0;
                         int nonCompliantCount = 0;
                         for (ComplianceManager.ComplianceResult r : results) {
                             if (r.isCompliant()) compliantCount++; else nonCompliantCount++;
                         }
-
                         statusLiveData.postValue("Compliance check: " + compliantCount + " compliant, " + nonCompliantCount + " non-compliant");
                     },
                     error -> {
@@ -458,42 +313,182 @@ public class BulkSmsViewModel extends ViewModel {
                 )
         );
     }
-    
-    // Sending operations
+
+    /** Apply a user-selected arrears bucket to the last imported spreadsheet. */
+    public boolean applyArrearsFilter(@NonNull String selection) {
+        if (importedData == null || importedData.isEmpty()) return false;
+        if ("All customers".equals(selection)) {
+            currentData = new ArrayList<>(importedData);
+        } else {
+            java.util.regex.Matcher rangeMatcher = java.util.regex.Pattern
+                    .compile("^(\\d+)(?:\\s*[-–]\\s*(\\d+))?$")
+                    .matcher(selection.trim());
+            if (!rangeMatcher.matches()) return false;
+
+            int min;
+            int max;
+            try {
+                min = Integer.parseInt(rangeMatcher.group(1));
+                max = rangeMatcher.group(2) == null ? min : Integer.parseInt(rangeMatcher.group(2));
+            } catch (NumberFormatException e) {
+                return false;
+            }
+            if (min < 0 || max < min) return false;
+
+            List<Recipient> filtered = new ArrayList<>();
+            for (Recipient recipient : importedData) {
+                Integer days = readArrearsDays(recipient);
+                if (days != null && days >= min && days <= max) filtered.add(recipient);
+            }
+            currentData = filtered;
+        }
+        recipientsLiveData.postValue(currentData);
+        queuedCountLiveData.postValue(currentData.size());
+        statusLiveData.postValue("Arrears filter: " + selection + " (" + currentData.size() + " customers)");
+        if (sessionManager.getCurrentSession() != null) {
+            sessionManager.getCurrentSession().arrearsFilter = selection;
+            sessionManager.persistSession();
+        }
+        previewManager.updateTemplateVariables(currentData, templateVariablesLiveData::postValue);
+        previewManager.updateMessagePreviews(currentTemplate, currentData, messagePreviewsLiveData::postValue);
+        return true;
+    }
+
+    private Integer readArrearsDays(@NonNull Recipient recipient) {
+        if (recipient.getFields() == null) return null;
+        for (java.util.Map.Entry<String, String> entry : recipient.getFields().entrySet()) {
+            String key = entry.getKey() == null ? "" : entry.getKey().toLowerCase(java.util.Locale.ROOT);
+            if (!(key.equals("days") || key.contains("days_in_arrears") || key.contains("arrears_days")
+                    || key.contains("days_overdue") || key.contains("overdue_days")
+                    || (key.contains("days") && key.contains("arrears")))) continue;
+            try {
+                java.util.regex.Matcher matcher = java.util.regex.Pattern.compile("-?\\d+(?:\\.\\d+)?")
+                        .matcher(entry.getValue() == null ? "" : entry.getValue());
+                if (matcher.find()) return (int) Double.parseDouble(matcher.group());
+            } catch (Exception ignored) { }
+        }
+        return null;
+    }
+
+    // ==================== Sending Operations ====================
+
+    private final SendingOrchestrator.WorkProgressCallback workCallback = new SendingOrchestrator.WorkProgressCallback() {
+        @Override
+        public void onProgress(int percent, int sent, int failed, int queued, String status,
+                               boolean isSending, boolean isPaused) {
+            progressLiveData.postValue(percent);
+            sentCountLiveData.postValue(sent);
+            failedCountLiveData.postValue(failed);
+            queuedCountLiveData.postValue(queued);
+            statusLiveData.postValue(status);
+            isSendingLiveData.postValue(isSending);
+            isPausedLiveData.postValue(isPaused);
+
+            UploadSession activeSession = activeSessionLiveData.getValue();
+            if (activeSession != null) {
+                activeSession.sentCount = sent;
+                activeSession.failedCount = failed;
+                activeSession.lastProcessedIndex = Math.min(
+                        activeSession.recipients != null ? activeSession.recipients.size() : 0,
+                        sent + failed + queued);
+                activeSession.isActive = isSending;
+                activeSession.isPaused = isPaused;
+                if ("Bulk SMS sending completed".equals(status)) {
+                    activeSession.processingStatus = "completed";
+                } else if ("Sending paused".equals(status)) {
+                    activeSession.processingStatus = "paused";
+                } else if ("Sending stopped".equals(status)) {
+                    activeSession.processingStatus = "stopped";
+                } else if (isSending) {
+                    activeSession.processingStatus = "sending";
+                }
+                activeSessionLiveData.postValue(activeSession);
+            }
+        }
+
+        @Override
+        public void onError(String message) {
+            statusLiveData.postValue(message);
+            errorLiveData.postValue(message);
+            isSendingLiveData.postValue(false);
+            isPausedLiveData.postValue(false);
+        }
+    };
+
     public void startSending() {
         if (currentData == null || currentData.isEmpty()) {
             errorLiveData.postValue("No recipients to send to");
             return;
         }
-        
         if (currentTemplate == null || currentTemplate.trim().isEmpty()) {
             errorLiveData.postValue("No message template provided");
             return;
         }
-        
-        UploadSession session = prepareSessionForSend(true);
 
-        isSendingLiveData.postValue(true);
-        isPausedLiveData.postValue(false);
-        statusLiveData.postValue("Starting bulk SMS sending...");
-        progressLiveData.postValue(0);
-        sentCountLiveData.postValue(session.sentCount);
-        failedCountLiveData.postValue(session.failedCount);
-        queuedCountLiveData.postValue(currentData.size());
+        int slot = simSlotLiveData.getValue() != null ? simSlotLiveData.getValue() : 0;
+        int speed = sendSpeedLiveData.getValue() != null ? sendSpeedLiveData.getValue() : AppConfig.Defaults.SEND_SPEED;
+        UploadSession session = sessionManager.prepareSessionForSend(currentData, currentTemplate, slot, speed, true);
+        if (campaignNameOverride != null && !campaignNameOverride.trim().isEmpty()) {
+            session.campaignName = campaignNameOverride.trim();
+        }
 
-        enqueueWork(session, true);
+        // Create the campaign before WorkManager starts. This gives the live campaign
+        // page and export a stable scope even while the first SMS is being sent.
+        Observable.fromCallable(() -> ensureCampaignForSession(session, System.currentTimeMillis()))
+                .subscribeOn(io.reactivex.rxjava3.schedulers.Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(prepared -> {
+                    isSendingLiveData.postValue(true);
+                    isPausedLiveData.postValue(false);
+                    statusLiveData.postValue("Starting bulk SMS sending...");
+                    progressLiveData.postValue(0);
+                    sentCountLiveData.postValue(prepared.sentCount);
+                    failedCountLiveData.postValue(prepared.failedCount);
+                    queuedCountLiveData.postValue(currentData.size());
+                    activeSessionLiveData.postValue(prepared);
+                    sendingOrchestrator.enqueueWork(prepared, true, workCallback);
+                }, error -> {
+                    Log.e(TAG, "Unable to prepare campaign", error);
+                    errorLiveData.postValue("Unable to prepare campaign: " + error.getMessage());
+                });
     }
-    
-    // Legacy method for compatibility with BulkSmsFragment
+
     public void startBulkSend(String template, int simSlot) {
         this.currentTemplate = template;
         setSimSlot(simSlot);
         startSending();
     }
 
-    /**
-     * Schedule bulk SMS sending at a future time.
-     */
+    public void setCampaignName(@NonNull String name) {
+        campaignNameOverride = name.trim();
+    }
+
+    private UploadSession ensureCampaignForSession(@NonNull UploadSession session, long now) {
+        if (session.campaignId > 0) return session;
+
+        CampaignEntity campaign = new CampaignEntity();
+        campaign.name = session.campaignName != null && !session.campaignName.trim().isEmpty()
+                ? session.campaignName.trim() : "Bulk Campaign";
+        campaign.campaignUuid = UUID.randomUUID().toString();
+        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US);
+        format.setTimeZone(TimeZone.getTimeZone("Africa/Nairobi"));
+        campaign.campaignDate = format.format(new Date(now));
+        campaign.campaignType = session.campaignType != null ? session.campaignType : "BULK_MARKETING";
+        campaign.sourceFileName = session.fileName;
+        campaign.arrearsFilter = session.arrearsFilter;
+        campaign.timezone = "Africa/Nairobi";
+        campaign.messageTemplate = session.template;
+        campaign.status = CampaignEntity.STATUS_ACTIVE;
+        campaign.recipientCount = session.totalRecords > 0 ? session.totalRecords : session.recipients.size();
+        campaign.createdAt = now;
+        campaign.updatedAt = now;
+        campaign.startedAt = now;
+        session.campaignId = campaignDao.insertCampaign(campaign).blockingGet();
+        session.processingStatus = "sending";
+        sessionManager.persistSession();
+        return session;
+    }
+
     public void scheduleSending(long scheduledAtMillis) {
         if (currentData == null || currentData.isEmpty()) {
             errorLiveData.postValue("No recipients to send to");
@@ -510,15 +505,25 @@ public class BulkSmsViewModel extends ViewModel {
             return;
         }
 
-        UploadSession session = prepareSessionForSend(true);
+        int slot = simSlotLiveData.getValue() != null ? simSlotLiveData.getValue() : 0;
+        int speed = sendSpeedLiveData.getValue() != null ? sendSpeedLiveData.getValue() : AppConfig.Defaults.SEND_SPEED;
+        UploadSession session = sessionManager.prepareSessionForSend(currentData, currentTemplate, slot, speed, true);
         session.scheduledAt = scheduledAtMillis;
         session.processingStatus = "scheduled";
-        uploadPersistence.saveCurrentUploadSync(session);
+        sessionManager.persistSession();
 
         try {
             if (session.campaignId <= 0) {
                 CampaignEntity campaign = new CampaignEntity();
                 campaign.name = session.campaignName != null ? session.campaignName : "Bulk Campaign";
+                campaign.campaignUuid = UUID.randomUUID().toString();
+                SimpleDateFormat campaignDateFormat = new SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US);
+                campaignDateFormat.setTimeZone(TimeZone.getTimeZone("Africa/Nairobi"));
+                campaign.campaignDate = campaignDateFormat.format(new Date(now));
+                campaign.campaignType = session.campaignType;
+                campaign.sourceFileName = session.fileName;
+                campaign.arrearsFilter = session.arrearsFilter;
+                campaign.timezone = "Africa/Nairobi";
                 campaign.description = "Scheduled bulk SMS campaign with " + session.totalRecords + " recipients";
                 campaign.status = "DRAFT";
                 campaign.recipientCount = session.totalRecords;
@@ -555,10 +560,7 @@ public class BulkSmsViewModel extends ViewModel {
 
             if (scheduledToSave == null) {
                 scheduledToSave = new ScheduledCampaignEntity(
-                    session.campaignId,
-                    scheduledAtMillis,
-                    TimeZone.getDefault().getID()
-                );
+                    session.campaignId, scheduledAtMillis, TimeZone.getDefault().getID());
                 scheduledToSave.status = "SCHEDULED";
                 scheduledToSave.isActive = true;
                 scheduledCampaignDao.insertScheduledCampaign(scheduledToSave).blockingAwait();
@@ -578,253 +580,93 @@ public class BulkSmsViewModel extends ViewModel {
             return;
         }
 
-        uploadPersistence.saveCurrentUpload(session);
-        BulkSmsWorkManager.enqueueBulkSend(application, session.fileId, scheduledAtMillis - now, true);
+        sessionManager.persistSession();
+        sendingOrchestrator.enqueueScheduledWork(session.fileId, scheduledAtMillis - now);
         statusLiveData.postValue("Bulk SMS scheduled");
     }
 
-    private UploadSession prepareSessionForSend(boolean resetProgress) {
-        UploadSession session = currentSession;
-        if (session == null) {
-            session = new UploadSession();
-            session.fileId = UUID.randomUUID().toString();
-            session.fileName = "Bulk Campaign";
-        }
-
-        session.recipients = new ArrayList<>(currentData);
-        session.totalRecords = currentData.size();
-        session.validRecords = currentData.size();
-        session.invalidRecords = 0;
-        session.template = currentTemplate;
-        session.simSlot = simSlotLiveData.getValue() != null ? simSlotLiveData.getValue() : 0;
-        session.sendSpeed = sendSpeedLiveData.getValue() != null ? sendSpeedLiveData.getValue() : 300;
-        session.campaignName = session.campaignName != null ? session.campaignName : "Bulk Campaign";
-        session.campaignType = session.campaignType != null ? session.campaignType : "MARKETING";
-        session.isActive = true;
-        session.isPaused = false;
-        session.isStopped = false;
-        session.processingStatus = "sending";
-
-        if (resetProgress) {
-            session.lastProcessedIndex = 0;
-            session.sentCount = 0;
-            session.failedCount = 0;
-            session.skippedCount = 0;
-        }
-
-        currentSession = session;
-        pendingSession = null;
-        uploadPersistence.saveCurrentUpload(session);
-        activeSessionLiveData.postValue(session);
-        return session;
-    }
-
-    private void enqueueWork(UploadSession session, boolean replaceExisting) {
-        if (session == null || session.fileId == null) {
-            return;
-        }
-        BulkSmsWorkManager.enqueueBulkSend(application, session.fileId, 0L, replaceExisting);
-        observeWork(session.fileId);
-    }
-
-    private void observeWork(String sessionId) {
-        if (workInfoLiveData != null && workObserver != null) {
-            workInfoLiveData.removeObserver(workObserver);
-        }
-
-        workInfoLiveData = BulkSmsWorkManager.getWorkInfos(application, sessionId);
-        workObserver = workInfos -> {
-            if (workInfos == null || workInfos.isEmpty()) {
-                return;
-            }
-            handleWorkInfo(workInfos.get(0));
-        };
-
-        workInfoLiveData.observeForever(workObserver);
-    }
-
-    private void handleWorkInfo(WorkInfo info) {
-        if (info == null) {
-            return;
-        }
-
-        WorkInfo.State state = info.getState();
-        if (state == WorkInfo.State.RUNNING || state == WorkInfo.State.ENQUEUED) {
-            int total = info.getProgress().getInt(BulkSmsSendingWorker.PROGRESS_TOTAL,
-                    currentSession != null && currentSession.recipients != null ? currentSession.recipients.size() : 0);
-            int processed = info.getProgress().getInt(BulkSmsSendingWorker.PROGRESS_PROCESSED,
-                    currentSession != null ? currentSession.lastProcessedIndex : 0);
-            int sent = info.getProgress().getInt(BulkSmsSendingWorker.PROGRESS_SENT,
-                    currentSession != null ? currentSession.sentCount : 0);
-            int failed = info.getProgress().getInt(BulkSmsSendingWorker.PROGRESS_FAILED,
-                    currentSession != null ? currentSession.failedCount : 0);
-            int skipped = info.getProgress().getInt(BulkSmsSendingWorker.PROGRESS_SKIPPED,
-                    currentSession != null ? currentSession.skippedCount : 0);
-            int percent = info.getProgress().getInt(BulkSmsSendingWorker.PROGRESS_PERCENT,
-                    total > 0 ? (processed * 100 / total) : 0);
-
-            progressLiveData.postValue(percent);
-            sentCountLiveData.postValue(sent);
-            failedCountLiveData.postValue(failed);
-            queuedCountLiveData.postValue(Math.max(0, total - processed));
-            isSendingLiveData.postValue(true);
-            if (state == WorkInfo.State.ENQUEUED) {
-                statusLiveData.postValue("Queued for sending...");
-            } else {
-                statusLiveData.postValue("Sending: " + processed + "/" + total);
-            }
-            return;
-        }
-
-        if (state == WorkInfo.State.SUCCEEDED) {
-            String status = info.getOutputData().getString(BulkSmsSendingWorker.RESULT_STATUS);
-            int total = info.getOutputData().getInt(BulkSmsSendingWorker.RESULT_TOTAL, 0);
-            int sent = info.getOutputData().getInt(BulkSmsSendingWorker.RESULT_SENT, 0);
-            int failed = info.getOutputData().getInt(BulkSmsSendingWorker.RESULT_FAILED, 0);
-            int skipped = info.getOutputData().getInt(BulkSmsSendingWorker.RESULT_SKIPPED, 0);
-
-            sentCountLiveData.postValue(sent);
-            failedCountLiveData.postValue(failed);
-            queuedCountLiveData.postValue(Math.max(0, total - (sent + failed + skipped)));
-
-            if (BulkSmsService.RESULT_PAUSED.equals(status)) {
-                statusLiveData.postValue("Sending paused");
-                isSendingLiveData.postValue(false);
-                isPausedLiveData.postValue(true);
-            } else if (BulkSmsService.RESULT_STOPPED.equals(status)) {
-                statusLiveData.postValue("Sending stopped");
-                isSendingLiveData.postValue(false);
-                isPausedLiveData.postValue(false);
-            } else {
-                progressLiveData.postValue(100);
-                statusLiveData.postValue("Bulk SMS sending completed");
-                isSendingLiveData.postValue(false);
-                isPausedLiveData.postValue(false);
-            }
-            return;
-        }
-
-        if (state == WorkInfo.State.CANCELLED) {
-            statusLiveData.postValue("Sending cancelled");
-            isSendingLiveData.postValue(false);
-            isPausedLiveData.postValue(false);
-            return;
-        }
-
-        if (state == WorkInfo.State.FAILED) {
-            String error = info.getOutputData().getString(BulkSmsSendingWorker.RESULT_ERROR);
-            String message = error != null ? "Sending failed: " + error : "Sending failed";
-            statusLiveData.postValue(message);
-            errorLiveData.postValue(message);
-            isSendingLiveData.postValue(false);
-            isPausedLiveData.postValue(false);
-        }
-    }
-    
     public void pauseSending() {
-        if (isSendingLiveData.getValue() == null || !isSendingLiveData.getValue()) {
-            return;
-        }
-        if (currentSession != null) {
-            currentSession.isPaused = true;
-            currentSession.processingStatus = "paused";
-            uploadPersistence.saveCurrentUploadSync(currentSession);
-        }
+        if (isSendingLiveData.getValue() == null || !isSendingLiveData.getValue()) return;
+        sessionManager.markPaused();
         isPausedLiveData.postValue(true);
         isSendingLiveData.postValue(false);
         statusLiveData.postValue("Sending paused");
     }
 
     public void resumeSending() {
-        if (isPausedLiveData.getValue() == null || !isPausedLiveData.getValue()) {
-            return;
-        }
-        UploadSession session = currentSession != null ? currentSession : uploadPersistence.loadCurrentUploadSync();
-        if (session == null) {
-            return;
-        }
-        session.isPaused = false;
-        session.isStopped = false;
-        session.processingStatus = "sending";
-        currentSession = session;
-        uploadPersistence.saveCurrentUploadSync(session);
+        if (isPausedLiveData.getValue() == null || !isPausedLiveData.getValue()) return;
+        UploadSession session = sessionManager.resumeSession();
+        if (session == null) return;
+
+        sessionManager.markResumedForSend();
         isPausedLiveData.postValue(false);
         isSendingLiveData.postValue(true);
         statusLiveData.postValue("Sending resumed");
-        enqueueWork(session, true);
+        sendingOrchestrator.enqueueWork(session, true, workCallback);
     }
 
     public void stopSending() {
-        if (isSendingLiveData.getValue() == null || !isSendingLiveData.getValue()) {
-            return;
-        }
-        if (currentSession != null) {
-            currentSession.isStopped = true;
-            currentSession.isPaused = false;
-            currentSession.processingStatus = "stopped";
-            uploadPersistence.saveCurrentUploadSync(currentSession);
-            if (currentSession.fileId != null) {
-                BulkSmsWorkManager.cancel(application, currentSession.fileId);
-            }
+        if (isSendingLiveData.getValue() == null || !isSendingLiveData.getValue()) return;
+        UploadSession session = sessionManager.getCurrentSession();
+        sessionManager.markStopped();
+        if (session != null) {
+            sendingOrchestrator.cancelWork(session.fileId);
         }
         isSendingLiveData.postValue(false);
         isPausedLiveData.postValue(false);
         statusLiveData.postValue("Sending stopped");
     }
-    
-    // Speed control
+
+    // ==================== Speed & SIM Controls ====================
+
     public void setSendSpeed(int speed) {
         sendSpeedLiveData.postValue(speed);
         statusLiveData.postValue("Send speed set to: " + speed);
-        if (currentSession != null) {
-            currentSession.sendSpeed = speed;
-            uploadPersistence.saveCurrentUpload(currentSession);
+        UploadSession session = sessionManager.getCurrentSession();
+        if (session != null) {
+            session.sendSpeed = speed;
+            sessionManager.persistSession();
         }
     }
 
-    // Backwards-compatible overload accepting String
     public void setSendSpeed(String speed) {
         try {
-            int s = Integer.parseInt(speed);
-            setSendSpeed(s);
+            setSendSpeed(Integer.parseInt(speed));
         } catch (NumberFormatException e) {
-            // ignore invalid input
             Log.w(TAG, "Invalid send speed value: " + speed);
         }
     }
-    
-    // SIM slot management
+
     public void setSimSlot(int slot) {
         simSlotLiveData.postValue(slot);
         statusLiveData.postValue("SIM slot set to: " + slot);
-        if (currentSession != null) {
-            currentSession.simSlot = slot;
-            uploadPersistence.saveCurrentUpload(currentSession);
+        UploadSession session = sessionManager.getCurrentSession();
+        if (session != null) {
+            session.simSlot = slot;
+            sessionManager.persistSession();
         }
     }
-    
-    // Queue management
+
+    // ==================== Queue Management ====================
+
     public void clearQueue() {
-        executor.execute(() -> {
-            try {
-                queueManager.runQueueNow()
-                    .subscribe(
-                        () -> {
-                            queuedCountLiveData.postValue(0);
-                            statusLiveData.postValue("Queue processed");
-                        },
-                        error -> {
-                            Log.e(TAG, "Error running queue", error);
-                            errorLiveData.postValue("Failed to process queue: " + error.getMessage());
-                        }
-                    );
-            } catch (Exception e) {
-                Log.e(TAG, "Error processing queue", e);
-                errorLiveData.postValue("Failed to process queue: " + e.getMessage());
-            }
-        });
+        disposables.add(
+            queueManager.runQueueNow()
+                .subscribeOn(io.reactivex.rxjava3.schedulers.Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(
+                    () -> {
+                        queuedCountLiveData.postValue(0);
+                        statusLiveData.postValue("Queue processed");
+                    },
+                    error -> {
+                        Log.e(TAG, "Error running queue", error);
+                        errorLiveData.postValue("Failed to process queue: " + error.getMessage());
+                    }
+                )
+        );
     }
-    
+
     public void retryFailedMessages() {
         statusLiveData.postValue("Retrying failed messages...");
         disposables.add(
@@ -835,8 +677,9 @@ public class BulkSmsViewModel extends ViewModel {
                 )
         );
     }
-    
-    // Compliance management
+
+    // ==================== Compliance ====================
+
     public void addToOptOut(String phoneNumber, String reason) {
         disposables.add(
             complianceManager.addToOptOut(phoneNumber, reason)
@@ -850,7 +693,7 @@ public class BulkSmsViewModel extends ViewModel {
                 )
         );
     }
-    
+
     private void removeRecipientByPhone(String phoneNumber) {
         List<Recipient> currentRecipients = recipientsLiveData.getValue();
         if (currentRecipients != null) {
@@ -863,35 +706,30 @@ public class BulkSmsViewModel extends ViewModel {
             recipientsLiveData.postValue(updatedRecipients);
             currentData = updatedRecipients;
             queuedCountLiveData.postValue(updatedRecipients.size());
-            if (currentSession != null) {
-                currentSession.recipients = updatedRecipients;
-                currentSession.totalRecords = updatedRecipients.size();
-                currentSession.validRecords = updatedRecipients.size();
-                uploadPersistence.saveCurrentUpload(currentSession);
-            }
+            sessionManager.updateRecipients(updatedRecipients);
         }
     }
-    
-    // Template management
+
+    // ==================== Template Management ====================
+
     public void saveTemplate(String name, String template) {
         SmsTemplate smsTemplate = new SmsTemplate(name, template);
         templateManager.saveTemplate(smsTemplate);
         statusLiveData.postValue("Template saved: " + name);
     }
-    
+
     public void loadTemplate(String templateId) {
         SmsTemplate template = templateManager.getTemplateById(templateId);
         if (template != null) {
             currentTemplate = template.getContent();
-            updateTemplateVariables();
-            updateMessagePreviews();
+            previewManager.updateTemplateVariables(currentData, templateVariablesLiveData::postValue);
+            previewManager.updateMessagePreviews(currentTemplate, currentData, messagePreviewsLiveData::postValue);
             statusLiveData.postValue("Template loaded: " + template.getName());
         } else {
             errorLiveData.postValue("Failed to load template: not found");
         }
     }
-    
-    // Legacy template methods for compatibility
+
     public List<String> getSavedTemplates() {
         List<String> names = new ArrayList<>();
         try {
@@ -906,32 +744,27 @@ public class BulkSmsViewModel extends ViewModel {
         }
         return names;
     }
-    
+
     public String getTemplateContent(String templateName) {
         String content = templateManager.getTemplateContent(templateName);
         return content != null ? content : "";
     }
-    
-    // Data management
+
+    // ==================== Data Management ====================
+
     public void addRecipient(Recipient recipient) {
         List<Recipient> currentRecipients = recipientsLiveData.getValue();
         if (currentRecipients == null) {
             currentRecipients = new ArrayList<>();
         }
-        
         currentRecipients.add(recipient);
         currentData = currentRecipients;
         recipientsLiveData.postValue(currentRecipients);
         queuedCountLiveData.postValue(currentRecipients.size());
-        updateMessagePreviews();
-        if (currentSession != null) {
-            currentSession.recipients = currentRecipients;
-            currentSession.totalRecords = currentRecipients.size();
-            currentSession.validRecords = currentRecipients.size();
-            uploadPersistence.saveCurrentUpload(currentSession);
-        }
+        previewManager.updateMessagePreviews(currentTemplate, currentData, messagePreviewsLiveData::postValue);
+        sessionManager.updateRecipients(currentRecipients);
     }
-    
+
     public void removeRecipient(Recipient recipient) {
         List<Recipient> currentRecipients = recipientsLiveData.getValue();
         if (currentRecipients != null) {
@@ -939,16 +772,11 @@ public class BulkSmsViewModel extends ViewModel {
             currentData = currentRecipients;
             recipientsLiveData.postValue(currentRecipients);
             queuedCountLiveData.postValue(currentRecipients.size());
-            updateMessagePreviews();
-            if (currentSession != null) {
-                currentSession.recipients = currentRecipients;
-                currentSession.totalRecords = currentRecipients.size();
-                currentSession.validRecords = currentRecipients.size();
-                uploadPersistence.saveCurrentUpload(currentSession);
-            }
+            previewManager.updateMessagePreviews(currentTemplate, currentData, messagePreviewsLiveData::postValue);
+            sessionManager.updateRecipients(currentRecipients);
         }
     }
-    
+
     public void clearAllData() {
         recipientsLiveData.postValue(new ArrayList<>());
         sentCountLiveData.postValue(0);
@@ -957,12 +785,10 @@ public class BulkSmsViewModel extends ViewModel {
         progressLiveData.postValue(0);
         statusLiveData.postValue("All data cleared");
         clearTemplateData();
-        currentSession = null;
-        pendingSession = null;
-        uploadPersistence.clearCurrentUpload();
+        sessionManager.discardSession();
         activeSessionLiveData.postValue(null);
     }
-    
+
     public void clearExhaustedRetries() {
         disposables.add(
             queueManager.clearExhaustedMessages()
@@ -972,65 +798,51 @@ public class BulkSmsViewModel extends ViewModel {
                 )
         );
     }
-    
-    // Session management methods for compatibility
+
+    // ==================== Session Resume/Discard ====================
+
     public void resumeSession() {
-        uploadPersistence.loadCurrentUpload(session -> {
-            UploadSession toResume = session != null ? session : pendingSession;
-            if (toResume == null) {
-                statusLiveData.postValue("No session to resume");
-                return;
-            }
+        UploadSession toResume = sessionManager.resumeSession();
+        if (toResume == null) {
+            statusLiveData.postValue("No session to resume");
+            return;
+        }
 
-            currentSession = toResume;
-            pendingSession = null;
-            currentData = toResume.recipients != null ? toResume.recipients : new ArrayList<>();
-            currentTemplate = toResume.template != null ? toResume.template : "";
+        currentData = toResume.recipients != null ? toResume.recipients : new ArrayList<>();
+        currentTemplate = toResume.template != null ? toResume.template : "";
 
-            recipientsLiveData.postValue(currentData);
-            queuedCountLiveData.postValue(Math.max(0, currentData.size() - toResume.lastProcessedIndex));
-            sentCountLiveData.postValue(toResume.sentCount);
-            failedCountLiveData.postValue(toResume.failedCount);
-            int percent = currentData.isEmpty() ? 0 : (toResume.lastProcessedIndex * 100 / currentData.size());
-            progressLiveData.postValue(percent);
-            sendSpeedLiveData.postValue(toResume.sendSpeed > 0 ? toResume.sendSpeed : 300);
-            simSlotLiveData.postValue(toResume.simSlot);
-            activeSessionLiveData.postValue(toResume);
-            resumePromptLiveData.postValue(false);
-            statusLiveData.postValue("Session resumed");
-        });
-    }
-    
-    public void discardSession() {
-        pendingSession = null;
+        recipientsLiveData.postValue(currentData);
+        queuedCountLiveData.postValue(Math.max(0, currentData.size() - toResume.lastProcessedIndex));
+        sentCountLiveData.postValue(toResume.sentCount);
+        failedCountLiveData.postValue(toResume.failedCount);
+        int percent = currentData.isEmpty() ? 0 : (toResume.lastProcessedIndex * 100 / currentData.size());
+        progressLiveData.postValue(percent);
+        sendSpeedLiveData.postValue(toResume.sendSpeed > 0 ? toResume.sendSpeed : AppConfig.Defaults.SEND_SPEED);
+        simSlotLiveData.postValue(toResume.simSlot);
+        activeSessionLiveData.postValue(toResume);
         resumePromptLiveData.postValue(false);
-        uploadPersistence.clearCurrentUpload();
+        statusLiveData.postValue("Session resumed");
+    }
+
+    public void discardSession() {
+        sessionManager.discardSession();
+        resumePromptLiveData.postValue(false);
         statusLiveData.postValue("Session discarded");
         clearAllData();
     }
-    
+
+    // ==================== Lifecycle ====================
+
     @Override
     protected void onCleared() {
         super.onCleared();
-        if (deliveryTrackingFuture != null && !deliveryTrackingFuture.isCancelled()) {
-            deliveryTrackingFuture.cancel(true);
+        deliveryTracker.setDeliveryEventListener(null);
+        if (deliveryPollingDisposable != null && !deliveryPollingDisposable.isDisposed()) {
+            deliveryPollingDisposable.dispose();
         }
-        synchronized (previewLock) {
-            if (previewFuture != null && !previewFuture.isCancelled()) {
-                previewFuture.cancel(true);
-            }
-        }
-        synchronized (saveLock) {
-            if (saveTemplateFuture != null && !saveTemplateFuture.isCancelled()) {
-                saveTemplateFuture.cancel(true);
-            }
-        }
-        if (workInfoLiveData != null && workObserver != null) {
-            workInfoLiveData.removeObserver(workObserver);
-        }
+        previewManager.shutdown();
+        sendingOrchestrator.removeWorkObserver();
         disposables.clear();
-        executor.shutdown();
-        previewExecutor.shutdown();
         bulkSmsService.shutdown();
     }
 }

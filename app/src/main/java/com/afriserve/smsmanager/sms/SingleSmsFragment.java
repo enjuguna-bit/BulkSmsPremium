@@ -276,6 +276,10 @@ public class SingleSmsFragment extends Fragment {
     }
 
     private boolean isSubscriptionActive(@Nullable SubscriptionHelper.SubscriptionStatus status) {
+        Context context = getContext();
+        if (context != null && SubscriptionHelper.INSTANCE.hasActiveSubscription(context)) {
+            return true;
+        }
         if (status == null) {
             return false;
         }

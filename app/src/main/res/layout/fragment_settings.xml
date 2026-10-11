@@ -240,6 +240,17 @@
                 android:padding="16dp"
                 android:gravity="center_vertical">
 
+                <ImageView
+                    android:layout_width="@dimen/icon_medium"
+                    android:layout_height="@dimen/icon_medium"
+                    android:layout_marginEnd="@dimen/spacing_medium"
+                    android:background="@drawable/circle_background"
+                    android:backgroundTint="@color/color_primary_container"
+                    android:padding="@dimen/spacing_small"
+                    android:src="@drawable/ic_action_settings"
+                    app:tint="@color/color_primary"
+                    android:contentDescription="@null" />
+
                 <LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
@@ -293,6 +304,17 @@
                 android:orientation="horizontal"
                 android:padding="16dp"
                 android:gravity="center_vertical">
+
+                <ImageView
+                    android:layout_width="@dimen/icon_medium"
+                    android:layout_height="@dimen/icon_medium"
+                    android:layout_marginEnd="@dimen/spacing_medium"
+                    android:background="@drawable/circle_background"
+                    android:backgroundTint="@color/color_secondary_container"
+                    android:padding="@dimen/spacing_small"
+                    android:src="@drawable/ic_sms_notification"
+                    app:tint="@color/color_secondary"
+                    android:contentDescription="@null" />
 
                 <LinearLayout
                     android:layout_width="0dp"
@@ -348,6 +370,17 @@
                 android:orientation="horizontal"
                 android:padding="16dp"
                 android:gravity="center_vertical">
+
+                <ImageView
+                    android:layout_width="@dimen/icon_medium"
+                    android:layout_height="@dimen/icon_medium"
+                    android:layout_marginEnd="@dimen/spacing_medium"
+                    android:background="@drawable/circle_background"
+                    android:backgroundTint="@color/color_tertiary_container"
+                    android:padding="@dimen/spacing_small"
+                    android:src="@drawable/ic_sim_card"
+                    app:tint="@color/color_tertiary"
+                    android:contentDescription="@null" />
 
                 <LinearLayout
                     android:layout_width="0dp"
@@ -406,6 +439,17 @@
                 android:padding="16dp"
                 android:gravity="center_vertical">
 
+                <ImageView
+                    android:layout_width="@dimen/icon_medium"
+                    android:layout_height="@dimen/icon_medium"
+                    android:layout_marginEnd="@dimen/spacing_medium"
+                    android:background="@drawable/circle_background"
+                    android:backgroundTint="#1A006A86"
+                    android:padding="@dimen/spacing_small"
+                    android:src="@drawable/ic_push_pin"
+                    app:tint="@color/color_tertiary"
+                    android:contentDescription="@null" />
+
                 <LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
@@ -462,6 +506,17 @@
                 android:orientation="horizontal"
                 android:padding="16dp"
                 android:gravity="center_vertical">
+
+                <ImageView
+                    android:layout_width="@dimen/icon_medium"
+                    android:layout_height="@dimen/icon_medium"
+                    android:layout_marginEnd="@dimen/spacing_medium"
+                    android:background="@drawable/circle_background"
+                    android:backgroundTint="@color/color_primary_container"
+                    android:padding="@dimen/spacing_small"
+                    android:src="@drawable/ic_menu_contact"
+                    app:tint="@color/color_primary"
+                    android:contentDescription="@null" />
 
                 <LinearLayout
                     android:layout_width="0dp"
@@ -520,6 +575,17 @@
                 android:padding="16dp"
                 android:gravity="center_vertical">
 
+                <ImageView
+                    android:layout_width="@dimen/icon_medium"
+                    android:layout_height="@dimen/icon_medium"
+                    android:layout_marginEnd="@dimen/spacing_medium"
+                    android:background="@drawable/circle_background"
+                    android:backgroundTint="@color/color_secondary_container"
+                    android:padding="@dimen/spacing_small"
+                    android:src="@drawable/ic_archive"
+                    app:tint="@color/color_secondary"
+                    android:contentDescription="@null" />
+
                 <LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
@@ -543,12 +609,13 @@
 
                 </LinearLayout>
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/settings_arrow"
-                    android:textSize="16sp"
-                    android:textColor="@color/color_on_surface_variant" />
+                <ImageView
+                    android:layout_width="@dimen/icon_small"
+                    android:layout_height="@dimen/icon_small"
+                    android:src="@drawable/ic_arrow_back"
+                    android:rotation="180"
+                    app:tint="@color/color_on_surface_variant"
+                    android:contentDescription="@null" />
 
             </LinearLayout>
 
@@ -576,6 +643,17 @@
                 android:padding="16dp"
                 android:gravity="center_vertical">
 
+                <ImageView
+                    android:layout_width="@dimen/icon_medium"
+                    android:layout_height="@dimen/icon_medium"
+                    android:layout_marginEnd="@dimen/spacing_medium"
+                    android:background="@drawable/circle_background"
+                    android:backgroundTint="@color/color_error_container"
+                    android:padding="@dimen/spacing_small"
+                    android:src="@drawable/ic_refresh"
+                    app:tint="@color/color_error"
+                    android:contentDescription="@null" />
+
                 <LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
@@ -599,12 +677,13 @@
 
                 </LinearLayout>
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/settings_arrow"
-                    android:textSize="16sp"
-                    android:textColor="@color/color_on_surface_variant" />
+                <ImageView
+                    android:layout_width="@dimen/icon_small"
+                    android:layout_height="@dimen/icon_small"
+                    android:src="@drawable/ic_arrow_back"
+                    android:rotation="180"
+                    app:tint="@color/color_on_surface_variant"
+                    android:contentDescription="@null" />
 
             </LinearLayout>
 
@@ -632,6 +711,17 @@
                 android:padding="16dp"
                 android:gravity="center_vertical">
 
+                <ImageView
+                    android:layout_width="@dimen/icon_medium"
+                    android:layout_height="@dimen/icon_medium"
+                    android:layout_marginEnd="@dimen/spacing_medium"
+                    android:background="@drawable/circle_background"
+                    android:backgroundTint="@color/color_surface_variant"
+                    android:padding="@dimen/spacing_small"
+                    android:src="@drawable/ic_message"
+                    app:tint="@color/color_on_surface_variant"
+                    android:contentDescription="@null" />
+
                 <LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
@@ -655,12 +745,81 @@
 
                 </LinearLayout>
 
+                <ImageView
+                    android:layout_width="@dimen/icon_small"
+                    android:layout_height="@dimen/icon_small"
+                    android:src="@drawable/ic_arrow_back"
+                    android:rotation="180"
+                    app:tint="@color/color_on_surface_variant"
+                    android:contentDescription="@null" />
+
+            </LinearLayout>
+
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- User Guide Card -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/userGuideCard"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="4dp"
+            app:cardBackgroundColor="@color/fx_glass_surface"
+            app:strokeColor="#1565C0"
+            app:strokeWidth="1dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:foreground="?android:attr/selectableItemBackground">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:padding="16dp"
+                android:gravity="center_vertical">
+
+                <ImageView
+                    android:layout_width="@dimen/icon_medium"
+                    android:layout_height="@dimen/icon_medium"
+                    android:layout_marginEnd="@dimen/spacing_medium"
+                    android:background="@drawable/circle_background"
+                    android:backgroundTint="#1A1565C0"
+                    android:padding="@dimen/spacing_small"
+                    android:src="@drawable/ic_archive"
+                    app:tint="#1565C0"
+                    android:contentDescription="@null" />
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="How to Use This App"
+                        android:textSize="16sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Download the guide with campaign, queue, and Excel tips"
+                        android:textSize="12sp"
+                        android:textColor="@color/color_on_surface_variant"
+                        android:layout_marginTop="4dp" />
+
+                </LinearLayout>
+
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="@string/settings_arrow"
-                    android:textSize="16sp"
-                    android:textColor="@color/color_on_surface_variant" />
+                    android:text="Download"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    android:textColor="#1565C0" />
 
             </LinearLayout>
 

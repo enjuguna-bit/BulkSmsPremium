@@ -497,6 +497,13 @@ public class ConversationRepository {
     /**
      * Sync all conversations from existing messages
      */
+    /**
+     * Rebuilds all conversations by scanning every SMS row.
+     * <p><strong>WARNING:</strong> Loads the entire SMS table into memory.
+     * Only call during initial setup or a forced re-sync, never on hot paths.
+     * Subscribe on Schedulers.io() — this method blocks.
+     */
+    @androidx.annotation.WorkerThread
     public Completable syncConversationsFromMessages() {
         return Completable.fromAction(() -> {
             try {

@@ -40,12 +40,11 @@ public class AnalyticsDashboardFragment extends Fragment {
     private ProgressBar progressBar, progressBarDaily, progressBarMonthly;
     private TextView tvPlanName, tvPlanTier, tvDailyUsed, tvDailyLimit, tvDailyPercentage,
                      tvMonthlyUsed, tvMonthlyLimit, tvMonthlyPercentage, tvCampaignsUsed,
-                     tvCampaignsLimit, tvTemplatesUsed, tvTemplatesLimit, tvUserProperties,
+                     tvCampaignsLimit, tvTemplatesUsed, tvTemplatesLimit,
                      tvUpgradeSuggestion, tvStatus, tvLastUpdated, tvErrorMessage, tvEventCount;
     private RecyclerView recyclerViewEvents;
     private MaterialCardView cardUpgradeSuggestion;
-    private MaterialButton btnRefresh, btnExportData, btnTestEvent, btnTestError, 
-                          btnTestPerformance, btnFlush, btnResetUserProperties;
+    private MaterialButton btnRefresh, btnExportData;
     private AnalyticsViewModel viewModel;
 
     @Nullable
@@ -94,7 +93,6 @@ public class AnalyticsDashboardFragment extends Fragment {
         tvTemplatesLimit = view.findViewById(R.id.tvTemplatesLimit);
         
         // Status and info
-        tvUserProperties = view.findViewById(R.id.tvUserProperties);
         tvUpgradeSuggestion = view.findViewById(R.id.tvUpgradeSuggestion);
         tvStatus = view.findViewById(R.id.tvStatus);
         tvLastUpdated = view.findViewById(R.id.tvLastUpdated);
@@ -108,11 +106,6 @@ public class AnalyticsDashboardFragment extends Fragment {
         // Buttons
         btnRefresh = view.findViewById(R.id.btnRefresh);
         btnExportData = view.findViewById(R.id.btnExportData);
-        btnTestEvent = view.findViewById(R.id.btnTestEvent);
-        btnTestError = view.findViewById(R.id.btnTestError);
-        btnTestPerformance = view.findViewById(R.id.btnTestPerformance);
-        btnFlush = view.findViewById(R.id.btnFlush);
-        btnResetUserProperties = view.findViewById(R.id.btnResetUserProperties);
         
         // Setup recycler view
         if (recyclerViewEvents != null) {
@@ -129,25 +122,6 @@ public class AnalyticsDashboardFragment extends Fragment {
             btnExportData.setOnClickListener(v -> viewModel.exportAnalyticsData());
         }
         
-        if (btnTestEvent != null) {
-            btnTestEvent.setOnClickListener(v -> viewModel.testCustomEvent());
-        }
-        
-        if (btnTestError != null) {
-            btnTestError.setOnClickListener(v -> viewModel.testErrorEvent());
-        }
-        
-        if (btnTestPerformance != null) {
-            btnTestPerformance.setOnClickListener(v -> viewModel.testPerformanceEvent());
-        }
-        
-        if (btnFlush != null) {
-            btnFlush.setOnClickListener(v -> viewModel.flushEvents());
-        }
-        
-        if (btnResetUserProperties != null) {
-            btnResetUserProperties.setOnClickListener(v -> viewModel.resetUserProperties());
-        }
     }
 
     private void observeViewModel() {
@@ -160,9 +134,7 @@ public class AnalyticsDashboardFragment extends Fragment {
             boolean enabled = !isLoading;
             if (btnRefresh != null) btnRefresh.setEnabled(enabled);
             if (btnExportData != null) btnExportData.setEnabled(enabled);
-            if (btnTestEvent != null) btnTestEvent.setEnabled(enabled);
-            if (btnTestError != null) btnTestError.setEnabled(enabled);
-            if (btnTestPerformance != null) btnTestPerformance.setEnabled(enabled);
+
         });
 
         viewModel.getAnalyticsData().observe(getViewLifecycleOwner(), this::updateAnalyticsUI);
@@ -240,10 +212,7 @@ public class AnalyticsDashboardFragment extends Fragment {
             tvTemplatesLimit.setText("/" + data.getTemplatesLimit());
         }
 
-        // Update user properties
-        if (tvUserProperties != null) {
-            tvUserProperties.setText(formatUserProperties(data.getUserProperties()));
-        }
+
 
         // Update upgrade suggestion
         if (tvUpgradeSuggestion != null && cardUpgradeSuggestion != null) {

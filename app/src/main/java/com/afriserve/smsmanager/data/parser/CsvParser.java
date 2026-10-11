@@ -100,17 +100,23 @@ public class CsvParser {
 
             List<Map<String, String>> data = new ArrayList<>();
             String[] row;
+            int rowIndex = 0;
             while ((row = reader.readNext()) != null) {
-                if (isBlankRow(row)) {
-                    continue;
-                }
+                rowIndex++;
+                try {
+                    if (isBlankRow(row)) {
+                        continue;
+                    }
 
-                Map<String, String> rowMap = new LinkedHashMap<>();
-                for (int i = 0; i < headers.size(); i++) {
-                    String value = i < row.length ? row[i] : "";
-                    rowMap.put(headers.get(i), cleanValue(value));
+                    Map<String, String> rowMap = new LinkedHashMap<>();
+                    for (int i = 0; i < headers.size(); i++) {
+                        String value = i < row.length ? row[i] : "";
+                        rowMap.put(headers.get(i), cleanValue(value));
+                    }
+                    data.add(rowMap);
+                } catch (Exception e) {
+                    Log.w(TAG, "Skipping problematic CSV row " + rowIndex, e);
                 }
-                data.add(rowMap);
             }
 
             Log.d(TAG, "Parsed " + data.size() + " rows from file");

@@ -4,105 +4,111 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
-import android.content.SharedPreferences;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Build;
+import android.util.Log;
+
 import androidx.core.app.NotificationCompat;
-import java.util.Map;
 
 import com.google.firebase.messaging.FirebaseMessagingService;
 import com.google.firebase.messaging.RemoteMessage;
 
+import java.util.Map;
+
+/**
+ * FCMService — v2
+ *
+ * Changes vs v1:
+ *  - Notification channel ID sourced from AppConfig.Worker.CHANNEL_ID so it
+ *    is never duplicated across the codebase.
+ *  - createNotificationChannel() called lazily once per showNotification()
+ *    via ensureChannel() — idempotent, safe to call repeatedly.
+ *  - Added null-guard on data map before accessing keys.
+ *  - Notification now uses a unique request code (based on current time) so
+ *    rapid successive FCM messages don't overwrite each other's PendingIntent.
+ *  - Log tag constant added; log level DEBUG for data payloads (not INFO).
+ */
 public class FCMService extends FirebaseMessagingService {
-    private static final String CHANNEL_ID = "app_notifications";
-    
+
+    private static final String TAG = "FCMService";
+    private static final String PREFS_SETTINGS = "settings";
+    private static final String KEY_NOTIFICATIONS_ENABLED = "notifications_enabled";
+
     @Override
     public void onMessageReceived(RemoteMessage remoteMessage) {
         super.onMessageReceived(remoteMessage);
+        if (remoteMessage == null) return;
 
-        if (remoteMessage == null) {
-            return;
-        }
+        boolean hasData = remoteMessage.getData() != null && !remoteMessage.getData().isEmpty();
+        boolean hasNotif = remoteMessage.getNotification() != null;
 
-        boolean hasDataPayload = remoteMessage.getData() != null && !remoteMessage.getData().isEmpty();
-        boolean hasNotificationPayload = remoteMessage.getNotification() != null;
-        if (!hasDataPayload && !hasNotificationPayload) {
-            return;
-        }
+        if (!hasData && !hasNotif) return;
 
+        Log.d(TAG, "FCM message received — hasData=" + hasData + ", hasNotif=" + hasNotif);
         showNotification(remoteMessage);
     }
-    
-    private void showNotification(RemoteMessage remoteMessage) {
-        // Check if notifications are enabled
-        SharedPreferences prefs = getSharedPreferences("settings", Context.MODE_PRIVATE);
-        boolean notificationsEnabled = prefs.getBoolean("notifications_enabled", true);
-        
-        if (!notificationsEnabled) {
-            return;
-        }
-        
-        Intent intent = new Intent(this, com.afriserve.smsmanager.MainActivity.class);
-        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-        PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, intent, 
-            PendingIntent.FLAG_ONE_SHOT | PendingIntent.FLAG_IMMUTABLE);
 
-        RemoteMessage.Notification notification = remoteMessage.getNotification();
-        Map<String, String> data = remoteMessage.getData();
-
-        String title = notification != null ? notification.getTitle() : null;
-        String body = notification != null ? notification.getBody() : null;
-
-        if ((title == null || title.trim().isEmpty()) && data != null) {
-            title = data.get("title");
-        }
-        if ((body == null || body.trim().isEmpty()) && data != null) {
-            body = data.get("body");
-            if (body == null || body.trim().isEmpty()) {
-                body = data.get("message");
-            }
-        }
-
-        if (title == null || title.trim().isEmpty()) {
-            title = "Bulk SMS Manager";
-        }
-        if (body == null || body.trim().isEmpty()) {
-            body = "You have a new notification.";
-        }
-        
-        NotificationCompat.Builder notificationBuilder =
-            new NotificationCompat.Builder(this, CHANNEL_ID)
-                .setSmallIcon(android.R.drawable.ic_dialog_info)
-                .setContentTitle(title)
-                .setContentText(body)
-                .setAutoCancel(true)
-                .setContentIntent(pendingIntent);
-        
-        NotificationManager notificationManager =
-            (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-        if (notificationManager == null) {
-            return;
-        }
-        
-        // Create channel for Android O and above
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            NotificationChannel channel = new NotificationChannel(CHANNEL_ID,
-                "Billing Notifications", NotificationManager.IMPORTANCE_DEFAULT);
-            notificationManager.createNotificationChannel(channel);
-        }
-        
-        notificationManager.notify((int) System.currentTimeMillis(), notificationBuilder.build());
-    }
-    
     @Override
     public void onNewToken(String token) {
         super.onNewToken(token);
-        // Send token to server
-        sendRegistrationToServer(token);
+        // Store or forward the new registration token as needed.
+        Log.d(TAG, "FCM token refreshed");
     }
-    
-    private void sendRegistrationToServer(String token) {
-        // Store FCM token in Firestore for notifications
-        // Implementation depends on your user management
+
+    // ── Private helpers ───────────────────────────────────────────────────────
+
+    private void showNotification(RemoteMessage message) {
+        SharedPreferences prefs = getSharedPreferences(PREFS_SETTINGS, Context.MODE_PRIVATE);
+        if (!prefs.getBoolean(KEY_NOTIFICATIONS_ENABLED, true)) return;
+
+        ensureChannel();
+
+        Map<String, String> data = message.getData();
+        RemoteMessage.Notification notif = message.getNotification();
+
+        String title = notif != null ? notif.getTitle() : null;
+        String body  = notif != null ? notif.getBody()  : null;
+
+        if ((title == null || title.trim().isEmpty()) && data != null) title = data.get("title");
+        if ((body  == null || body.trim().isEmpty())  && data != null) body  = data.get("body");
+
+        if (title == null) title = getString(R.string.app_name);
+        if (body  == null) body  = "";
+
+        // Unique request code prevents PendingIntents from overwriting each other
+        int requestCode = (int) (System.currentTimeMillis() % Integer.MAX_VALUE);
+
+        Intent intent = new Intent(this, MainActivity.class);
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        PendingIntent pendingIntent = PendingIntent.getActivity(
+                this, requestCode, intent,
+                PendingIntent.FLAG_ONE_SHOT | PendingIntent.FLAG_IMMUTABLE);
+
+        androidx.core.app.NotificationCompat.Builder builder =
+                new NotificationCompat.Builder(this, AppConfig.Worker.CHANNEL_ID)
+                        .setContentTitle(title)
+                        .setContentText(body)
+                        .setSmallIcon(R.mipmap.ic_launcher)
+                        .setAutoCancel(true)
+                        .setContentIntent(pendingIntent);
+
+        NotificationManager nm =
+                (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+        if (nm != null) nm.notify(requestCode, builder.build());
+    }
+
+    private void ensureChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationChannel channel = new NotificationChannel(
+                    AppConfig.Worker.CHANNEL_ID,
+                    "Bulk SMS",
+                    NotificationManager.IMPORTANCE_DEFAULT
+            );
+            channel.setDescription("Bulk SMS Manager notifications");
+            NotificationManager nm =
+                    (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+            if (nm != null) nm.createNotificationChannel(channel);
+        }
     }
 }

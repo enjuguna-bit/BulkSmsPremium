@@ -169,7 +169,7 @@ public class SyncWorker extends Worker {
             if (response.code() == 304) {
                 // Not modified - entity is up to date
                 Log.d(TAG, "SMS entity up to date: " + smsId);
-                syncManager.updateSyncStatus("sms", smsId, SyncStatusEntity.SyncStatus.SYNCED).blockingAwait();
+                syncManager.updateSyncStatus("sms", smsId, SyncStatusEntity.SyncStatus.SYNCED).blockingAwait(30, TimeUnit.SECONDS);
                 return Result.success();
             }
             
@@ -185,7 +185,7 @@ public class SyncWorker extends Worker {
                 syncStatus.eTag = response.headers().get("ETag");
                 syncStatus.syncVersion = networkEntity.syncVersion;
                 
-                syncManager.updateSyncStatus("sms", smsId, syncStatus.status).blockingAwait();
+                syncManager.updateSyncStatus("sms", smsId, syncStatus.status).blockingAwait(30, TimeUnit.SECONDS);
                 
                 Log.d(TAG, "SMS entity synced successfully: " + smsId);
                 return Result.success();
@@ -233,7 +233,7 @@ public class SyncWorker extends Worker {
                 syncStatus.eTag = response.headers().get("ETag");
                 syncStatus.syncVersion = networkEntity.syncVersion;
                 
-                syncManager.updateSyncStatus("conversation", conversationId, syncStatus.status).blockingAwait();
+                syncManager.updateSyncStatus("conversation", conversationId, syncStatus.status).blockingAwait(30, TimeUnit.SECONDS);
                 
                 Log.d(TAG, "Conversation entity synced successfully: " + conversationId);
                 return Result.success();
@@ -316,7 +316,7 @@ public class SyncWorker extends Worker {
             }
             
             // Mark as resolved
-            syncManager.updateSyncStatus("sms", smsId, SyncStatusEntity.SyncStatus.SYNCED).blockingAwait();
+            syncManager.updateSyncStatus("sms", smsId, SyncStatusEntity.SyncStatus.SYNCED).blockingAwait(30, TimeUnit.SECONDS);
             
             Log.d(TAG, "SMS conflict resolved: " + smsId);
             return Result.success();
@@ -336,7 +336,7 @@ public class SyncWorker extends Worker {
             Log.d(TAG, "Resolving conversation conflict: " + conversationId);
             
             // Mark as resolved (simplified implementation)
-            syncManager.updateSyncStatus("conversation", conversationId, SyncStatusEntity.SyncStatus.SYNCED).blockingAwait();
+            syncManager.updateSyncStatus("conversation", conversationId, SyncStatusEntity.SyncStatus.SYNCED).blockingAwait(30, TimeUnit.SECONDS);
             
             Log.d(TAG, "Conversation conflict resolved: " + conversationId);
             return Result.success();

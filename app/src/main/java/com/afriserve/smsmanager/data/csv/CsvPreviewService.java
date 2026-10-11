@@ -34,6 +34,20 @@ public class CsvPreviewService {
                     String placeholder = "{" + entry.getKey().toLowerCase().replace(" ", "") + "}";
                     previewMessage = previewMessage.replace(placeholder, entry.getValue());
                 }
+                
+                // Auto-split name support
+                for (Map.Entry<String, String> entry : recipient.getData().entrySet()) {
+                    if (NameSplitter.isNameColumn(entry.getKey())) {
+                        String fullName = entry.getValue();
+                        if (fullName != null && !fullName.trim().isEmpty()) {
+                            NameSplitter.SplitName split = NameSplitter.split(fullName);
+                            previewMessage = previewMessage.replace("{firstname}", split.getPart("firstname"));
+                            previewMessage = previewMessage.replace("{secondname}", split.getPart("secondname"));
+                            previewMessage = previewMessage.replace("{thirdname}", split.getPart("thirdname"));
+                        }
+                        break;
+                    }
+                }
             }
 
             // Add phone number to preview

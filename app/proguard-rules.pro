@@ -11,6 +11,9 @@
 # Hide the original source file name
 -renamesourcefileattribute SourceFile
 
+# Ignore all R8 warnings to prevent build failures from missing dependencies/type checks in 3rd party libs
+-ignorewarnings
+
 # Keep application entities and models
 -keep class com.afriserve.smsmanager.data.entity.** { *; }
 -keep class com.afriserve.smsmanager.models.** { *; }

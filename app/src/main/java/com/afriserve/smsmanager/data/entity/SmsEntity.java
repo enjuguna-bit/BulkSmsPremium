@@ -72,6 +72,10 @@ public class SmsEntity {
     @ColumnInfo(name = "message")
     public String message;
 
+    /** Amount requested from this recipient, copied from the imported source row. */
+    @ColumnInfo(name = "amount")
+    public Double amount;
+
     // MMS flag
     @ColumnInfo(name = "isMms")
     public Boolean isMms;
@@ -130,6 +134,23 @@ public class SmsEntity {
     
     @ColumnInfo(name = "campaignId")
     public Long campaignId;
+
+    /** Recipient data captured from the source row for campaign reports. */
+    @ColumnInfo(name = "customerName")
+    public String customerName;
+
+    @ColumnInfo(name = "officerName")
+    public String officerName;
+
+    @ColumnInfo(name = "arrearsDays")
+    public Integer arrearsDays;
+
+    @ColumnInfo(name = "sourceRowIndex")
+    public Integer sourceRowIndex;
+
+    /** SIM slot used for the original send; retries must use the same radio. */
+    @Ignore
+    public int simSlot = 0;
     
     @ColumnInfo(name = "retryCount")
     public int retryCount = 0;

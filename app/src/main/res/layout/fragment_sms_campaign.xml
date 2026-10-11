@@ -99,6 +99,37 @@
                         android:gravity="center"
                         android:textColor="@color/color_on_surface_variant" />
 
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical">
+
+                        <TextView
+                            android:id="@+id/txtCampaignReadiness"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Start by importing contacts"
+                            android:textSize="12sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/color_primary"
+                            android:background="@drawable/bg_activity_list"
+                            android:padding="10dp" />
+
+                        <TextView
+                            android:id="@+id/txtCampaignSmsParts"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:text="SMS parts: —"
+                            android:textSize="12sp"
+                            android:textColor="@color/color_on_surface_variant"
+                            android:background="@drawable/bg_activity_list"
+                            android:padding="10dp" />
+                    </LinearLayout>
+
                 </LinearLayout>
 
             </com.google.android.material.card.MaterialCardView>
@@ -109,10 +140,10 @@
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="@dimen/spacing_medium"
                 app:cardCornerRadius="16dp"
-                app:cardElevation="6dp"
+                app:cardElevation="8dp"
                 app:cardUseCompatPadding="true"
-                app:strokeColor="@color/color_outline_variant"
-                app:strokeWidth="1dp"
+                app:strokeColor="#1D7E45"
+                app:strokeWidth="2dp"
                 app:cardBackgroundColor="@color/color_surface">
 
                 <LinearLayout
@@ -132,62 +163,103 @@
                             android:layout_width="@dimen/icon_small"
                             android:layout_height="@dimen/icon_small"
                             android:src="@drawable/ic_file_upload"
-                            app:tint="@color/color_primary"
+                            app:tint="#1D7E45"
                             android:layout_marginEnd="@dimen/spacing_small"
                             android:contentDescription="@null" />
 
                         <TextView
-                            android:layout_width="match_parent"
+                            android:layout_width="0dp"
                             android:layout_height="wrap_content"
+                            android:layout_weight="1"
                             android:text="@string/bulk_sms_import_title"
                             android:textSize="@dimen/text_large"
                             android:textStyle="bold"
                             android:textColor="@color/color_on_surface" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text=" EXCEL / CSV "
+                            android:textSize="10sp"
+                            android:textStyle="bold"
+                            android:textColor="#FFFFFF"
+                            android:background="#1D7E45"
+                            android:paddingStart="8dp"
+                            android:paddingEnd="8dp"
+                            android:paddingTop="3dp"
+                            android:paddingBottom="3dp" />
+
                     </LinearLayout>
 
                     <TextView
                         android:id="@+id/txtFileName"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="@string/bulk_sms_file_loaded_format"
+                        android:text="No file loaded yet"
                         android:textSize="@dimen/text_medium"
                         android:textColor="@color/color_on_surface_variant"
-                        android:layout_marginBottom="@dimen/spacing_small"
+                        android:layout_marginBottom="@dimen/spacing_medium"
                         android:background="@drawable/bg_activity_list"
                         android:padding="@dimen/spacing_medium" />
 
-                    <LinearLayout
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnArrearsFilter"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:orientation="horizontal">
+                        android:layout_marginBottom="@dimen/spacing_medium"
+                        android:text="Choose arrears range"
+                        android:visibility="gone"
+                        style="@style/Widget.Material3.Button.OutlinedButton" />
 
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/btnSelectFile"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="@string/bulk_sms_select_file"
-                            android:layout_marginEnd="@dimen/spacing_small"
-                            style="@style/Widget.Material3.Button.OutlinedButton" />
+                    <!-- Primary Excel Import CTA -->
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnSelectFile"
+                        android:layout_width="match_parent"
+                        android:layout_height="56dp"
+                        android:layout_marginBottom="6dp"
+                        android:text="  Import Contacts from Excel / CSV"
+                        android:textStyle="bold"
+                        android:textSize="14sp"
+                        android:textColor="#FFFFFF"
+                        android:backgroundTint="#1D7E45"
+                        app:icon="@drawable/ic_file_upload"
+                        app:iconTint="#FFFFFF"
+                        app:iconGravity="textStart"
+                        app:cornerRadius="12dp" />
 
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/btnAddRecipient"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="@string/bulk_sms_add_manual"
-                            android:layout_marginStart="@dimen/spacing_small"
-                            style="@style/Widget.Material3.Button.OutlinedButton" />
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Supports .xlsx, .xls and .csv - columns: Name, Phone"
+                        android:textSize="11sp"
+                        android:textColor="@color/color_on_surface_variant"
+                        android:gravity="center"
+                        android:layout_marginBottom="@dimen/spacing_medium" />
 
-                    </LinearLayout>
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:background="@color/color_outline_variant"
+                        android:layout_marginBottom="@dimen/spacing_medium" />
 
-                    <ProgressBar
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnAddRecipient"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/bulk_sms_add_manual"
+                        style="@style/Widget.Material3.Button.OutlinedButton" />
+
+                    <com.google.android.material.progressindicator.CircularProgressIndicator
                         android:id="@+id/progressFileLoading"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_gravity="center"
                         android:layout_marginTop="8dp"
-                        android:visibility="gone" />
+                        android:indeterminate="true"
+                        android:visibility="gone"
+                        app:indicatorSize="32dp"
+                        app:trackThickness="3dp"
+                        app:indicatorColor="#1D7E45" />
 
                 </LinearLayout>
 
@@ -357,6 +429,109 @@
                         android:layout_height="wrap_content"
                         android:nestedScrollingEnabled="false" />
 
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Build a calculation"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/color_on_surface"
+                        android:layout_marginTop="16dp"
+                        android:layout_marginBottom="4dp" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Choose two or three numeric fields. The app will insert the calculation for you."
+                        android:textSize="12sp"
+                        android:textColor="@color/color_on_surface_variant"
+                        android:layout_marginBottom="8dp" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical">
+
+                        <Spinner
+                            android:id="@+id/spinnerCalculationFirst"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1" />
+
+                        <Spinner
+                            android:id="@+id/spinnerCalculationOperator"
+                            android:layout_width="56dp"
+                            android:layout_height="wrap_content"
+                            android:entries="@array/template_calculation_operators" />
+
+                        <Spinner
+                            android:id="@+id/spinnerCalculationSecond"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1" />
+                    </LinearLayout>
+
+                    <EditText
+                        android:id="@+id/editCalculationFirstNumber"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:hint="First number"
+                        android:inputType="numberDecimal|numberSigned"
+                        android:visibility="gone" />
+
+                    <EditText
+                        android:id="@+id/editCalculationSecondNumber"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:hint="Second number"
+                        android:inputType="numberDecimal|numberSigned"
+                        android:visibility="gone" />
+
+                    <CheckBox
+                        android:id="@+id/checkCalculationThird"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Add a third field" />
+
+                    <Spinner
+                        android:id="@+id/spinnerCalculationThird"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:visibility="gone" />
+
+                    <EditText
+                        android:id="@+id/editCalculationThirdNumber"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:hint="Third number"
+                        android:inputType="numberDecimal|numberSigned"
+                        android:visibility="gone" />
+
+                    <CheckBox
+                        android:id="@+id/checkCalculationMoney"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Format as money" />
+
+                    <TextView
+                        android:id="@+id/txtCalculationPreview"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Preview: choose two fields or enter numbers"
+                        android:textSize="12sp"
+                        android:textColor="@color/color_primary"
+                        android:background="@drawable/bg_activity_list"
+                        android:padding="10dp"
+                        android:layout_marginBottom="8dp" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnInsertCalculation"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Insert calculation"
+                        style="@style/Widget.Material3.Button.OutlinedButton" />
+
                 </LinearLayout>
 
             </com.google.android.material.card.MaterialCardView>
@@ -449,7 +624,7 @@
                         android:layout_height="wrap_content"
                         android:orientation="horizontal">
 
-                        <RadioButton
+                        <com.google.android.material.radiobutton.MaterialRadioButton
                             android:id="@+id/radioSim1"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
@@ -457,7 +632,7 @@
                             android:text="@string/send_sms_sim_1"
                             android:checked="true" />
 
-                        <RadioButton
+                        <com.google.android.material.radiobutton.MaterialRadioButton
                             android:id="@+id/radioSim2"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
@@ -541,14 +716,16 @@
                             android:textColor="@color/color_on_surface" />
                     </LinearLayout>
 
-                    <ProgressBar
+                    <com.google.android.material.progressindicator.LinearProgressIndicator
                         android:id="@+id/progressBar"
-                        style="?android:attr/progressBarStyleHorizontal"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="8dp"
                         android:max="100"
-                        android:progress="0" />
+                        android:progress="0"
+                        app:trackCornerRadius="4dp"
+                        app:indicatorColor="@color/color_primary"
+                        app:trackColor="@color/color_outline_variant" />
 
                     <TextView
                         android:id="@+id/txtProgress"
@@ -686,13 +863,17 @@
                         android:visibility="gone" />
 
                     <!-- Sending Progress Indicator -->
-                    <ProgressBar
+                    <com.google.android.material.progressindicator.CircularProgressIndicator
                         android:id="@+id/progressSending"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_gravity="center"
                         android:layout_marginTop="8dp"
-                        android:visibility="gone" />
+                        android:indeterminate="true"
+                        android:visibility="gone"
+                        app:indicatorSize="32dp"
+                        app:trackThickness="3dp"
+                        app:indicatorColor="@color/color_primary" />
 
                 </LinearLayout>
 

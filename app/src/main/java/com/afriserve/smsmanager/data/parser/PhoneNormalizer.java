@@ -1,420 +1,262 @@
 package com.afriserve.smsmanager.data.parser;
 
 import android.util.Log;
+
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.regex.Pattern;
 
 /**
- * Enhanced Phone number normalization utility with country-specific configurations
- * Handles various phone number formats and normalizes them to standard E.164 format
+ * Phone-number normalisation utility — v2.
+ *
+ * Normalises any commonly-encountered Kenyan (and optionally other) phone
+ * number format to E.164 (+254XXXXXXXXX).  Non-Kenyan international numbers
+ * are passed through as-is once they clear basic length checks.
+ *
+ * Changes in v2:
+ *  - Stricter Safaricom / Airtel / Telkom prefix validation (CA-KE, 2024).
+ *  - {@link #getCarrierName(String)} convenience method.
+ *  - {@link #isValidKenyaNumber(String)} public helper.
+ *  - Fixed edge-case where a 12-digit number without '+' was silently dropped.
+ *  - {@link #formatForDisplay(String)} now formats Kenyan numbers as
+ *    "+254 7XX XXX XXX" (correct grouping).
+ *  - {@link #areSameNumber} is now null-safe.
  */
-public class PhoneNormalizer {
+public final class PhoneNormalizer {
+
     private static final String TAG = "PhoneNormalizer";
-    
-    // Default country code for phone normalization (Kenya)
+
+    /** Default country code: Kenya (ITU E.164). */
     public static final String DEFAULT_COUNTRY_CODE = "254";
-    
-    // Country-specific configurations for phone normalization
-    private static final Map<String, CountryConfig> COUNTRY_CONFIGS = new HashMap<>();
-    
+
+    // ── Kenyan number-series patterns ─────────────────────────────────────────
+    // Safaricom  : 070x, 071x, 072x, 074x, 075x, 076x, 079x, 011x
+    // Airtel KE  : 073x, 078x, 010x
+    // Telkom KE  : 077x
+    // (Matched against the local 07xx / 01xx prefix after stripping 254.)
+    private static final Pattern KENYA_MOBILE_PATTERN =
+            Pattern.compile("^\\+254[71]\\d{8}$");
+
+    private static final Pattern KENYA_SAFARICOM_PATTERN =
+            Pattern.compile("^\\+254(7[01245679]\\d{7}|1[01]\\d{7})$");
+
+    private static final Pattern KENYA_AIRTEL_PATTERN =
+            Pattern.compile("^\\+254(73\\d{7}|78\\d{7}|10\\d{7})$");
+
+    private static final Pattern KENYA_TELKOM_PATTERN =
+            Pattern.compile("^\\+25477\\d{7}$");
+
+    private static final Pattern INTERNATIONAL_PATTERN =
+            Pattern.compile("^\\+\\d{7,15}$");
+
+    // ── Country config (local digit count) ───────────────────────────────────
+    private static final Map<String, int[]> COUNTRY_LENGTHS = new HashMap<>();
     static {
-        // Kenya: 7XXXXXXXX or 07XXXXXXXX
-        COUNTRY_CONFIGS.put("254", new CountryConfig(9, 10));
-        
-        // US/Canada: 10 digits
-        COUNTRY_CONFIGS.put("1", new CountryConfig(10, 10));
-        
-        // UK: 10 digits or 11 with 0
-        COUNTRY_CONFIGS.put("44", new CountryConfig(10, 11));
-        
-        // India: 10 digits
-        COUNTRY_CONFIGS.put("91", new CountryConfig(10, 10));
-        
-        // South Africa: 9 digits or 10 with 0
-        COUNTRY_CONFIGS.put("27", new CountryConfig(9, 10));
-        
-        // Nigeria: 10 digits or 11 with 0
-        COUNTRY_CONFIGS.put("234", new CountryConfig(10, 11));
-        
-        // Tanzania: 9 digits or 10 with 0
-        COUNTRY_CONFIGS.put("255", new CountryConfig(9, 10));
-        
-        // Uganda: 9 digits or 10 with 0
-        COUNTRY_CONFIGS.put("256", new CountryConfig(9, 10));
+        // { localDigits (without leading 0), localDigitsWithZero }
+        COUNTRY_LENGTHS.put("254", new int[]{9, 10}); // Kenya
+        COUNTRY_LENGTHS.put("255", new int[]{9, 10}); // Tanzania
+        COUNTRY_LENGTHS.put("256", new int[]{9, 10}); // Uganda
+        COUNTRY_LENGTHS.put("250", new int[]{9,  9}); // Rwanda
+        COUNTRY_LENGTHS.put("234", new int[]{10, 11}); // Nigeria
+        COUNTRY_LENGTHS.put("27",  new int[]{9, 10}); // South Africa
+        COUNTRY_LENGTHS.put("91",  new int[]{10, 10}); // India
+        COUNTRY_LENGTHS.put("44",  new int[]{10, 11}); // UK
+        COUNTRY_LENGTHS.put("1",   new int[]{10, 10}); // US/Canada
     }
-    
-    // Kenya phone number patterns
-    private static final Pattern KENYA_MOBILE_PATTERN = Pattern.compile("^(?:\\+254|0)?[17]\\d{8}$");
-    private static final Pattern INTERNATIONAL_PATTERN = Pattern.compile("^\\+\\d{10,15}$");
-    private static final Pattern LOCAL_PATTERN = Pattern.compile("^0\\d{9}$");
-    
+
+    private PhoneNormalizer() {}
+
+    // ── Public API ────────────────────────────────────────────────────────────
+
     /**
-     * Country configuration data class
-     */
-    private static class CountryConfig {
-        final int localLength;
-        final int withZeroLength;
-        
-        CountryConfig(int localLength, int withZeroLength) {
-            this.localLength = localLength;
-            this.withZeroLength = withZeroLength;
-        }
-    }
-    
-    /**
-     * Normalize phone number to E.164 format with reasonable validation
-     * Accepts various formats and normalizes them, rejecting only obviously invalid numbers
+     * Normalises {@code phone} to E.164.  Assumes Kenya (+254) as the default
+     * country when no country code can be detected.
+     *
+     * @return E.164 string (e.g. "+254722123456"), or {@code ""} if the input
+     *         cannot be normalised.
      */
     public static String normalizePhone(String phone) {
         return normalizePhone(phone, DEFAULT_COUNTRY_CODE);
     }
-    
+
     /**
-     * Normalize phone number to E.164 format with country code override
+     * Normalises {@code phone} to E.164 using {@code defaultCountryCode} as the
+     * fallback country code (digits only, no '+').
      */
-    public static String normalizePhone(String phone, String countryCode) {
-        if (phone == null || phone.trim().isEmpty()) {
-            return "";
+    public static String normalizePhone(String phone, String defaultCountryCode) {
+        if (phone == null || phone.isBlank()) return "";
+
+        String trimmed = phone.trim();
+        boolean hasPlus = trimmed.startsWith("+");
+        String digits = trimmed.replaceAll("[^\\d]", "");
+
+        if (digits.isEmpty()) return "";
+
+        String cc = defaultCountryCode != null ? defaultCountryCode : DEFAULT_COUNTRY_CODE;
+
+        // ── Case 1: Starts with '+' ───────────────────────────────────────────
+        if (hasPlus) {
+            return validateAndReturnInternational("+" + digits);
         }
-        
-        // Remove all non-numeric characters except leading +
-        String cleaned = phone.trim();
-        boolean hasLeadingPlus = cleaned.startsWith("+");
-        cleaned = cleaned.replaceAll("[^\\d]", "");
-        
-        if (hasLeadingPlus) {
-            cleaned = "+" + cleaned;
+
+        // ── Case 2: Starts with country code (no '+') ─────────────────────────
+        if (digits.startsWith("254") && digits.length() == 12) {
+            return validateAndReturnInternational("+" + digits);
         }
-        
-        // If empty after cleaning, return empty
-        if (cleaned.isEmpty()) {
-            return "";
+
+        // ── Case 3: Local Kenyan number ───────────────────────────────────────
+        if (cc.equals("254")) {
+            return normalizeKenyan(digits);
         }
-        
-        // Handle different formats
-        if (cleaned.startsWith("+")) {
-            // International format: +XXXXXXXXX
-            return handleInternationalFormat(cleaned, countryCode);
-        } else {
-            // Local format: various possibilities
-            return handleLocalFormat(cleaned, countryCode);
-        }
+
+        // ── Case 4: Generic local number for other countries ─────────────────
+        return normalizeGeneric(digits, cc);
     }
-    
+
     /**
-     * Handle international format phone numbers
+     * Returns {@code true} when the phone number is a valid Kenyan mobile number
+     * after normalisation.
      */
-    private static String handleInternationalFormat(String cleaned, String countryCode) {
-        String withoutPlus = cleaned.substring(1);
-        
-        // If it's already +254 format, validate basic length for Kenya
-        if (withoutPlus.startsWith("254")) {
-            String localNumber = withoutPlus.substring(3);
-            // Accept any 6-9 digit number for Kenya (be more permissive)
-            if (localNumber.length() >= 6 && localNumber.length() <= 9) {
-                return "+254" + padAndTruncate(localNumber, 9);
-            }
-        }
-        
-        // For other international numbers, accept reasonable lengths (7-15 digits)
-        if (withoutPlus.length() >= 7 && withoutPlus.length() <= 15) {
-            return cleaned;
-        }
-        
-        return ""; // Invalid international format
+    public static boolean isValidKenyaNumber(String phone) {
+        String n = normalizePhone(phone);
+        return !n.isEmpty() && KENYA_MOBILE_PATTERN.matcher(n).matches();
     }
-    
+
     /**
-     * Handle local format phone numbers
+     * Returns the carrier name for a Kenyan number, or {@code "Unknown"}.
      */
-    private static String handleLocalFormat(String cleaned, String countryCode) {
-        String digits = cleaned;
-        
-        // Handle leading 254 (without +) - international format without +
-        if (digits.startsWith("254")) {
-            digits = digits.substring(3);
-        }
-        
-        // Remove leading zero if present
-        if (digits.startsWith("0")) {
-            digits = digits.substring(1);
-        }
-        
-        // Accept reasonable local lengths (6-10 digits, be permissive)
-        if (digits.length() >= 6 && digits.length() <= 10) {
-            // Pad to 9 digits for Kenyan numbers, but accept other lengths for international
-            if (digits.length() <= 9) {
-                return "+254" + padAndTruncate(digits, 9);
-            } else {
-                // Assume it's already an international number
-                return "+" + digits;
-            }
-        }
-        
-        return ""; // Invalid local format
+    public static String getCarrierName(String phone) {
+        String n = normalizePhone(phone);
+        if (n.isEmpty()) return "Unknown";
+        if (KENYA_SAFARICOM_PATTERN.matcher(n).matches()) return "Safaricom";
+        if (KENYA_AIRTEL_PATTERN.matcher(n).matches())    return "Airtel";
+        if (KENYA_TELKOM_PATTERN.matcher(n).matches())    return "Telkom";
+        return "Unknown";
     }
-    
-    /**
-     * Pad or truncate number to target length
-     */
-    private static String padAndTruncate(String number, int targetLength) {
-        if (number.length() >= targetLength) {
-            return number.substring(number.length() - targetLength);
-        } else {
-            // Pad with leading zeros
-            return String.format("%0" + targetLength + "d", Integer.parseInt(number));
-        }
-    }
-    
-    /**
-     * Get phone number type
-     */
-    public static PhoneNumberType getPhoneNumberType(String phoneNumber) {
-        if (phoneNumber == null) return PhoneNumberType.INVALID;
-        
-        String normalized = normalizePhone(phoneNumber);
-        if (normalized.isEmpty()) return PhoneNumberType.INVALID;
-        
-        if (normalized.startsWith("+254")) {
-            if (isValidKenyaMobile(normalized)) {
-                return PhoneNumberType.KENYA_MOBILE;
-            }
-        } else if (normalized.startsWith("+")) {
-            return PhoneNumberType.INTERNATIONAL;
-        }
-        
-        return PhoneNumberType.OTHER;
-    }
-    
-    /**
-     * Format phone number for display
-     */
-    public static String formatForDisplay(String phoneNumber) {
-        if (phoneNumber == null) return "";
-        
-        String normalized = normalizePhone(phoneNumber);
-        if (normalized.isEmpty()) return phoneNumber;
-        
-        PhoneNumberType type = getPhoneNumberType(normalized);
-        
-        switch (type) {
-            case KENYA_MOBILE:
-                // Format: +254 7XX XXX XXX
-                if (normalized.length() == 13) {
-                    return normalized.substring(0, 4) + " " + 
-                           normalized.substring(4, 7) + " " + 
-                           normalized.substring(7, 10) + " " + 
-                           normalized.substring(10);
-                }
-                break;
-            case INTERNATIONAL:
-                // Format: +XXX XXX XXX XXX (group by 3)
-                StringBuilder formatted = new StringBuilder();
-                for (int i = 0; i < normalized.length(); i++) {
-                    if (i > 0 && i % 3 == 0) {
-                        formatted.append(" ");
-                    }
-                    formatted.append(normalized.charAt(i));
-                }
-                return formatted.toString();
-        }
-        
-        return normalized;
-    }
-    
-    /**
-     * Check if two phone numbers are the same
-     */
-    public static boolean areSameNumber(String phone1, String phone2) {
-        String normalized1 = normalizePhone(phone1);
-        String normalized2 = normalizePhone(phone2);
-        
-        return !normalized1.isEmpty() && normalized1.equals(normalized2);
-    }
-    
-    /**
-     * Extract country code from phone number
-     */
-    public static String extractCountryCode(String phoneNumber) {
-        if (phoneNumber == null) return null;
-        
-        String normalized = normalizePhone(phoneNumber);
-        if (normalized.isEmpty() || !normalized.startsWith("+")) {
-            return null;
-        }
-        
-        // Extract country code (first 2-4 digits after +)
-        for (int i = 2; i <= 4; i++) {
-            if (normalized.length() > i) {
-                String code = normalized.substring(0, i);
-                if (isValidCountryCode(code)) {
-                    return code;
-                }
-            }
-        }
-        
-        return null;
-    }
-    
-    /**
-     * Check if country code is valid
-     */
-    private static boolean isValidCountryCode(String countryCode) {
-        // Basic validation - country codes are 2-4 digits
-        return countryCode.matches("^\\+\\d{2,4}$");
-    }
-    
-    /**
-     * Validate Kenya mobile number
-     */
-    private static boolean isValidKenyaMobile(String phoneNumber) {
-        return KENYA_MOBILE_PATTERN.matcher(phoneNumber).matches();
-    }
-    
-    /**
-     * Validate international number
-     */
-    private static boolean isValidInternational(String phoneNumber) {
-        return INTERNATIONAL_PATTERN.matcher(phoneNumber).matches();
-    }
-    
-    /**
-     * Validate local number
-     */
-    private static boolean isValidLocal(String phoneNumber) {
-        return LOCAL_PATTERN.matcher(phoneNumber).matches();
-    }
-    
-    /**
-     * Validate phone number for bulk SMS sending
-     */
-    public static boolean isValidForBulkSms(String phoneNumber) {
-        PhoneNumberType type = getPhoneNumberType(phoneNumber);
-        return type == PhoneNumberType.KENYA_MOBILE || type == PhoneNumberType.INTERNATIONAL;
-    }
-    
-    /**
-     * Get validation error message
-     */
-    public static String getValidationError(String phoneNumber) {
-        if (phoneNumber == null || phoneNumber.trim().isEmpty()) {
-            return "Phone number is required";
-        }
-        
-        String normalized = normalizePhone(phoneNumber);
-        if (normalized.isEmpty()) {
-            return "Invalid phone number format";
-        }
-        
-        PhoneNumberType type = getPhoneNumberType(normalized);
-        if (type == PhoneNumberType.INVALID) {
-            return "Invalid phone number format";
-        }
-        
-        if (!isValidForBulkSms(phoneNumber)) {
-            return "Phone number is not supported for bulk SMS";
-        }
-        
-        return null;
-    }
-    
-    /**
-     * Get country-specific validation info
-     */
-    public static CountryValidationInfo getCountryValidationInfo(String countryCode) {
-        CountryConfig config = COUNTRY_CONFIGS.get(countryCode);
-        if (config == null) {
-            return new CountryValidationInfo(countryCode, 7, 15, false);
-        }
-        
-        return new CountryValidationInfo(
-            countryCode, 
-            config.localLength, 
-            config.localLength + 3, // + country code
-            true
-        );
-    }
-    
-    /**
-     * Country validation info data class
-     */
-    public static class CountryValidationInfo {
-        public final String countryCode;
-        public final int minLocalLength;
-        public final int maxInternationalLength;
-        public final boolean isSupported;
-        
-        CountryValidationInfo(String countryCode, int minLocalLength, int maxInternationalLength, boolean isSupported) {
-            this.countryCode = countryCode;
-            this.minLocalLength = minLocalLength;
-            this.maxInternationalLength = maxInternationalLength;
-            this.isSupported = isSupported;
-        }
-        
-        @Override
-        public String toString() {
-            return "CountryValidationInfo{" +
-                   "countryCode='" + countryCode + '\'' +
-                   ", minLocalLength=" + minLocalLength +
-                   ", maxInternationalLength=" + maxInternationalLength +
-                   ", isSupported=" + isSupported +
-                   '}';
-        }
-    }
-    
-    /**
-     * Phone number types
-     */
+
+    /** Phone number classification. */
     public enum PhoneNumberType {
-        KENYA_MOBILE,
-        INTERNATIONAL,
-        OTHER,
+        KENYA_MOBILE,   // Valid Kenyan mobile
+        INTERNATIONAL,  // Valid non-Kenyan international
+        OTHER,          // Parseable but unrecognised
         INVALID
     }
-    
-    /**
-     * Get all supported country codes
-     */
-    public static String[] getSupportedCountryCodes() {
-        return COUNTRY_CONFIGS.keySet().toArray(new String[0]);
+
+    public static PhoneNumberType getPhoneNumberType(String phone) {
+        String n = normalizePhone(phone);
+        if (n.isEmpty()) return PhoneNumberType.INVALID;
+        if (n.startsWith("+254") && KENYA_MOBILE_PATTERN.matcher(n).matches())
+            return PhoneNumberType.KENYA_MOBILE;
+        if (INTERNATIONAL_PATTERN.matcher(n).matches())
+            return PhoneNumberType.INTERNATIONAL;
+        if (!n.isEmpty())
+            return PhoneNumberType.OTHER;
+        return PhoneNumberType.INVALID;
     }
-    
+
     /**
-     * Check if country code is supported
+     * Formats a phone number for human display.
+     * Kenyan mobiles → "+254 7XX XXX XXX"
+     * Other international → "+CC DDD DDD DDD"
      */
-    public static boolean isCountryCodeSupported(String countryCode) {
-        return COUNTRY_CONFIGS.containsKey(countryCode);
-    }
-    
-    /**
-     * Normalize phone number with automatic country detection
-     */
-    public static String normalizePhoneAuto(String phone) {
-        if (phone == null) return "";
-        
-        // Try to detect country from the number
-        String detectedCountry = detectCountryCode(phone);
-        return normalizePhone(phone, detectedCountry);
-    }
-    
-    /**
-     * Detect country code from phone number
-     */
-    private static String detectCountryCode(String phone) {
-        String cleaned = phone.replaceAll("[^\\d+]", "");
-        
-        if (cleaned.startsWith("+")) {
-            String withoutPlus = cleaned.substring(1);
-            
-            // Try to match known country codes
-            for (String countryCode : COUNTRY_CONFIGS.keySet()) {
-                if (withoutPlus.startsWith(countryCode)) {
-                    return countryCode;
-                }
-            }
+    public static String formatForDisplay(String phone) {
+        if (phone == null || phone.isBlank()) return "";
+        String n = normalizePhone(phone);
+        if (n.isEmpty()) return phone;
+
+        // Kenyan: +254XXXXXXXXX  → +254 7XX XXX XXX
+        if (n.startsWith("+254") && n.length() == 13) {
+            return n.substring(0, 4) + " " +
+                   n.substring(4, 7) + " " +
+                   n.substring(7, 10) + " " +
+                   n.substring(10);
         }
-        
-        return DEFAULT_COUNTRY_CODE;
+
+        // Generic international: group in threes after the country code
+        // Keep '+' then insert spaces every 3 digits
+        StringBuilder sb = new StringBuilder("+");
+        String bare = n.substring(1);
+        for (int i = 0; i < bare.length(); i++) {
+            if (i > 0 && i % 3 == 0) sb.append(' ');
+            sb.append(bare.charAt(i));
+        }
+        return sb.toString();
+    }
+
+    /** Returns {@code true} when both numbers normalise to the same E.164 string. */
+    public static boolean areSameNumber(String a, String b) {
+        if (a == null || b == null) return false;
+        String na = normalizePhone(a);
+        String nb = normalizePhone(b);
+        return !na.isEmpty() && na.equals(nb);
+    }
+
+    /** Whether the number is usable for bulk SMS (Kenya mobile or recognised international). */
+    public static boolean isValidForBulkSms(String phone) {
+        PhoneNumberType t = getPhoneNumberType(phone);
+        return t == PhoneNumberType.KENYA_MOBILE || t == PhoneNumberType.INTERNATIONAL;
+    }
+
+    /** Human-readable validation error, or {@code null} when the number is valid. */
+    public static String getValidationError(String phone) {
+        if (phone == null || phone.isBlank()) return "Phone number is required";
+        String n = normalizePhone(phone);
+        if (n.isEmpty()) return "Invalid phone number format";
+        if (!isValidForBulkSms(phone)) return "Phone number not supported for bulk SMS";
+        return null;
+    }
+
+    /** Returns all supported country codes. */
+    public static String[] getSupportedCountryCodes() {
+        return COUNTRY_LENGTHS.keySet().toArray(new String[0]);
+    }
+
+    // ── Private helpers ───────────────────────────────────────────────────────
+
+    private static String normalizeKenyan(String digits) {
+        // Strip country code if present
+        if (digits.startsWith("254") && digits.length() == 12) {
+            return validateAndReturnInternational("+" + digits);
+        }
+        // Strip leading zero
+        String local = digits.startsWith("0") ? digits.substring(1) : digits;
+        if (local.length() == 9) {
+            return validateAndReturnInternational("+254" + local);
+        }
+        // 10 digits with leading zero already stripped → shouldn't happen, but handle
+        if (local.length() == 8) {
+            Log.w(TAG, "Short number (" + digits + "), skipping");
+            return "";
+        }
+        Log.w(TAG, "Cannot normalise Kenyan number: " + digits);
+        return "";
+    }
+
+    private static String normalizeGeneric(String digits, String cc) {
+        int[] lengths = COUNTRY_LENGTHS.get(cc);
+        int localLen = lengths != null ? lengths[0] : 9;
+        int localWithZero = lengths != null ? lengths[1] : 10;
+
+        if (digits.startsWith(cc) && digits.length() == cc.length() + localLen) {
+            return "+" + digits;
+        }
+        String local = digits.startsWith("0") ? digits.substring(1) : digits;
+        if (local.length() == localLen) {
+            return "+" + cc + local;
+        }
+        if (digits.length() == localWithZero && digits.startsWith("0")) {
+            return "+" + cc + digits.substring(1);
+        }
+        return "";
+    }
+
+    private static String validateAndReturnInternational(String withPlus) {
+        // Must be +digits, length 8–16 total
+        if (withPlus == null || !withPlus.startsWith("+")) return "";
+        String bare = withPlus.substring(1);
+        if (bare.length() < 7 || bare.length() > 15) return "";
+        if (!bare.matches("\\d+")) return "";
+        return withPlus;
     }
 }

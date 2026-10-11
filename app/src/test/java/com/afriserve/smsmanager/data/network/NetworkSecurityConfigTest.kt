@@ -1,5 +1,6 @@
 package com.afriserve.smsmanager.data.network
 
+import com.afriserve.smsmanager.AppConfig
 import okhttp3.CertificatePinner
 import org.junit.Assert.*
 import org.junit.Test
@@ -21,10 +22,9 @@ class NetworkSecurityConfigTest {
         val client = NetworkSecurityConfig.createSecureBillingClient()
         
         assertNotNull(client)
-        // Verify timeouts are set
-        assertEquals(30_000, client.connectTimeoutMillis)
-        assertEquals(60_000, client.readTimeoutMillis)
-        assertEquals(60_000, client.writeTimeoutMillis)
+        assertEquals(AppConfig.Network.CONNECT_TIMEOUT_MS.toInt(), client.connectTimeoutMillis)
+        assertEquals(AppConfig.Network.READ_TIMEOUT_MS.toInt(), client.readTimeoutMillis)
+        assertEquals(AppConfig.Network.WRITE_TIMEOUT_MS.toInt(), client.writeTimeoutMillis)
         // Verify retry is enabled
         assertTrue(client.retryOnConnectionFailure)
         // Verify certificate pinner is attached
@@ -36,10 +36,9 @@ class NetworkSecurityConfigTest {
         val client = NetworkSecurityConfig.createStandardClient()
         
         assertNotNull(client)
-        // Verify timeouts are set
-        assertEquals(30_000, client.connectTimeoutMillis)
-        assertEquals(60_000, client.readTimeoutMillis)
-        assertEquals(60_000, client.writeTimeoutMillis)
+        assertEquals(AppConfig.Network.CONNECT_TIMEOUT_MS.toInt(), client.connectTimeoutMillis)
+        assertEquals(AppConfig.Network.READ_TIMEOUT_MS.toInt(), client.readTimeoutMillis)
+        assertEquals(AppConfig.Network.WRITE_TIMEOUT_MS.toInt(), client.writeTimeoutMillis)
         // Verify retry is enabled
         assertTrue(client.retryOnConnectionFailure)
     }

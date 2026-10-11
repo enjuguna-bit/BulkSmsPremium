@@ -1,6 +1,8 @@
 package com.afriserve.smsmanager.data.parser;
 
 import android.util.Log;
+import com.afriserve.smsmanager.data.csv.NameSplitter;
+import com.afriserve.smsmanager.data.templates.TemplateValueResolver;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -88,7 +90,41 @@ public class TemplateVariableExtractor {
                 originalHeader,
                 sampleValue
             ));
+            
+            // Auto-split name support for UI
+            if (NameSplitter.isNameColumn(originalHeader)) {
+                NameSplitter.SplitName split = null;
+                if (sampleValue != null && !sampleValue.trim().isEmpty()) {
+                    split = NameSplitter.split(sampleValue);
+                }
+                
+                variables.add(new TemplateVariable(
+                    "{firstname}", 
+                    "First Name", 
+                    originalHeader + " (First Name)", 
+                    split != null ? split.getPart("firstname") : "John"
+                ));
+                
+                variables.add(new TemplateVariable(
+                    "{secondname}", 
+                    "Second Name", 
+                    originalHeader + " (Second Name)", 
+                    split != null ? split.getPart("secondname") : "Doe"
+                ));
+                
+                variables.add(new TemplateVariable(
+                    "{thirdname}", 
+                    "Third Name", 
+                    originalHeader + " (Third Name)", 
+                    split != null ? split.getPart("thirdname") : "Smith"
+                ));
+            }
         }
+
+        addCalculatedVariable(variables, uniqueHeaders, data, "total_due", "Total Due", "Amount Due + Arrears");
+        addCalculatedVariable(variables, uniqueHeaders, data, "total_payable", "Total Payable", "Amount Due + Arrears");
+        addCalculatedVariable(variables, uniqueHeaders, data, "outstanding_balance", "Outstanding Balance", "Loan Balance");
+        addCalculatedVariable(variables, uniqueHeaders, data, "current_arrears", "Current Arrears", "Arrears Amount");
         
         Log.d(TAG, "Extracted " + variables.size() + " template variables");
         return variables;
@@ -98,13 +134,29 @@ public class TemplateVariableExtractor {
      * Normalize header names for consistent variable naming
      */
     private static String normalizeHeader(String header) {
-        if (header == null) return "";
-        
-        return header.toLowerCase()
-            .replaceAll("\\s+", "_")
-            .replaceAll("[^\\w_]", "")
-            .replaceAll("_+", "_")
-            .replaceAll("^_|_$", "");
+        return TemplateValueResolver.normalizeKey(header);
+    }
+
+    private static void addCalculatedVariable(List<TemplateVariable> variables,
+                                              Map<String, String> uniqueHeaders,
+                                              List<Map<String, String>> data,
+                                              String key,
+                                              String displayName,
+                                              String description) {
+        if (!uniqueHeaders.containsKey(key) && !hasAnyNormalized(uniqueHeaders, key)) {
+            String sample = "";
+            if (!data.isEmpty()) {
+                Map<String, String> values = TemplateValueResolver.canonicalize(data.get(0));
+                sample = values.getOrDefault(key, "");
+            }
+            if (!sample.isEmpty()) {
+                variables.add(new TemplateVariable("{" + key + "}", displayName, description, sample));
+            }
+        }
+    }
+
+    private static boolean hasAnyNormalized(Map<String, String> headers, String key) {
+        return headers.containsKey(key) || headers.containsKey("amountdue" ) && "total_due".equals(key);
     }
     
     /**
@@ -186,20 +238,20 @@ public class TemplateVariableExtractor {
      * Process template with variable replacement
      */
     private static String processTemplate(String template, Map<String, String> row) {
-        String result = template;
+        String result = TemplateValueResolver.process(template, row);
         
-        // Replace all variables with their values
+        // Auto-split name support
         for (Map.Entry<String, String> entry : row.entrySet()) {
-            String header = entry.getKey();
-            String value = entry.getValue();
-            
-            if (value == null) value = "";
-            
-            // Create normalized variable name
-            String normalizedHeader = normalizeHeader(header);
-            String variableName = "{" + normalizedHeader + "}";
-            
-            result = result.replace(variableName, value);
+            if (NameSplitter.isNameColumn(entry.getKey())) {
+                String fullName = entry.getValue();
+                if (fullName != null && !fullName.trim().isEmpty()) {
+                    NameSplitter.SplitName split = NameSplitter.split(fullName);
+                    result = result.replace("{firstname}", split.getPart("firstname"));
+                    result = result.replace("{secondname}", split.getPart("secondname"));
+                    result = result.replace("{thirdname}", split.getPart("thirdname"));
+                }
+                break;
+            }
         }
         
         return result;

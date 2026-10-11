@@ -21,9 +21,9 @@ public class SmsDeliveryReceiver extends BroadcastReceiver {
     public void onReceive(Context context, Intent intent) {
         try {
             String action = intent.getAction();
-            long smsId = intent.getLongExtra("sms_id", -1);
+            long smsId = getSmsId(intent);
             
-            if (smsId == -1) {
+            if (smsId <= 0) {
                 Log.e(TAG, "Invalid SMS ID in broadcast");
                 return;
             }
@@ -69,5 +69,21 @@ public class SmsDeliveryReceiver extends BroadcastReceiver {
         } catch (Exception e) {
             Log.e(TAG, "Error processing SMS delivery broadcast", e);
         }
+    }
+
+    /** Accept both the fixed numeric extra and callbacks from older builds. */
+    private long getSmsId(Intent intent) {
+        Object value = intent.getExtras() != null ? intent.getExtras().get("sms_id") : null;
+        if (value instanceof Number) {
+            return ((Number) value).longValue();
+        }
+        if (value instanceof String) {
+            try {
+                return Long.parseLong((String) value);
+            } catch (NumberFormatException ignored) {
+                // Keep the invalid-ID path below.
+            }
+        }
+        return -1L;
     }
 }

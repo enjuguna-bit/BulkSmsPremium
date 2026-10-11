@@ -1,0 +1,59 @@
+# Baseline Profile for BulkSMS2
+# This file defines classes that should be pre-compiled during app installation
+# to improve startup time and reduce jank.
+#
+# Generated manually based on critical startup paths.
+# For an auto-generated profile, use the Baseline Profile Gradle plugin.
+
+# Application startup
+HSPLcom/afriserve/smsmanager/BulkSmsApplication;->onCreate()V
+HSPLcom/afriserve/smsmanager/BulkSmsApplication;->getWorkManagerConfiguration()Landroidx/work/Configuration;
+
+# Main Activity
+HSPLcom/afriserve/smsmanager/MainActivity;->onCreate(Landroid/os/Bundle;)V
+HSPLcom/afriserve/smsmanager/MainActivity;->setupNavigation()V
+HSPLcom/afriserve/smsmanager/MainActivity;->checkAndRequestPermissions()V
+
+# Dashboard (primary screen)
+HSPLcom/afriserve/smsmanager/DashboardFragment;->onCreateView(Landroid/view/LayoutInflater;Landroid/view/ViewGroup;Landroid/os/Bundle;)Landroid/view/View;
+HSPLcom/afriserve/smsmanager/DashboardFragment;->onViewCreated(Landroid/view/View;Landroid/os/Bundle;)V
+
+# Database initialization
+HSPLcom/afriserve/smsmanager/AppDatabase;->getInstance(Landroid/content/Context;)Lcom/afriserve/smsmanager/AppDatabase;
+
+# Hilt components
+HSPLdagger/hilt/android/internal/managers/ActivityComponentManager;->createComponent()Ljava/lang/Object;
+HSPLdagger/hilt/android/internal/managers/FragmentComponentManager;->createComponent()Ljava/lang/Object;
+
+# Navigation
+HSPLandroidx/navigation/fragment/NavHostFragment;->onCreate(Landroid/os/Bundle;)V
+HSPLandroidx/navigation/NavController;->navigate(ILandroid/os/Bundle;Landroidx/navigation/NavOptions;)V
+
+# WorkManager
+HSPLandroidx/work/WorkManager;->getInstance(Landroid/content/Context;)Landroidx/work/WorkManager;
+
+# ViewBinding
+Lcom/afriserve/smsmanager/databinding/**;
+
+# UI Components commonly used on startup
+Landroidx/recyclerview/widget/RecyclerView;
+Landroidx/swiperefreshlayout/widget/SwipeRefreshLayout;
+Lcom/google/android/material/bottomnavigation/BottomNavigationView;
+Lcom/google/android/material/card/MaterialCardView;
+
+# Kotlin stdlib
+Lkotlin/jvm/internal/Intrinsics;
+Lkotlin/collections/CollectionsKt;
+Lkotlinx/coroutines/**;
+
+# Room runtime
+Landroidx/room/RoomDatabase;
+Landroidx/room/InvalidationTracker;
+
+# Lifecycle
+Landroidx/lifecycle/ViewModel;
+Landroidx/lifecycle/LiveData;
+Landroidx/lifecycle/MutableLiveData;
+
+# Shimmer (for loading states)
+Lcom/facebook/shimmer/ShimmerFrameLayout;

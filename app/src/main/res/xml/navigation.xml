@@ -35,6 +35,16 @@
         tools:layout="@layout/fragment_settings" />
 
     <fragment
+        android:id="@+id/nav_campaign_history"
+        android:name="com.afriserve.smsmanager.ui.campaign.CampaignHistoryFragment"
+        android:label="Campaign History" />
+
+    <fragment
+        android:id="@+id/nav_campaign_analytics"
+        android:name="com.afriserve.smsmanager.ui.campaign.CampaignAnalyticsFragment"
+        android:label="Campaign Analytics" />
+
+    <fragment
         android:id="@+id/nav_conversation"
         android:name="com.afriserve.smsmanager.ui.conversation.ConversationFragment"
         android:label="Conversation"

@@ -35,8 +35,14 @@ public class CsvFileHandler {
         this.contentResolver = context.getContentResolver();
     }
 
+    public String getFileName(Uri fileUri) {
+        return FileUtils.getFileNameFromUri(context, fileUri);
+    }
+
     /**
-     * Parse CSV file from URI
+     * Parse CSV file from URI with robust error handling
+     * This method is designed to NEVER crash - it catches all exceptions
+     * and returns partial results with error information
      */
     public io.reactivex.rxjava3.core.Single<CsvParsingResult> parseFile(Uri fileUri, String fileName) {
         return io.reactivex.rxjava3.core.Single.fromCallable(() -> {
@@ -45,6 +51,9 @@ public class CsvFileHandler {
             List<CsvRecipient> validRecipients = new ArrayList<>();
             List<String> invalidRecipients = new ArrayList<>();
             List<String> parseErrors = new ArrayList<>();
+            
+            int skippedRows = 0;
+            int processedRows = 0;
 
             try {
                 String resolvedFileName = resolveFileName(fileUri, fileName);
@@ -53,49 +62,93 @@ public class CsvFileHandler {
                 List<Map<String, String>> dataRows = new ArrayList<>();
                 List<String> headerNames = new ArrayList<>();
 
-                ParseEnvelope parsedEnvelope = parseRowsWithFallback(fileUri, fileType, resolvedFileName);
-                dataRows = parsedEnvelope.rows;
-                headerNames = parsedEnvelope.headers;
+                try {
+                    ParseEnvelope parsedEnvelope = parseRowsWithFallback(fileUri, fileType, resolvedFileName);
+                    dataRows = parsedEnvelope.rows;
+                    headerNames = parsedEnvelope.headers;
+                } catch (Exception parseException) {
+                    Log.e(TAG, "Parse fallback failed", parseException);
+                    parseErrors.add("File parsing error: " + parseException.getMessage());
+                    // Return empty result with error
+                    return new CsvParsingResult(
+                        recipients, validRecipients, invalidRecipients, headers,
+                        new CsvDetectionResult(headers, null, null, false, new ArrayList<>(), 0, ""),
+                        parseErrors
+                    );
+                }
 
                 if ((headerNames == null || headerNames.isEmpty()) && !dataRows.isEmpty()) {
-                    headerNames = new ArrayList<>(dataRows.get(0).keySet());
+                    try {
+                        headerNames = new ArrayList<>(dataRows.get(0).keySet());
+                    } catch (Exception e) {
+                        Log.w(TAG, "Could not extract headers from data", e);
+                        parseErrors.add("Warning: Could not extract headers properly");
+                    }
                 }
 
                 for (int i = 0; i < headerNames.size(); i++) {
-                    headers.add(new CsvHeader(i, headerNames.get(i).trim()));
+                    try {
+                        String headerName = headerNames.get(i);
+                        if (headerName != null) {
+                            headers.add(new CsvHeader(i, headerName.trim()));
+                        } else {
+headers.add(new CsvHeader(i, "Column" + (i + 1)));
+                        }
+                    } catch (Exception e) {
+                        Log.w(TAG, "Error processing header at index " + i, e);
+                        headers.add(new CsvHeader(i, "Column" + (i + 1)));
+                    }
                 }
 
                 // Detect phone column
                 CsvDetectionResult detectionResult = detectPhoneColumns(headers);
 
-                // Process data rows
+                // Process data rows with individual error handling
                 int rowIndex = 0;
                 for (Map<String, String> row : dataRows) {
                     rowIndex++;
-                    if (row == null || row.isEmpty()) {
-                        continue;
-                    }
+                    processedRows++;
+                    
+                    try {
+                        if (row == null || row.isEmpty()) {
+                            skippedRows++;
+                            continue;
+                        }
 
-                    Map<String, String> rowData = new HashMap<>();
-                    for (String header : headerNames) {
-                        String value = row.getOrDefault(header, "");
-                        rowData.put(header, cleanValue(value));
-                    }
+                        Map<String, String> rowData = new HashMap<>();
+                        for (String header : headerNames) {
+                            try {
+                                String value = row.getOrDefault(header, "");
+                                rowData.put(header, cleanValue(value));
+                            } catch (Exception e) {
+                                Log.w(TAG, "Error processing cell for header: " + header, e);
+                                rowData.put(header, "");
+                            }
+                        }
 
-                    if (isRowEmpty(rowData)) {
-                        continue;
-                    }
+                        if (isRowEmpty(rowData)) {
+                            skippedRows++;
+                            continue;
+                        }
 
-                    String phoneNumber = extractPhoneNumber(rowData, detectionResult);
-                    CsvRecipient recipient = new CsvRecipient(phoneNumber, rowData);
-                    recipients.add(recipient);
+                        String phoneNumber = extractPhoneNumber(rowData, detectionResult);
+                        CsvRecipient recipient = new CsvRecipient(phoneNumber, rowData);
+                        recipients.add(recipient);
 
-                    if (isValidPhoneNumber(phoneNumber)) {
-                        validRecipients.add(recipient);
-                    } else {
-                        invalidRecipients.add((phoneNumber != null ? phoneNumber : "") + " - Invalid format (row " + rowIndex + ")");
+                        if (isValidPhoneNumber(phoneNumber)) {
+                            validRecipients.add(recipient);
+                        } else {
+                            invalidRecipients.add((phoneNumber != null ? phoneNumber : "") + " - Invalid format (row " + rowIndex + ")");
+                        }
+                    } catch (Exception rowException) {
+                        // Don't crash - skip problematic row and continue
+                        Log.w(TAG, "Skipping problematic row " + rowIndex, rowException);
+                        skippedRows++;
+                        parseErrors.add("Skipped row " + rowIndex + ": " + (rowException.getMessage() != null ? rowException.getMessage() : "Unknown error"));
                     }
                 }
+                
+                Log.d(TAG, "Parsed " + processedRows + " rows, " + skippedRows + " skipped, " + validRecipients.size() + " valid recipients");
 
                 return new CsvParsingResult(
                         recipients,
@@ -108,7 +161,16 @@ public class CsvFileHandler {
             } catch (Exception e) {
                 Log.e(TAG, "Error parsing CSV file", e);
                 parseErrors.add("Failed to parse file: " + e.getMessage());
-                throw new IOException("Failed to parse CSV file: " + e.getMessage(), e);
+                // Instead of throwing, return partial results with error info
+                // This prevents the app from crashing
+                return new CsvParsingResult(
+                    recipients,
+                    validRecipients,
+                    invalidRecipients,
+                    headers,
+                    new CsvDetectionResult(headers, null, null, false, new ArrayList<>(), 0, ""),
+                    parseErrors
+                );
             }
         });
     }

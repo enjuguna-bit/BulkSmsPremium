@@ -54,8 +54,7 @@
             android:textColor="@color/color_on_surface"
             android:lineSpacingExtra="2dp"
             android:background="@drawable/message_preview_background"
-            android:padding="8dp"
-            android:maxHeight="120dp" />
+            android:padding="8dp" />
 
     </LinearLayout>
 
